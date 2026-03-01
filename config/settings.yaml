@@ -12,9 +12,9 @@ alerts:
 
 polling:
   # Global jitter in seconds added to poll intervals (keeps requests unpredictable)
-  jitter_seconds: 120
+  jitter_seconds: 30
   # Minimum seconds between requests to the same domain
-  min_domain_gap_seconds: 30
+  min_domain_gap_seconds: 10
 
 agent:
   # How many consecutive failures before agent logs an error
