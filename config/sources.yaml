@@ -10,6 +10,11 @@ websites:
     poll_interval: 20
     enabled: true
 
+  - name: McNees Knives
+    url: https://mcneesknives.com
+    poll_interval: 15
+    enabled: true
+
   - name: Blade HQ
     url: https://www.bladehq.com
     poll_interval: 20
