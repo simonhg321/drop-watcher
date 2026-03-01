@@ -31,8 +31,8 @@ makers:
     aliases: [spyderco, paramilitary, PM2, native]
     priority: medium
 
-  - name: McNeese Knives
-    aliases: [mcneese]
+  - name: Mcnees Knives
+    aliases: [mcnees, mcnees knives, McNees, Jonathan Mcnees]
     priority: high
 
   - name: Frag Knives
