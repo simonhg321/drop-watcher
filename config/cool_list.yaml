@@ -1,0 +1,65 @@
+# cool_list.yaml
+# Keywords that trigger an alert when found
+# You own this list - add, remove, tweak anytime
+
+keywords:
+
+  # Drop language - always watch for these
+  drops:
+    - drop
+    - available now
+    - in stock
+    - restock
+    - just dropped
+    - new release
+    - limited run
+    - sold out  # useful for tracking demand
+    - pre-order
+    - waitlist
+
+  # Blade steels
+  steels:
+    - magnacut
+    - MagnaCut
+    - damascus
+    - CRK damascus
+    - S35VN
+    - M390
+    - 20CV
+    - CPM-3V
+
+  # Knife types
+  types:
+    - framelock
+    - flipper
+    - folder
+    - folding knife
+    - mid-tech
+    - custom
+
+  # Materials
+  materials:
+    - titanium
+    - carbon fiber
+    - micarta
+    - bronze anodized
+    - zircuti
+    - timascus
+
+  # Steel Flame specific
+  steel_flame:
+    - pendant
+    - bead
+    - clip
+    - molle clip
+    - dog tag
+    - lanyard bead
+    - HGR
+
+  # Collaborations
+  collaborations:
+    - collab
+    - collaboration
+    - x Steel Flame
+    - x Hinderer
+    - Hinderer Steel Flame

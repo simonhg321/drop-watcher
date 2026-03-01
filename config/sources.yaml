@@ -1,0 +1,115 @@
+# sources.yaml
+# Websites and feeds to monitor
+# poll_interval is in minutes - be polite, don't hammer small sites
+
+websites:
+
+  # Dealers
+  - name: KnifeJoy
+    url: https://www.knifejoy.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Blade HQ
+    url: https://www.bladehq.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Knife Center
+    url: https://www.knifecenter.com
+    poll_interval: 20
+    enabled: true
+
+  - name: DLT Trading
+    url: https://www.dlttrading.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Lamnia
+    url: https://www.lamnia.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Nordic Knives
+    url: https://www.nordicknives.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Tactical Elements
+    url: https://www.tacticalelements.com
+    poll_interval: 20
+    enabled: true
+
+  - name: eKnives
+    url: https://www.eknives.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Monkey Edge
+    url: https://www.monkeyedge.com
+    poll_interval: 20
+    enabled: true
+
+  - name: BladeGallery
+    url: https://www.bladegallery.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Nashville Tactical Lounge
+    url: https://www.nashvilletacticallounge.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Steel Addiction
+    url: https://www.steeladdiction.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Northwest Knives
+    url: https://www.northwestknives.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Arizona Custom Knives
+    url: https://www.arizonacustomknives.com
+    poll_interval: 30
+    enabled: true
+
+  # Maker direct sites
+  - name: Steel Flame
+    url: https://www.steelflame.com
+    poll_interval: 15
+    enabled: true
+
+  - name: Strider Knives
+    url: https://www.striderknives.com
+    poll_interval: 15
+    enabled: true
+
+  - name: Spyderco
+    url: https://www.spyderco.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Chris Reeve Knives
+    url: https://www.chrisreeve.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Curtiss Custom Knives
+    url: https://www.curtisscustomknives.com
+    poll_interval: 20
+    enabled: true
+
+# RSS / Social feeds (via RSS bridge or native feed)
+feeds:
+  # Add Instagram/Facebook/YouTube RSS bridge URLs here as you set them up
+  - name: Steel Flame Instagram
+    url: https://rss.app/feeds/PLACEHOLDER_STEEL_FLAME.xml
+    poll_interval: 15
+    enabled: false  # enable once RSS bridge is configured
+
+  - name: Steel Flame YouTube
+    url: https://www.youtube.com/feeds/videos.xml?channel_id=PLACEHOLDER
+    poll_interval: 30
+    enabled: false  # enable once channel ID is found
