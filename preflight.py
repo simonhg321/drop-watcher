@@ -21,7 +21,7 @@ import yaml
 from bs4 import BeautifulSoup
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-BASE_DIR   = BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(BASE_DIR, 'config')
 LOG_DIR    = os.path.join(BASE_DIR, 'logs')
 WWW_DIR    = '/var/www/html'
@@ -316,14 +316,12 @@ def check_site(site, makers_list, keywords):
         drop_phrases = [
             'dropping in', 'available friday', 'available saturday', 'available sunday',
             'available monday', 'available tuesday', 'available wednesday', 'available thursday',
-            'dropping soon', 'mark your calendars', 'coming soon', 'pre-order',
             'launching', 'release date', 'drops at', 'available at noon',
-            'available this week', 'watch for', 'stay tuned'
         ]
         found_announcements = [p for p in drop_phrases if p in text_lower]
         if found_announcements:
             site_result['drop_announcements'] = found_announcements
-            warn(f"  🔥 DROP ANNOUNCEMENT DETECTED: {found_announcements}")
+            warn(f"  🔥 DROP ANNOUNCEMENT on {name}: {found_announcements}")
             tally('warn')
 
         # ── Maker detection ───────────────────────────────────────────────────
