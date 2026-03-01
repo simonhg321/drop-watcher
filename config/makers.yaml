@@ -1,0 +1,50 @@
+# makers.yaml
+# Knife makers and brands to watch
+# Add or remove makers as needed
+
+makers:
+  - name: Strider Knives
+    aliases: [strider, SMF, SMF-T, SnG]
+    priority: high
+
+  - name: Rick Hinderer Knives
+    aliases: [hinderer, RHK, XM-18, XM-24, Eklipse]
+    priority: high
+
+  - name: Chris Reeve Knives
+    aliases: [CRK, Sebenza, Inkosi, Mnandi, Umnumzaan]
+    priority: high
+
+  - name: Steel Flame
+    aliases: [steelflame, steel flame, Derrick Obatake]
+    priority: high
+
+  - name: Demko Knives
+    aliases: [demko, AD20, AD20.5, Andrew Demko]
+    priority: medium
+
+  - name: Medford Knife and Tool
+    aliases: [medford, MKT, Praetorian]
+    priority: medium
+
+  - name: Spyderco
+    aliases: [spyderco, paramilitary, PM2, native]
+    priority: medium
+
+  - name: McNeese Knives
+    aliases: [mcneese]
+    priority: high
+
+  - name: Frag Knives
+    aliases: [frag, fragknives]
+    priority: medium
+
+  - name: Monkey Edge
+    aliases: [monkey edge, monkeyedge]
+    priority: medium
+
+# Collaborations to watch specifically
+collaborations:
+  - makers: [Hinderer, Steel Flame]
+    aliases: [hinderer steel flame, RHK x Steel Flame]
+    priority: critical

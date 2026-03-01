@@ -1,0 +1,23 @@
+# settings.yaml
+# Global settings for Drop Watcher
+
+logging:
+  log_dir: /home/shg/drop-watcher/logs
+  log_file: drops.jsonl
+  max_size_mb: 50
+
+alerts:
+  # Minimum priority level to log: low, medium, high, critical
+  min_priority: medium
+
+polling:
+  # Global jitter in seconds added to poll intervals (keeps requests unpredictable)
+  jitter_seconds: 120
+  # Minimum seconds between requests to the same domain
+  min_domain_gap_seconds: 30
+
+agent:
+  # How many consecutive failures before agent logs an error
+  failure_threshold: 3
+  # Seconds to wait before retrying after a failure
+  retry_delay_seconds: 60
