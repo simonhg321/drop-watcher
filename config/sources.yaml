@@ -18,7 +18,7 @@ websites:
   - name: Blade HQ
     url: https://www.bladehq.com
     poll_interval: 20
-    enabled: true
+    enabled: false # 403 blocking scrapers
 
   - name: Knife Center
     url: https://www.knifecenter.com
@@ -58,7 +58,7 @@ websites:
   - name: BladeGallery
     url: https://www.bladegallery.com
     poll_interval: 30
-    enabled: true
+    enabled: false # 403 blocking scrappers
 
   - name: Nashville Tactical Lounge
     url: https://www.nashvilletacticallounge.com
