@@ -49,6 +49,9 @@ def load_recent_alerts(hours=48):
                 continue
             try:
                 alert = json.loads(line)
+                # Skip raw keyword-only alerts — AI enriched only
+                if not alert.get("notable_items") and not alert.get("drop_announcement", {}).get("detected") and not alert.get("page_summary"):
+                    continue
                 ts_str = alert.get('timestamp', '')
                 if ts_str:
                     ts = datetime.fromisoformat(ts_str)
