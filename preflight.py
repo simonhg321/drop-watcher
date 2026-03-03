@@ -17,8 +17,22 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import requests
+import ssl
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 import yaml
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from bs4 import BeautifulSoup
+class PermissiveSSLAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context()
+        ctx.set_ciphers('DEFAULT:@SECLEVEL=1')
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
@@ -265,7 +279,11 @@ def check_site(site, makers_list, keywords):
     # ── Main page fetch ───────────────────────────────────────────────────────
     start = time.time()
     try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
+        ssl_permissive = site.get('ssl_permissive', False)
+        session = requests.Session()
+        if ssl_permissive:
+            session.mount('https://', PermissiveSSLAdapter())
+        response = session.get(url, headers=HEADERS, timeout=15, verify=not ssl_permissive)
         elapsed_ms = int((time.time() - start) * 1000)
         site_result['status_code'] = response.status_code
         site_result['response_time_ms'] = elapsed_ms
