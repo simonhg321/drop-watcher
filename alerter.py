@@ -142,8 +142,7 @@ def format_immediate_email(alert):
     notable_html = ''
     if notable_items:
         items = ''.join(f'<li style="margin:4px 0">{item}</li>' for item in notable_items)
-        notable_html = f'<h3 style="color:#d0d0d0;margin:16px 0 8px">Notable Items</h3><ul style="color:#d0d0d0;padding-left:20px">{items}</ul>'
-
+        notable_html = f'<ul style="color:#d0d0d0;padding-left:20px">{items}</ul><div style="margin-top:8px"><a href="{url}" style="color:#e67e22">{url}</a></div>'
     drop_html = ''
     if drop and drop.get('detected'):
         drop_html = f"""
@@ -154,6 +153,7 @@ def format_immediate_email(alert):
                 <strong>What:</strong> {drop.get('description', '')}<br>
                 <strong>When:</strong> {drop.get('timing', 'unknown')}<br>
                 <strong>Confidence:</strong> {drop.get('confidence', '')}
+                <br><a href="{url}" style="color:#e67e22">{url}</a>
             </div>
         </div>"""
 
@@ -174,9 +174,10 @@ def format_immediate_email(alert):
         </div>
 
         <div style="background:#1c1c1c;padding:16px;margin-bottom:16px">
-            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:4px">SITE</div>
-            <a href="{url}" style="color:#d0d0d0;font-size:16px;text-decoration:none">{source}</a>
-            <div style="margin-top:8px"><a href="{url}" style="color:#e67e22;font-size:12px">{url}</a></div>
+            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:8px">SITE</div>
+            <div style="font-size:20px;font-weight:bold;margin-bottom:12px">{source}</div>
+            <a href="{url}" style="display:inline-block;background:#c0392b;color:#ffffff;font-size:14px;font-weight:bold;letter-spacing:2px;padding:12px 24px;text-decoration:none;margin-bottom:8px">→ GO TO SITE NOW</a>
+            <div style="margin-top:8px"><a href="{url}" style="color:#888;font-size:11px">{url}</a></div>
         </div>
 
         {drop_html}
