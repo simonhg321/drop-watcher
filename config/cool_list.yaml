@@ -17,6 +17,14 @@ keywords:
     - pre-order
     - waitlist
 
+  # Boss list
+  boss:
+    - ubiquiti
+    - unifi
+    - uvc-g6
+    - add to cart
+    - coming soon
+
   # Blade steels
   steels:
     - magnacut

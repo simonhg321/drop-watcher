@@ -4,23 +4,51 @@
 
 makers:
   - name: Strider Knives
-    aliases: [strider, SMF, SMF-T, SnG, Frag Tanto SnG]
+    aliases: [strider, SMF, SMF-T, SnG, Tanto]
     priority: high
 
-  - name: Rick Hinderer Knives
-    aliases: [hinderer, RHK, XM-18, XM-24, Eklipse]
+  - name: Hinderer Knives
+    aliases: [hinderer, rick hinderer, rhk]
     priority: high
+    notable_models:
+      critical:
+        - steel flame
+        - steel flame collab
+        - xm-18 steel flame
+        - xm-24 steel flame
+      high:
+        - xm-18
+        - xm-24
+        - xm-30
+        - halftrack
+        - firetruck
+      medium:
+        - jurassic
+        - eklipse
+    notable_materials:
+      critical:
+        - wood
+        - brass
+        - copper
+        - walnut
+      common:
+        - titanium
+        - g10
 
   - name: Chris Reeve Knives
-    aliases: [CRK, Sebenza, Inkosi, Mnandi, Umnumzaan]
+    aliases: [crk, chris reeve, sebenza, inkosi, impinda, mnadi, umnumzaan, green beret, pacific, backpacker, inyoni]
     priority: high
+    notable_models:
+      critical:
+        - damascus
+        - annual
 
   - name: Steel Flame
     aliases: [steelflame, steel flame, Derrick Obatake]
     priority: high
 
   - name: Demko Knives
-    aliases: [demko, AD20, AD20.5, Andrew Demko]
+    aliases: [demko, AD20, Andrew Demko]
     priority: medium
 
   - name: Medford Knife and Tool
@@ -31,9 +59,28 @@ makers:
     aliases: [spyderco, paramilitary, PM2, native]
     priority: medium
 
-  - name: Mcnees Knives
-    aliases: [mcnees, mcnees knives, McNees, Jonathan Mcnees]
+  - name: McNees Knives
+    aliases: [mcnees, mcnees knives, kyle mcnees]
     priority: high
+    notable_models:
+      critical:
+        - mac2 skeletonized
+        - mac2 skel
+        - hand grind
+        - hand ground
+      high:
+        - mac2
+        - mac2.5
+        - dixon
+      medium:
+        - mac3
+
+  - name: Starlingear
+    aliases: [starlingear, starling gear]
+    priority: high
+    notable_models:
+      critical:
+        - all  # everything from Starlingear is notable
 
   - name: Frag Knives
     aliases: [frag, fragknives]
@@ -41,10 +88,20 @@ makers:
 
   - name: Monkey Edge
     aliases: [monkey edge, monkeyedge]
-    priority: medium
+    priority: high
+    notable_models:
+      critical:
+        - frag
+        - crk
+        - zaan
+        - custom
 
 # Collaborations to watch specifically
 collaborations:
   - makers: [Hinderer, Steel Flame]
     aliases: [hinderer steel flame, RHK x Steel Flame]
+    priority: critical
+
+  - makers: [Wilson Combat, Chris Reeve Knives]
+    aliases: [wilson combat crk, wilson combat sebenza, WC sebenza]
     priority: critical
