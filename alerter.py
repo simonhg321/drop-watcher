@@ -26,6 +26,7 @@ SMTP_PORT     = 587
 SMTP_USER     = os.environ.get('SMTP_USER')
 SMTP_PASSWORD = os.environ.get('SMTP_APP_PASSWORD')
 ALERT_TO      = os.environ.get('SMTP_USER')  # send to yourself
+ALERT_TO_BOSS = os.environ.get('ALERT_TO_BOSS')  # boss gets Ubiquiti alerts only
 
 LOG_DIR       = os.path.join(BASE_DIR, 'logs')
 DROPS_LOG     = os.path.join(LOG_DIR, 'drops.jsonl')
@@ -33,11 +34,14 @@ SENT_LOG      = os.path.join(LOG_DIR, 'alerts_sent.jsonl')
 
 IMMEDIATE_PRIORITIES = {'critical', 'high'}
 
+# Sources that trigger boss notifications
+BOSS_SOURCES = {'Ubiquiti UVC-G6-180 Camera'}
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 log = logging.getLogger('alerter')
 
 # ── SMTP sender ───────────────────────────────────────────────────────────────
-def send_email(subject, body_html, body_text):
+def send_email(subject, body_html, body_text, extra_recipients=None):
     if not SMTP_USER or not SMTP_PASSWORD:
         log.error("SMTP credentials not configured in .env")
         return False
@@ -45,7 +49,10 @@ def send_email(subject, body_html, body_text):
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From']    = f"Drop Watcher <{SMTP_USER}>"
-    msg['To']      = ALERT_TO
+    recipients = [ALERT_TO]
+    if extra_recipients:
+        recipients.extend(extra_recipients)
+    msg['To'] = ', '.join(recipients)
 
     msg.attach(MIMEText(body_text, 'plain'))
     msg.attach(MIMEText(body_html, 'html'))
@@ -55,7 +62,7 @@ def send_email(subject, body_html, body_text):
             server.ehlo()
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_USER, ALERT_TO, msg.as_string())
+            server.sendmail(SMTP_USER, recipients, msg.as_string())
         log.info(f"Email sent: {subject}")
         return True
     except Exception as e:
@@ -142,7 +149,8 @@ def format_immediate_email(alert):
     notable_html = ''
     if notable_items:
         items = ''.join(f'<li style="margin:4px 0">{item}</li>' for item in notable_items)
-        notable_html = f'<ul style="color:#d0d0d0;padding-left:20px">{items}</ul><div style="margin-top:8px"><a href="{url}" style="color:#e67e22">{url}</a></div>'
+        notable_html = f'<h3 style="color:#d0d0d0;margin:16px 0 8px">Notable Items</h3><ul style="color:#d0d0d0;padding-left:20px">{items}</ul>'
+
     drop_html = ''
     if drop and drop.get('detected'):
         drop_html = f"""
@@ -153,7 +161,6 @@ def format_immediate_email(alert):
                 <strong>What:</strong> {drop.get('description', '')}<br>
                 <strong>When:</strong> {drop.get('timing', 'unknown')}<br>
                 <strong>Confidence:</strong> {drop.get('confidence', '')}
-                <br><a href="{url}" style="color:#e67e22">{url}</a>
             </div>
         </div>"""
 
@@ -299,7 +306,8 @@ def send_immediate_alerts():
                     continue
 
                 subject, body_html, body_text = format_immediate_email(alert)
-                if send_email(subject, body_html, body_text):
+                extra = [ALERT_TO_BOSS] if ALERT_TO_BOSS and alert.get('source') in BOSS_SOURCES else None
+                if send_email(subject, body_html, body_text, extra_recipients=extra):
                     mark_sent(alert_id, 'immediate')
                     sent_count += 1
 
