@@ -54,6 +54,7 @@ websites:
     url: https://www.monkeyedge.com
     poll_interval: 20
     enabled: true
+    ssl_permissive: true
 
   - name: BladeGallery
     url: https://www.bladegallery.com

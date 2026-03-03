@@ -13,8 +13,10 @@ import random
 import logging
 import hashlib
 from datetime import datetime, timezone
-
 import requests
+import ssl
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 import yaml
 from bs4 import BeautifulSoup
 
@@ -75,7 +77,6 @@ def build_keywords(cool_list, makers):
 def fingerprint(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
-
 # ── Match keywords in text ────────────────────────────────────────────────────
 def find_matches(text, keywords):
     text_lower = text.lower()
@@ -98,10 +99,22 @@ def write_alert(settings, alert):
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
 }
+class PermissiveSSLAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context()
+        ctx.set_ciphers('DEFAULT:@SECLEVEL=1')
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
 
-def fetch_page(url):
+def fetch_page(url, ssl_permissive=False):
     try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
+        session = requests.Session()
+        if ssl_permissive:
+            session.mount('https://', PermissiveSSLAdapter())
+            log.info(f"Using permissive SSL for {url}")
+        response = session.get(url, headers=HEADERS, timeout=15, verify=not ssl_permissive)
         response.raise_for_status()
         return response.text
     except requests.RequestException as e:
@@ -139,6 +152,7 @@ def run():
             name     = site['name']
             url      = site['url']
             interval = site.get('poll_interval', 20) * 60  # convert to seconds
+            ssl_permissive = site.get('ssl_permissive', False)
 
             # Check if it's time to poll this site
             last_checked = page_cache.get(url, {}).get('last_checked', 0)
@@ -151,7 +165,7 @@ def run():
             time.sleep(sleep_time)
 
             # Fetch
-            html = fetch_page(url)
+            html = fetch_page(url, ssl_permissive=ssl_permissive)
             if html is None:
                 failure_count[url] = failure_count.get(url, 0) + 1
                 if failure_count[url] >= fail_thresh:
