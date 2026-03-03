@@ -32,7 +32,7 @@ websites:
 
   - name: Lamnia
     url: https://www.lamnia.com
-    poll_interval: 30
+    poll_interval: 60
     enabled: true
 
   - name: Nordic Knives
