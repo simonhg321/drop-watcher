@@ -30,6 +30,21 @@ websites:
     poll_interval: 20
     enabled: true
 
+  - name: DLT Trading — Hinderer
+    url: https://www.dlttrading.com/hinderer
+    poll_interval: 15
+    enabled: true
+
+  - name: DLT Trading — CRK
+    url: https://www.dlttrading.com/chris-reeve-knives
+    poll_interval: 15
+    enabled: true
+
+  - name: DLT Trading — New Arrivals
+    url: https://www.dlttrading.com/new-arrivals
+    poll_interval: 10
+    enabled: true
+
   - name: Lamnia
     url: https://www.lamnia.com
     poll_interval: 60
@@ -106,6 +121,13 @@ websites:
     url: https://www.curtisscustomknives.com
     poll_interval: 20
     enabled: true
+# ── Boss Watchlist ──────────────────────────────────────────────────────────
+  - name: Ubiquiti UVC-G6-180 Camera
+    url: https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180
+    poll_interval: 15
+    enabled: true
+    site_type: product
+    notes: Boss wants white version - watch for Coming Soon to change to Add to Cart
 
 # RSS / Social feeds (via RSS bridge or native feed)
 feeds:
@@ -120,10 +142,3 @@ feeds:
     poll_interval: 30
     enabled: false  # enable once channel ID is found
 
-# ── Boss Watchlist ──────────────────────────────────────────────────────────
-  - name: Ubiquiti UVC-G6-180 Camera
-    url: https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180
-    poll_interval: 15
-    enabled: true
-    site_type: product
-    notes: Boss wants white version - watch for Coming Soon to change to Add to Cart
