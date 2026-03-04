@@ -31,7 +31,7 @@ websites:
     enabled: true
 
   - name: DLT Trading — Hinderer
-    url: https://www.dlttrading.com/hinderer
+    url: https://www.dlttrading.com/rick-hinderer-knives
     poll_interval: 15
     enabled: true
 
