@@ -96,6 +96,37 @@ websites:
     poll_interval: 30
     enabled: true
 
+  - name: Thunderbird Gear
+    url: https://thunderbirdgear.ca
+    poll_interval: 20
+    enabled: true
+
+  - name: Knife Art
+    url: https://www.knifeart.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Knives Ship Free
+    url: https://www.knivesshipfree.com
+    poll_interval: 20
+    enabled: true
+
+  - name: African Sporting Creations
+    url: https://www.africansportingcreations.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Southern Edges
+    url: https://southernedges.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Arno Bernard Knives
+    url: https://arnobernard.com
+    poll_interval: 30
+    enabled: true
+
+
   # Maker direct sites
   - name: Steel Flame
     url: https://www.steelflame.com
