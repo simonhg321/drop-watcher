@@ -18,15 +18,16 @@ from dotenv import load_dotenv
 
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, '.env'))
-
+load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 # ── Config ────────────────────────────────────────────────────────────────────
 SMTP_HOST     = 'smtp.gmail.com'
 SMTP_PORT     = 587
 SMTP_USER     = os.environ.get('SMTP_USER')
 SMTP_PASSWORD = os.environ.get('SMTP_APP_PASSWORD')
 ALERT_TO      = os.environ.get('SMTP_USER')  # send to yourself
-ALERT_TO_BOSS = os.environ.get('ALERT_TO_BOSS')  # boss gets Ubiquiti alerts only
+ALERT_TO_BOSS    = os.environ.get('ALERT_TO_BOSS')  # boss gets Ubiquiti alerts only
+ALERT_TO_FRIENDS_RAW = os.environ.get('ALERT_TO_FRIENDS', '')
+ALERT_TO_FRIENDS = [e.strip() for e in ALERT_TO_FRIENDS_RAW.split(',') if e.strip()]
 
 LOG_DIR       = os.path.join(BASE_DIR, 'logs')
 DROPS_LOG     = os.path.join(LOG_DIR, 'drops.jsonl')
@@ -306,7 +307,9 @@ def send_immediate_alerts():
                     continue
 
                 subject, body_html, body_text = format_immediate_email(alert)
-                extra = [ALERT_TO_BOSS] if ALERT_TO_BOSS and alert.get('source') in BOSS_SOURCES else None
+                extra = list(ALERT_TO_FRIENDS)
+                if ALERT_TO_BOSS and alert.get('source') in BOSS_SOURCES:
+                    extra.append(ALERT_TO_BOSS)
                 if send_email(subject, body_html, body_text, extra_recipients=extra):
                     mark_sent(alert_id, 'immediate')
                     sent_count += 1
@@ -342,7 +345,8 @@ def send_daily_digest():
                 continue
 
     subject, body_html, body_text = format_digest_email(alerts)
-    if send_email(subject, body_html, body_text):
+    extra = list(ALERT_TO_FRIENDS) if ALERT_TO_FRIENDS else None
+    if send_email(subject, body_html, body_text, extra_recipients=extra):
         log.info(f"Daily digest sent — {len(alerts)} alerts")
 
 # ── Test ──────────────────────────────────────────────────────────────────────

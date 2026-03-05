@@ -41,7 +41,7 @@ websites:
     enabled: true
 
   - name: DLT Trading — New Arrivals
-    url: https://www.dlttrading.com/new-arrivals
+    url: https://www.dlttrading.com/newest-arrivals
     poll_interval: 10
     enabled: true
 
