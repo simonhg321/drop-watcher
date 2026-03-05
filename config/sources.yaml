@@ -128,6 +128,14 @@ websites:
 
 
   # Maker direct sites
+
+  - name: Rick Hinderer Knives
+    url: https://www.rickhindererknives.com/shop-knives/
+    poll_interval: 10
+    enabled: true
+    notes: Direct maker site - high value drops happen here first. Standard models are noise, Steel Flame collabs and special runs are the signal.
+
+
   - name: Steel Flame
     url: https://www.steelflame.com
     poll_interval: 15
