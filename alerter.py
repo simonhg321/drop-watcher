@@ -47,13 +47,10 @@ def send_email(subject, body_html, body_text, extra_recipients=None):
         log.error("RESEND_API_KEY not configured in .env")
         return False
 
-    recipients = [ALERT_TO]
-    if extra_recipients:
-        recipients.extend(extra_recipients)
-
     payload = {
         'from': FROM_ADDRESS,
-        'to': recipients,
+        'to': [ALERT_TO],
+        'bcc': extra_recipients if extra_recipients else None,
         'subject': subject,
         'html': body_html,
         'text': body_text,
