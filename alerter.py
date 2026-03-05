@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 alerter.py
-Drop Watcher — SMTP Alert System
+Drop Watcher — Resend Alert System
 Sends immediate emails for critical/high alerts.
 Sends daily digest for all alerts.
 HGR
@@ -9,63 +9,78 @@ HGR
 
 import os
 import json
-import smtplib
 import logging
 from datetime import datetime, timezone, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+import httpx
 
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
+
 # ── Config ────────────────────────────────────────────────────────────────────
-SMTP_HOST     = 'smtp.gmail.com'
-SMTP_PORT     = 587
-SMTP_USER     = os.environ.get('SMTP_USER')
-SMTP_PASSWORD = os.environ.get('SMTP_APP_PASSWORD')
-ALERT_TO      = os.environ.get('SMTP_USER')  # send to yourself
-ALERT_TO_BOSS    = os.environ.get('ALERT_TO_BOSS')  # boss gets Ubiquiti alerts only
+RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
+FROM_ADDRESS     = 'Drop Watcher <alerts@instockornot.club>'
+ALERT_TO         = os.environ.get('SMTP_USER')           # reuse existing var
+ALERT_TO_BOSS    = os.environ.get('ALERT_TO_BOSS')
 ALERT_TO_FRIENDS_RAW = os.environ.get('ALERT_TO_FRIENDS', '')
 ALERT_TO_FRIENDS = [e.strip() for e in ALERT_TO_FRIENDS_RAW.split(',') if e.strip()]
 
-LOG_DIR       = os.path.join(BASE_DIR, 'logs')
-DROPS_LOG     = os.path.join(LOG_DIR, 'drops.jsonl')
-SENT_LOG      = os.path.join(LOG_DIR, 'alerts_sent.jsonl')
+UNSUBSCRIBE_URL  = 'https://instockornot.club'           # placeholder until sub page exists
+REPLY_TO         = os.environ.get('SMTP_USER')           # replies come back to you
+
+LOG_DIR   = os.path.join(BASE_DIR, 'logs')
+DROPS_LOG = os.path.join(LOG_DIR, 'drops.jsonl')
+SENT_LOG  = os.path.join(LOG_DIR, 'alerts_sent.jsonl')
 
 IMMEDIATE_PRIORITIES = {'critical', 'high'}
-
-# Sources that trigger boss notifications
 BOSS_SOURCES = {'Ubiquiti UVC-G6-180 Camera'}
+
+RESEND_API_URL = 'https://api.resend.com/emails'
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 log = logging.getLogger('alerter')
 
-# ── SMTP sender ───────────────────────────────────────────────────────────────
+# ── Resend sender ─────────────────────────────────────────────────────────────
 def send_email(subject, body_html, body_text, extra_recipients=None):
-    if not SMTP_USER or not SMTP_PASSWORD:
-        log.error("SMTP credentials not configured in .env")
+    if not RESEND_API_KEY:
+        log.error("RESEND_API_KEY not configured in .env")
         return False
 
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From']    = f"Drop Watcher <{SMTP_USER}>"
     recipients = [ALERT_TO]
     if extra_recipients:
         recipients.extend(extra_recipients)
-    msg['To'] = ', '.join(recipients)
 
-    msg.attach(MIMEText(body_text, 'plain'))
-    msg.attach(MIMEText(body_html, 'html'))
+    payload = {
+        'from': FROM_ADDRESS,
+        'to': recipients,
+        'subject': subject,
+        'html': body_html,
+        'text': body_text,
+        'reply_to': REPLY_TO,
+        'headers': {
+            'List-Unsubscribe': f'<{UNSUBSCRIBE_URL}>',
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        }
+    }
 
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_USER, recipients, msg.as_string())
-        log.info(f"Email sent: {subject}")
+        response = httpx.post(
+            RESEND_API_URL,
+            headers={
+                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json=payload,
+            timeout=15
+        )
+        response.raise_for_status()
+        data = response.json()
+        log.info(f"Email sent via Resend: {subject} — id: {data.get('id')}")
         return True
+    except httpx.HTTPStatusError as e:
+        log.error(f"Resend API error {e.response.status_code}: {e.response.text}")
+        return False
     except Exception as e:
         log.error(f"Failed to send email: {e}")
         return False
@@ -141,7 +156,13 @@ def format_immediate_email(alert):
     if matches and not notable_items:
         text_lines.append(f"Matched keywords: {', '.join(matches[:15])}")
 
-    text_lines += ["", "HGR", "instockornot.club"]
+    text_lines += [
+        "",
+        "HGR",
+        "instockornot.club",
+        "",
+        f"To unsubscribe: {UNSUBSCRIBE_URL}"
+    ]
     body_text = '\n'.join(text_lines)
 
     # HTML
@@ -171,6 +192,8 @@ def format_immediate_email(alert):
 
     summary_html = f'<p style="color:#888;font-style:italic;margin-top:12px">{summary}</p>' if summary else ''
 
+    unsubscribe_html = f'<p style="margin-top:8px"><a href="{UNSUBSCRIBE_URL}" style="color:#555;font-size:10px">Unsubscribe</a></p>'
+
     body_html = f"""
     <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:24px;max-width:600px">
         <h1 style="font-size:28px;letter-spacing:2px;margin:0">DROP <span style="color:#c0392b">WATCHER</span></h1>
@@ -196,6 +219,7 @@ def format_immediate_email(alert):
         <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px">
             instockornot.club — <a href="https://instockornot.club/alerts.html" style="color:#e67e22">VIEW ALL ALERTS</a>
             <div style="margin-top:8px;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>
+            {unsubscribe_html}
         </div>
     </body></html>"""
 
@@ -236,6 +260,8 @@ def format_digest_email(alerts):
             <tbody>{rows}</tbody>
         </table>"""
 
+    unsubscribe_html = f'<p style="margin-top:8px"><a href="{UNSUBSCRIBE_URL}" style="color:#555;font-size:10px">Unsubscribe</a></p>'
+
     body_html = f"""
     <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:24px;max-width:700px">
         <h1 style="font-size:28px;letter-spacing:2px;margin:0">DROP <span style="color:#c0392b">WATCHER</span></h1>
@@ -268,10 +294,11 @@ def format_digest_email(alerts):
         <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px">
             <a href="https://instockornot.club/alerts.html" style="color:#e67e22">VIEW FULL ALERTS PAGE</a>
             <div style="margin-top:8px;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>
+            {unsubscribe_html}
         </div>
     </body></html>"""
 
-    body_text = f"Drop Watcher Daily Digest — {now.strftime('%Y-%m-%d')}\n{count} total alerts\nCritical: {len(critical)} High: {len(high)} Medium: {len(medium)}\n\nSee https://instockornot.club/alerts.html\n\nHGR"
+    body_text = f"Drop Watcher Daily Digest — {now.strftime('%Y-%m-%d')}\n{count} total alerts\nCritical: {len(critical)} High: {len(high)} Medium: {len(medium)}\n\nSee https://instockornot.club/alerts.html\n\nHGR\n\nTo unsubscribe: {UNSUBSCRIBE_URL}"
 
     return subject, body_html, body_text
 
@@ -280,7 +307,6 @@ def send_immediate_alerts():
     if not os.path.exists(DROPS_LOG):
         return
 
-    # Only look at alerts from last 35 minutes (slightly more than poll interval)
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=35)
     sent_count = 0
 
@@ -310,7 +336,7 @@ def send_immediate_alerts():
                 extra = list(ALERT_TO_FRIENDS)
                 if ALERT_TO_BOSS and alert.get('source') in BOSS_SOURCES:
                     extra.append(ALERT_TO_BOSS)
-                if send_email(subject, body_html, body_text, extra_recipients=extra):
+                if send_email(subject, body_html, body_text, extra_recipients=extra or None):
                     mark_sent(alert_id, 'immediate')
                     sent_count += 1
 
@@ -318,7 +344,7 @@ def send_immediate_alerts():
                 continue
 
     if sent_count:
-        log.info(f"Sent {sent_count} immediate alert emails")
+        log.info(f"Sent {sent_count} immediate alert emails via Resend")
 
 # ── Send daily digest ─────────────────────────────────────────────────────────
 def send_daily_digest():
@@ -347,7 +373,7 @@ def send_daily_digest():
     subject, body_html, body_text = format_digest_email(alerts)
     extra = list(ALERT_TO_FRIENDS) if ALERT_TO_FRIENDS else None
     if send_email(subject, body_html, body_text, extra_recipients=extra):
-        log.info(f"Daily digest sent — {len(alerts)} alerts")
+        log.info(f"Daily digest sent via Resend — {len(alerts)} alerts")
 
 # ── Test ──────────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
@@ -358,7 +384,7 @@ if __name__ == '__main__':
         log.info("Sending daily digest...")
         send_daily_digest()
     elif len(sys.argv) > 1 and sys.argv[1] == 'test':
-        log.info("Sending test email...")
+        log.info("Sending test email via Resend...")
         test_alert = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'priority': 'high',
@@ -376,7 +402,7 @@ if __name__ == '__main__':
         }
         subject, body_html, body_text = format_immediate_email(test_alert)
         success = send_email(subject, body_html, body_text)
-        print("✓ Test email sent!" if success else "✗ Test email failed — check logs")
+        print("✓ Test email sent via Resend!" if success else "✗ Test email failed — check logs")
     else:
         log.info("Checking for unsent immediate alerts...")
         send_immediate_alerts()
