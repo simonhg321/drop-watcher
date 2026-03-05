@@ -36,12 +36,45 @@ makers:
         - g10
 
   - name: Chris Reeve Knives
-    aliases: [crk, chris reeve, sebenza, inkosi, impinda, mnadi, umnumzaan, green beret, pacific, backpacker, inyoni]
+    aliases: [crk, chris reeve, sebenza, inkosi, impinda, mnandi, umnumzaan, inyoni, pacific, backpacker, umfaan, nyala, ti-lock, sikayo, yarborough, sable, shadow, mountaineer, ubejane, neil roberts warrior, green beret, professional soldier]
     priority: high
     notable_models:
       critical:
         - damascus
+        - ladder damascus
+        - raindrop damascus
+        - boomerang damascus
         - annual
+        - anniversary
+        - unique
+        - yarborough
+        - neil roberts warrior
+        - ti-lock
+        - one piece
+        - standard
+      high:
+        - umfaan
+        - nyala
+        - sikayo
+        - inyoni
+        - sable
+        - shadow
+        - mountaineer
+        - ubejane
+        - pacific
+        - green beret
+      medium:
+        - sebenza 31
+        - large sebenza
+        - small sebenza
+        - umnumzaan
+        - inkosi
+        - mnandi
+        - impinda
+        - insingo
+        - inlay
+        - box elder
+        - macassar ebony
 
   - name: Steel Flame
     aliases: [steelflame, steel flame, Derrick Obatake]
