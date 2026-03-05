@@ -4,6 +4,61 @@
 
 keywords:
 
+  # Hinderer specific - separates special runs from production noise
+  hinderer:
+    # Special editions and finishes - these are the signal
+    - working finish
+    - battle bronze
+    - fatty
+    - skinny
+    - fatty wharncliffe
+    - fatty drop point
+    - slicer
+    - spanto
+    - half track
+    - water buffalo
+    - blue titanium
+    - stonewash titanium
+    - bronze titanium
+    - copper
+    - brass
+    - westcliffe
+    - jurassic
+    - eklipse
+    - xm-24
+    - limited
+    - exclusive
+    - special run
+    - collaboration
+    - steel flame
+    - gen 6
+    - gen6
+
+  # High value steel upgrades on Hinderer - production gets S45VN, these are special
+  hinderer_steels:
+    - 20cv          # upgrade steel on special runs
+    - magnacut      # rare on Hinderer
+    - m390          # older exclusive runs
+    - cruwear       # very rare
+    - maxamet       # extremely rare
+
+  # Arno Bernard Knives - under the radar now, won't be for long
+  # Medium/High priority - damascus availability is finite and a buy signal
+  arno_bernard:
+    - turaco        # newest model - watch closely
+    - rinkhals      # solid piece, nice with dama
+    - imamba        # same
+    - orca          # same
+    - arno bernard  # catch-all for any new model announcement
+
+  # Arno Bernard damascus - this is the buy signal, stock is finite
+  arno_bernard_dama:
+    - damascus      # on arnobernard.com specifically this matters a lot
+    - dama
+    - ladder damascus
+    - random damascus
+    - stainless damascus
+
   # Drop language - always watch for these
   drops:
     - drop
