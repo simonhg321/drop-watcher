@@ -8,15 +8,20 @@ makers:
     priority: high
 
   - name: Arno Bernard Knives
-    aliases: [arno bernard, arnobernard, rinkhals, imamba, turaco]
-    priority: high
+    aliases: [arno bernard, arnobernard, rinkhals, imamba, turaco, orca]
+    priority: medium
     notable_models:
-      critical:
-        - damascus
+      high:
+        - turaco          # newest model, watch closely
         - rinkhals
         - imamba
-        - turaco
-  
+        - orca
+      critical:
+        - damascus        # finite stock, buy signal
+        - damasteel       # same
+        - ladder damascus
+        - stainless damascus
+
   - name: Hinderer Knives
     aliases: [hinderer, rick hinderer, rhk]
     priority: high
@@ -26,12 +31,21 @@ makers:
         - steel flame collab
         - xm-18 steel flame
         - xm-24 steel flame
+        - fatty
+        - fatty wharncliffe
+        - fatty drop point
+        - working finish
+        - battle bronze
       high:
         - xm-18
         - xm-24
         - xm-30
         - halftrack
         - firetruck
+        - skinny
+        - slicer
+        - spanto
+        - westcliffe
       medium:
         - jurassic
         - eklipse
@@ -41,6 +55,9 @@ makers:
         - brass
         - copper
         - walnut
+        - 20cv           # upgrade steel, special runs only
+        - magnacut        # rare on Hinderer
+        - cruwear         # very rare
       common:
         - titanium
         - g10
@@ -138,6 +155,10 @@ makers:
         - crk
         - zaan
         - custom
+
+  - name: Rick Hinderer Knives
+    aliases: [rick hinderer knives, rickhindererknives]
+    priority: high
 
 # Collaborations to watch specifically
 collaborations:
