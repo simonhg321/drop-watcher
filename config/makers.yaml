@@ -7,6 +7,16 @@ makers:
     aliases: [strider, SMF, SMF-T, SnG, Tanto]
     priority: high
 
+  - name: Arno Bernard Knives
+    aliases: [arno bernard, arnobernard, rinkhals, imamba, turaco]
+    priority: high
+    notable_models:
+      critical:
+        - damascus
+        - rinkhals
+        - imamba
+        - turaco
+  
   - name: Hinderer Knives
     aliases: [hinderer, rick hinderer, rhk]
     priority: high
