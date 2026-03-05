@@ -3,36 +3,47 @@
 web_watcher.py
 Drop Watcher — Web Agent
 Monitors websites for knife and Steel Flame drops.
+SSL permissive support + AI interpretation layer.
 HGR
 """
 
 import os
+import sys
+import ssl
 import json
 import time
 import random
 import logging
 import hashlib
 from datetime import datetime, timezone
+
 import requests
-import ssl
+import yaml
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
-import yaml
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from bs4 import BeautifulSoup
 
-# ── Paths ────────────────────────────────────────────────────────────────────
-BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_DIR  = os.path.join(BASE_DIR, 'config')
-LOG_DIR     = os.path.join(BASE_DIR, 'logs')
+# ── Load environment ──────────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-SOURCES_FILE    = os.path.join(CONFIG_DIR, 'sources.yaml')
-COOL_LIST_FILE  = os.path.join(CONFIG_DIR, 'cool_list.yaml')
-MAKERS_FILE     = os.path.join(CONFIG_DIR, 'makers.yaml')
-SETTINGS_FILE   = os.path.join(CONFIG_DIR, 'settings.yaml')
+# ── Add agents dir to path so we can import ai_interpreter ───────────────────
+sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
+from ai_interpreter import analyze_page
 
-# ── Logging setup ─────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
+CONFIG_DIR = os.path.join(BASE_DIR, 'config')
+LOG_DIR    = os.path.join(BASE_DIR, 'logs')
+
+SOURCES_FILE   = os.path.join(CONFIG_DIR, 'sources.yaml')
+COOL_LIST_FILE = os.path.join(CONFIG_DIR, 'cool_list.yaml')
+MAKERS_FILE    = os.path.join(CONFIG_DIR, 'makers.yaml')
+SETTINGS_FILE  = os.path.join(CONFIG_DIR, 'settings.yaml')
+
+# ── Logging ───────────────────────────────────────────────────────────────────
 os.makedirs(LOG_DIR, exist_ok=True)
 
 logging.basicConfig(
@@ -45,47 +56,85 @@ logging.basicConfig(
 )
 log = logging.getLogger('web_watcher')
 
-
-# ── Config loader ─────────────────────────────────────────────────────────────
+# ── YAML loader ───────────────────────────────────────────────────────────────
 def load_yaml(path):
     with open(path, 'r') as f:
         return yaml.safe_load(f)
 
+# ── Build makers list for AI ──────────────────────────────────────────────────
+def build_makers_list(makers_config):
+    return [maker['name'] for maker in makers_config.get('makers', [])]
 
-# ── Build flat keyword list ───────────────────────────────────────────────────
-def build_keywords(cool_list, makers):
+# ── Build keyword list for pre-filter ────────────────────────────────────────
+def build_keywords(cool_list, makers_config):
     keywords = []
-
-    # From cool_list buckets
     for bucket in cool_list.get('keywords', {}).values():
         for kw in bucket:
             keywords.append(kw.lower())
-
-    # Maker names and aliases
-    for maker in makers.get('makers', []):
+    for maker in makers_config.get('makers', []):
         keywords.append(maker['name'].lower())
         for alias in maker.get('aliases', []):
             keywords.append(alias.lower())
-
-    # Collab keywords
-    for collab in makers.get('collaborations', []):
+    for collab in makers_config.get('collaborations', []):
         for alias in collab.get('aliases', []):
             keywords.append(alias.lower())
-
     return list(set(keywords))
 
-
-# ── Page fingerprint (detect changes) ────────────────────────────────────────
+# ── Page fingerprint ──────────────────────────────────────────────────────────
 def fingerprint(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
-# ── Match keywords in text ────────────────────────────────────────────────────
-def find_matches(text, keywords):
+# ── Pre-filter ────────────────────────────────────────────────────────────────
+def prefilter(text, keywords):
     text_lower = text.lower()
-    return [kw for kw in keywords if kw in text_lower]
+    return any(kw in text_lower for kw in keywords)
 
 
-# ── Write alert to JSONL log ──────────────────────────────────────────────────
+# ── Item deduplication ────────────────────────────────────────────────────────
+SEEN_ITEMS_FILE = os.path.join(LOG_DIR, 'seen_items.json')
+DEDUP_HOURS = 24
+
+def load_seen_items():
+    if not os.path.exists(SEEN_ITEMS_FILE):
+        return {}
+    try:
+        with open(SEEN_ITEMS_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_seen_items(seen):
+    with open(SEEN_ITEMS_FILE, 'w') as f:
+        json.dump(seen, f)
+
+def item_key(source, item):
+    """Fingerprint a notable item per source."""
+    raw = f"{source}:{item[:80].lower()}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+def filter_new_items(source, notable_items, seen):
+    """Return only items not seen in the last DEDUP_HOURS."""
+    now = time.time()
+    new_items = []
+    for item in notable_items:
+        key = item_key(source, item)
+        last_seen = seen.get(key, 0)
+        if now - last_seen > DEDUP_HOURS * 3600:
+            new_items.append(item)
+    return new_items
+
+def mark_items_seen(source, notable_items, seen):
+    """Record items as seen right now."""
+    now = time.time()
+    for item in notable_items:
+        key = item_key(source, item)
+        seen[key] = now
+    # Prune old entries (older than 48h)
+    cutoff = now - 48 * 3600
+    seen = {k: v for k, v in seen.items() if v > cutoff}
+    return seen
+
+# ── Alert writer ──────────────────────────────────────────────────────────────
 def write_alert(settings, alert):
     log_path = os.path.join(
         settings['logging']['log_dir'],
@@ -94,14 +143,21 @@ def write_alert(settings, alert):
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, 'a') as f:
         f.write(json.dumps(alert) + '\n')
-    log.info(f"🔥 ALERT: {alert['source']} — matched: {alert['matches']}")
 
+    log.info(f"🔥 ALERT: {alert['source']}")
+    if alert.get('notable_items'):
+        for item in alert['notable_items']:
+            log.info(f"   → {item}")
+    if alert.get('drop_announcement', {}).get('detected'):
+        drop = alert['drop_announcement']
+        log.info(f"   🔥 DROP: {drop.get('maker')} — {drop.get('description')} — {drop.get('timing')}")
 
-# ── Fetch a single URL ────────────────────────────────────────────────────────
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
-}
+# ── Permissive SSL adapter ────────────────────────────────────────────────────
 class PermissiveSSLAdapter(HTTPAdapter):
+    """
+    For sites with non-standard or misconfigured TLS.
+    Only used when ssl_permissive: true in sources.yaml.
+    """
     def init_poolmanager(self, *args, **kwargs):
         ctx = create_urllib3_context()
         ctx.set_ciphers('DEFAULT:@SECLEVEL=1')
@@ -110,63 +166,70 @@ class PermissiveSSLAdapter(HTTPAdapter):
         kwargs['ssl_context'] = ctx
         return super().init_poolmanager(*args, **kwargs)
 
+# ── Fetch ─────────────────────────────────────────────────────────────────────
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
+}
+
 def fetch_page(url, ssl_permissive=False):
     try:
         session = requests.Session()
         if ssl_permissive:
             session.mount('https://', PermissiveSSLAdapter())
-            log.info(f"Using permissive SSL for {url}")
-        response = session.get(url, headers=HEADERS, timeout=15, verify=not ssl_permissive)
+            log.debug(f"Using permissive SSL for {url}")
+        response = session.get(
+            url,
+            headers=HEADERS,
+            timeout=15,
+            verify=not ssl_permissive
+        )
         response.raise_for_status()
         return response.text
     except requests.RequestException as e:
         log.warning(f"Failed to fetch {url}: {e}")
         return None
 
-
-# ── Main watcher loop ─────────────────────────────────────────────────────────
+# ── Main loop ─────────────────────────────────────────────────────────────────
 def run():
     log.info("Web Watcher starting up — HGR")
 
-    # Load configs
     sources  = load_yaml(SOURCES_FILE)
     cool     = load_yaml(COOL_LIST_FILE)
     makers   = load_yaml(MAKERS_FILE)
     settings = load_yaml(SETTINGS_FILE)
 
-    keywords      = build_keywords(cool, makers)
-    jitter        = settings['polling']['jitter_seconds']
-    min_gap       = settings['polling']['min_domain_gap_seconds']
-    fail_thresh   = settings['agent']['failure_threshold']
-    retry_delay   = settings['agent']['retry_delay_seconds']
+    keywords    = build_keywords(cool, makers)
+    makers_list = build_makers_list(makers)
+    jitter      = settings['polling']['jitter_seconds']
+    min_gap     = settings['polling']['min_domain_gap_seconds']
+    fail_thresh = settings['agent']['failure_threshold']
+    retry_delay = settings['agent']['retry_delay_seconds']
 
-    log.info(f"Loaded {len(keywords)} keywords")
+    log.info(f"Loaded {len(keywords)} keywords for pre-filter")
+    log.info(f"Loaded {len(makers_list)} makers for AI analysis")
     log.info(f"Loaded {len(sources.get('websites', []))} websites")
 
-    # Track page fingerprints so we only alert on changes
     page_cache    = {}
     failure_count = {}
+    seen_items    = load_seen_items()
 
     websites = [s for s in sources.get('websites', []) if s.get('enabled', True)]
 
     while True:
         for site in websites:
-            name     = site['name']
-            url      = site['url']
-            interval = site.get('poll_interval', 20) * 60  # convert to seconds
+            name           = site['name']
+            url            = site['url']
+            interval       = site.get('poll_interval', 20) * 60
             ssl_permissive = site.get('ssl_permissive', False)
 
-            # Check if it's time to poll this site
             last_checked = page_cache.get(url, {}).get('last_checked', 0)
             if time.time() - last_checked < interval:
                 continue
 
-            # Polite jitter — randomize the actual wait
             sleep_time = random.randint(min_gap, min_gap + jitter)
             log.info(f"Checking {name} in {sleep_time}s...")
             time.sleep(sleep_time)
 
-            # Fetch
             html = fetch_page(url, ssl_permissive=ssl_permissive)
             if html is None:
                 failure_count[url] = failure_count.get(url, 0) + 1
@@ -177,12 +240,10 @@ def run():
 
             failure_count[url] = 0
 
-            # Parse visible text
             soup = BeautifulSoup(html, 'html.parser')
             text = soup.get_text(separator=' ', strip=True)
 
-            # Fingerprint — only process if page has changed
-            fp = fingerprint(text)
+            fp     = fingerprint(text)
             old_fp = page_cache.get(url, {}).get('fingerprint')
 
             page_cache[url] = {
@@ -191,33 +252,59 @@ def run():
             }
 
             if old_fp is None:
-                log.info(f"{name} — baseline captured, watching for changes")
+                log.info(f"{name} — baseline captured")
+                # On baseline — run AI if makers found to catch existing stock
+                if prefilter(text, keywords):
+                    log.info(f"{name} — makers found on baseline, running AI analysis...")
+                    result = analyze_page(name, url, text, makers_list)
+                    if result and result.get('alert_worthy'):
+                        new_items = filter_new_items(name, result.get('notable_items', []), seen_items)
+                        if new_items or not result.get('notable_items'):
+                            result['notable_items'] = new_items
+                            result['agent'] = 'web_watcher'
+                            result['source'] = name
+                            result['event'] = 'baseline_stock_found'
+                            write_alert(settings, result)
+                            seen_items = mark_items_seen(name, new_items, seen_items)
+                            save_seen_items(seen_items)
+                        else:
+                            log.info(f"{name} — all notable items already seen, suppressing alert")
                 continue
 
             if fp == old_fp:
                 log.info(f"{name} — no change")
                 continue
 
-            # Page changed — check for keyword matches
-            log.info(f"{name} — PAGE CHANGED, scanning...")
-            matches = find_matches(text, keywords)
+            # Page changed
+            log.info(f"{name} — PAGE CHANGED")
 
-            if matches:
-                alert = {
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'agent': 'web_watcher',
-                    'source': name,
-                    'url': url,
-                    'matches': matches,
-                    'priority': 'high' if any(m in ['hinderer steel flame', 'collab', 'collaboration'] for m in matches) else 'medium'
-                }
-                write_alert(settings, alert)
+            if not prefilter(text, keywords):
+                log.info(f"{name} — changed but no maker keywords, skipping AI")
+                continue
+
+            log.info(f"{name} — maker keywords found, sending to AI...")
+            result = analyze_page(name, url, text, makers_list)
+
+            if result is None:
+                log.error(f"{name} — AI analysis failed")
+                continue
+
+            if result.get('alert_worthy'):
+                new_items = filter_new_items(name, result.get('notable_items', []), seen_items)
+                if new_items or not result.get('notable_items'):
+                    result['notable_items'] = new_items
+                    result['agent'] = 'web_watcher'
+                    result['source'] = name
+                    result['event'] = 'page_changed'
+                    write_alert(settings, result)
+                    seen_items = mark_items_seen(name, new_items, seen_items)
+                    save_seen_items(seen_items)
+                else:
+                    log.info(f"{name} — all notable items already seen, suppressing alert")
             else:
-                log.info(f"{name} — changed but no keyword matches")
+                log.info(f"{name} — AI says not alert worthy")
 
-        # Short sleep before next loop iteration
         time.sleep(10)
-
 
 if __name__ == '__main__':
     run()
