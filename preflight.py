@@ -7,6 +7,7 @@ HGR
 """
 
 import os
+import re
 import sys
 import json
 import time
@@ -25,6 +26,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from bs4 import BeautifulSoup
+
 class PermissiveSSLAdapter(HTTPAdapter):
     def init_poolmanager(self, *args, **kwargs):
         ctx = create_urllib3_context()
@@ -288,7 +290,6 @@ def check_site(site, makers_list, keywords):
         site_result['status_code'] = response.status_code
         site_result['response_time_ms'] = elapsed_ms
 
-        # Status code handling
         if response.status_code == 200:
             site_result['reachable'] = True
             if elapsed_ms > 3000:
@@ -319,7 +320,6 @@ def check_site(site, makers_list, keywords):
         soup = BeautifulSoup(html, 'html.parser')
         text = soup.get_text(separator=' ', strip=True)
 
-        # JS render detection
         if len(text.strip()) < 200:
             site_result['js_rendered'] = True
             warn(f"  Very little text content — likely JavaScript rendered (we can't scrape this well)")
@@ -352,7 +352,6 @@ def check_site(site, makers_list, keywords):
             if found:
                 site_result['makers_found'].append(maker['name'])
 
-                # Stock detection — look for in stock / out of stock near maker name
                 in_stock_count = text_lower.count('in stock')
                 out_stock_count = text_lower.count('out of stock') + text_lower.count('sold out')
 
@@ -406,7 +405,7 @@ def check_network(loaded):
     for site in websites:
         result = check_site(site, makers_list, keywords)
         results['sites'].append(result)
-        time.sleep(2)  # polite gap between preflight checks
+        time.sleep(2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -467,7 +466,6 @@ def print_summary():
     else:
         ok("All checks passed — system is healthy")
 
-    # Drop announcements summary
     drops_found = []
     for site in results['sites']:
         if site.get('drop_announcements'):
@@ -487,11 +485,9 @@ def status_color(status_code):
     return '#f39c12'
 
 def render_html_block():
-    ts = results['timestamp']
     s  = results['summary']
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
-    # Build site rows
     site_rows = ''
     for site in results['sites']:
         code     = site.get('status_code', '—')
@@ -554,18 +550,20 @@ def write_html_status():
 
     new_block = render_html_block()
 
-    # Read existing content if file exists
+    # Read existing run blocks and keep last 9 (new + 9 = 10 total)
     existing_blocks = ''
     if os.path.exists(STATUS_HTML):
         with open(STATUS_HTML, 'r') as f:
             content = f.read()
-        # Extract just the run blocks
         marker_start = '<!-- RUNS_START -->'
         marker_end   = '<!-- RUNS_END -->'
         if marker_start in content and marker_end in content:
             start = content.index(marker_start) + len(marker_start)
             end   = content.index(marker_end)
-            existing_blocks = content[start:end]
+            raw_blocks = content[start:end]
+            # Extract individual run blocks, keep last 9
+            blocks = re.findall(r'<div class="run-block">.*?</div>\s*</div>', raw_blocks, re.DOTALL)
+            existing_blocks = '\n'.join(blocks[:9])
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -582,26 +580,30 @@ def write_html_status():
       --ember: #c0392b; --flame: #e67e22; --ash: #888;
       --silver: #d0d0d0; --white: #f0f0f0;
     }}
-    body {{ background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 2rem; }}
-    h1 {{ font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: var(--white); letter-spacing: 0.05em; }}
+    body {{ background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 1rem; }}
+    h1 {{ font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 8vw, 3rem); color: var(--white); letter-spacing: 0.05em; }}
     h1 span {{ color: var(--ember); }}
-    .subtitle {{ color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 2rem; }}
-    .flame-line {{ height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 2rem; }}
-    .run-block {{ border: 1px solid var(--iron); margin-bottom: 2rem; }}
-    .run-header {{ display: flex; gap: 2rem; align-items: center; padding: 0.75rem 1rem; background: var(--steel); border-bottom: 1px solid var(--iron); flex-wrap: wrap; }}
-    .run-ts {{ color: var(--ash); font-size: 0.7rem; }}
+    .subtitle {{ color: var(--ash); font-size: 0.7rem; letter-spacing: 0.2em; margin-bottom: 1rem; line-height: 1.6; }}
+    .flame-line {{ height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 1.5rem; }}
+    .nav {{ display: flex; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 0.75rem; letter-spacing: 0.2em; flex-wrap: wrap; }}
+    .nav a {{ color: var(--ash); text-decoration: none; }}
+    .nav a:hover {{ color: var(--flame); }}
+    .nav a.active {{ color: var(--flame); border-bottom: 1px solid var(--flame); }}
+    .run-block {{ border: 1px solid var(--iron); margin-bottom: 1.5rem; overflow-x: auto; }}
+    .run-header {{ display: flex; gap: 1rem; align-items: center; padding: 0.75rem 1rem; background: var(--steel); border-bottom: 1px solid var(--iron); flex-wrap: wrap; }}
+    .run-ts {{ color: var(--ash); font-size: 0.65rem; }}
     .run-status {{ font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }}
     .run-counts {{ display: flex; gap: 1rem; font-size: 0.75rem; margin-left: auto; }}
     .pass {{ color: #2ecc71; }} .warn {{ color: #e67e22; }} .fail {{ color: #e74c3c; }}
-    .site-table {{ width: 100%; border-collapse: collapse; font-size: 0.75rem; }}
-    .site-table th {{ text-align: left; padding: 0.5rem 1rem; color: var(--ember); font-size: 0.65rem; letter-spacing: 0.3em; border-bottom: 1px solid var(--iron); }}
-    .site-table td {{ padding: 0.5rem 1rem; border-bottom: 1px solid var(--iron); color: var(--silver); }}
+    .site-table {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 500px; }}
+    .site-table th {{ text-align: left; padding: 0.5rem 0.75rem; color: var(--ember); font-size: 0.6rem; letter-spacing: 0.2em; border-bottom: 1px solid var(--iron); white-space: nowrap; }}
+    .site-table td {{ padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--iron); color: var(--silver); }}
     .site-table tr:last-child td {{ border-bottom: none; }}
     .site-table tr:hover td {{ background: var(--steel); }}
     .site-table a {{ color: var(--silver); text-decoration: none; }}
     .site-table a:hover {{ color: var(--flame); }}
     .drop-alert td {{ background: rgba(192,57,43,0.15); color: var(--flame); font-weight: bold; }}
-    footer {{ margin-top: 3rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; }}
+    footer {{ margin-top: 2rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }}
     .hgr {{ font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }}
   </style>
 </head>
@@ -609,6 +611,12 @@ def write_html_status():
   <h1>DROP <span>WATCHER</span></h1>
   <p class="subtitle">PREFLIGHT STATUS — AUTO REFRESHES EVERY 60 SECONDS — instockornot.club</p>
   <div class="flame-line"></div>
+
+  <nav class="nav">
+    <a href="/alerts.html">ALERTS</a>
+    <a href="/status.html" class="active">STATUS</a>
+    <a href="/index.html">HOME</a>
+  </nav>
 
   <!-- RUNS_START -->
   {new_block}
