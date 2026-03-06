@@ -3,27 +3,11 @@
 # Add or remove makers as needed
 
 makers:
-  - name: Strider Knives
-    aliases: [strider, SMF, SMF-T, SnG, Tanto]
-    priority: high
 
-  - name: Arno Bernard Knives
-    aliases: [arno bernard, arnobernard, rinkhals, imamba, turaco, orca]
-    priority: medium
-    notable_models:
-      high:
-        - turaco          # newest model, watch closely
-        - rinkhals
-        - imamba
-        - orca
-      critical:
-        - damascus        # finite stock, buy signal
-        - damasteel       # same
-        - ladder damascus
-        - stainless damascus
+  # ── Tier 1 — Always watch closely ─────────────────────────────────────────
 
   - name: Hinderer Knives
-    aliases: [hinderer, rick hinderer, rhk]
+    aliases: [hinderer, rick hinderer, rhk, rick hinderer knives, rickhindererknives]
     priority: high
     notable_models:
       critical:
@@ -55,9 +39,9 @@ makers:
         - brass
         - copper
         - walnut
-        - 20cv           # upgrade steel, special runs only
-        - magnacut        # rare on Hinderer
-        - cruwear         # very rare
+        - 20cv
+        - magnacut
+        - cruwear
       common:
         - titanium
         - g10
@@ -104,20 +88,40 @@ makers:
         - macassar ebony
 
   - name: Steel Flame
-    aliases: [steelflame, steel flame, Derrick Obatake]
+    aliases: [steelflame, steel flame, derrick obatake, sf]
     priority: high
+    notable_models:
+      critical:
+        - vigilant
+        - warrior
+        - killbox
+        - lion
+        - crusader
+        - molle
+        - paw
+        - darkness
+        - hannya
+        - pile of skulls
+        - rampant lion
+        - hardness
+        - sledge
+        - daruma
+        - dragon
+        - bracelet
+        - chain
+        - master
+        - skull
+        - clip
+        - shuriken
+        - wicked
+        - slickster
+        - collab
+        - strider collab
+        - emerson collab
 
-  - name: Demko Knives
-    aliases: [demko, AD20, Andrew Demko]
-    priority: medium
-
-  - name: Medford Knife and Tool
-    aliases: [medford, MKT, Praetorian]
-    priority: medium
-
-  - name: Spyderco
-    aliases: [spyderco, paramilitary, PM2, native]
-    priority: medium
+  - name: Strider Knives
+    aliases: [strider, smf, smf-t, sng, tanto, mick strider]
+    priority: high
 
   - name: McNees Knives
     aliases: [mcnees, mcnees knives, kyle mcnees]
@@ -136,15 +140,11 @@ makers:
         - mac3
 
   - name: Starlingear
-    aliases: [starlingear, starling gear]
+    aliases: [starlingear, starling gear, brad southard]
     priority: high
     notable_models:
       critical:
-        - all  # everything from Starlingear is notable
-
-  - name: Frag Knives
-    aliases: [frag, fragknives]
-    priority: medium
+        - all
 
   - name: Monkey Edge
     aliases: [monkey edge, monkeyedge]
@@ -156,16 +156,163 @@ makers:
         - zaan
         - custom
 
-  - name: Rick Hinderer Knives
-    aliases: [rick hinderer knives, rickhindererknives]
+  - name: Arno Bernard Knives
+    aliases: [arno bernard, arnobernard, rinkhals, imamba, turaco, orca]
     priority: high
+    notable_models:
+      critical:
+        - damascus
+        - damasteel
+        - ladder damascus
+        - stainless damascus
+      high:
+        - turaco
+        - rinkhals
+        - imamba
+        - orca
 
-# Collaborations to watch specifically
+  # ── Tier 2 — Medium priority ───────────────────────────────────────────────
+
+  - name: Demko Knives
+    aliases: [demko, ad20, ad20.5, andrew demko, ad20 custom]
+    priority: medium
+    notable_models:
+      critical:
+        - custom
+      high:
+        - ad20.5
+      medium:
+        - ad20
+
+  - name: Medford Knife and Tool
+    aliases: [medford, mkt, praetorian, greg medford]
+    priority: medium
+
+  - name: Spyderco
+    aliases: [spyderco, paramilitary, pm2, native, sprint run]
+    priority: medium
+
+  - name: Frag Knives
+    aliases: [frag, fragknives]
+    priority: medium
+
+  - name: Microtech
+    aliases: [microtech, ultratech, combat troodon, scarab, stitch]
+    priority: medium
+
+  - name: Heretic Knives
+    aliases: [heretic, heretic knives, cleric, manticore]
+    priority: medium
+
+  - name: Protech Knives
+    aliases: [protech, pro-tech, godfather, magic]
+    priority: medium
+
+  - name: Chaves Knives
+    aliases: [chaves, chaves knives, redencion, ultramar]
+    priority: medium
+
+  - name: Rockstead Knife
+    aliases: [rockstead, rockstead knife]
+    priority: medium
+
+  - name: Shirogorov Knives
+    aliases: [shirogorov, hati, neon, f95]
+    priority: medium
+
+  - name: Todd Begg Knives
+    aliases: [todd begg, begg knives, steelcraft, field marshall]
+    priority: medium
+
+  - name: Curtiss Custom Knives
+    aliases: [curtiss, curtiss custom, frank curtiss]
+    priority: medium
+
+  - name: Sharp By Design
+    aliases: [sharp by design, sharpbydesign, brian nadeau, micro praxis]
+    priority: medium
+
+  - name: Prometheus Design Werx
+    aliases: [prometheus, pdw, prometheus design werx]
+    priority: medium
+
+  - name: Tactile Knife Co
+    aliases: [tactile, tactileknifeco, gent, rockwall]
+    priority: medium
+
+  - name: Oz Machine Company
+    aliases: [oz machine, ozmachinecompany, roosevelt, rosie]
+    priority: medium
+    notable_models:
+      high:
+        - roosevelt xl
+        - roosevelt
+        - rosie
+
+  # ── Tier 3 — Custom / boutique makers ─────────────────────────────────────
+
+  - name: Sergey Rogovets
+    aliases: [rogovets, sergey rogovets]
+    priority: medium
+
+  - name: Pena Knives
+    aliases: [pena, penaknives, enrique pena]
+    priority: medium
+
+  - name: Neeve Knives
+    aliases: [neeve, jerad neeve, neeve knives]
+    priority: medium
+
+  - name: Derning Knives
+    aliases: [derning, derningknives]
+    priority: medium
+
+  - name: Lynch Northwest
+    aliases: [lynch, lynchnw, lynch northwest]
+    priority: medium
+
+  - name: Bryan Winters
+    aliases: [bryan winters, winterknives]
+    priority: medium
+
+  - name: Kirby Lambert
+    aliases: [kirby lambert, lambert knives]
+    priority: medium
+
+  - name: Dmitry Sinkevich
+    aliases: [sinkevich, dmitry sinkevich, nsd]
+    priority: medium
+
+  - name: Todd Rexford
+    aliases: [rexford, todd rexford, rexford knives]
+    priority: medium
+
+  - name: Scott Cook Custom
+    aliases: [scott cook, scott cook custom]
+    priority: medium
+
+  - name: Shark Knife Co
+    aliases: [shark, sharknivco, shark knife co]
+    priority: medium
+
+  - name: Skiagusta
+    aliases: [skiagusta]
+    priority: medium
+
+  - name: William Harsey
+    aliases: [harsey, william harsey, harsey knives]
+    priority: medium
+
+# ── Collaborations — always CRITICAL ──────────────────────────────────────────
 collaborations:
   - makers: [Hinderer, Steel Flame]
-    aliases: [hinderer steel flame, RHK x Steel Flame]
+    aliases: [hinderer steel flame, rhk x steel flame, xm-18 steel flame, xm-24 steel flame]
     priority: critical
 
   - makers: [Wilson Combat, Chris Reeve Knives]
-    aliases: [wilson combat crk, wilson combat sebenza, WC sebenza]
+    aliases: [wilson combat crk, wilson combat sebenza, wc sebenza]
+    priority: critical
+
+  - makers: [Strider, Steel Flame]
+    aliases: [strider steel flame, smf steel flame]
     priority: critical

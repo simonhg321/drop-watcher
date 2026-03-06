@@ -4,15 +4,11 @@
 
 websites:
 
-  # Dealers
+  # ── Established Dealers ────────────────────────────────────────────────────
+
   - name: KnifeJoy
     url: https://www.knifejoy.com
     poll_interval: 20
-    enabled: true
-
-  - name: McNees Knives
-    url: https://mcneesknives.com
-    poll_interval: 15
     enabled: true
 
   - name: Blade HQ
@@ -71,10 +67,10 @@ websites:
     enabled: true
     ssl_permissive: true
 
-  - name: BladeGallery
+  - name: Blade Gallery
     url: https://www.bladegallery.com
     poll_interval: 30
-    enabled: false # 403 blocking scrappers
+    enabled: false # 403 blocking scrapers
 
   - name: Nashville Tactical Lounge
     url: https://www.nashvilletacticallounge.com
@@ -121,20 +117,57 @@ websites:
     poll_interval: 20
     enabled: true
 
-  - name: Arno Bernard Knives
-    url: https://arnobernard.com
-    poll_interval: 30
+  - name: SMKW
+    url: https://www.smkw.com
+    poll_interval: 20
     enabled: true
 
-
-  # Maker direct sites
-
-  - name: Rick Hinderer Knives
-    url: https://www.rickhindererknives.com/shop-knives/
-    poll_interval: 10
+  - name: Exclusive Folders
+    url: https://exclusivefolders.com
+    poll_interval: 20
     enabled: true
-    notes: Direct maker site - high value drops happen here first. Standard models are noise, Steel Flame collabs and special runs are the signal.
 
+  - name: Original Goat
+    url: https://originalgoat.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Tools For Gents
+    url: https://toolsforgents.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Rivers Edge Cutlery
+    url: https://riversedgecutlery.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Hog House Knives
+    url: https://hoghouseknives.com
+    poll_interval: 20
+    enabled: true
+
+  - name: GP Knives
+    url: https://www.gpknives.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Urban EDC Supply
+    url: https://urbanedcsupply.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Blade Binge
+    url: https://bladebinge.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Miguron Knives
+    url: https://www.miguronknives.com
+    poll_interval: 20
+    enabled: true
+
+  # ── Maker Direct Sites ─────────────────────────────────────────────────────
 
   - name: Steel Flame
     url: https://www.steelflame.com
@@ -160,7 +193,69 @@ websites:
     url: https://www.curtisscustomknives.com
     poll_interval: 20
     enabled: true
-# ── Boss Watchlist ──────────────────────────────────────────────────────────
+
+  - name: Arno Bernard Knives
+    url: https://arnobernard.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Demko Knives
+    url: https://demkoknives.com
+    poll_interval: 20
+    enabled: true
+
+  - name: McNees Knives
+    url: https://mcneesknives.com
+    poll_interval: 15
+    enabled: true
+
+  - name: Tactile Knife Co
+    url: https://www.tactileknife.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Oz Machine Company
+    url: https://ozmachinecompany.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Kunwu Knives
+    url: https://kunwuknives.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Kunwu Crew
+    url: https://www.kunwucrew.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Poikilo Blade
+    url: https://poikiloblade.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Vero Engineering
+    url: https://veroengineering.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Maxace Knife
+    url: https://maxaceknife.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Rike Knife
+    url: https://www.rikeknifeofficial.com
+    poll_interval: 20
+    enabled: true
+
+  - name: Flytanium
+    url: https://www.flytanium.com
+    poll_interval: 20
+    enabled: true
+
+  # ── Boss Watchlist ─────────────────────────────────────────────────────────
+
   - name: Ubiquiti UVC-G6-180 Camera
     url: https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180
     poll_interval: 15
@@ -168,16 +263,14 @@ websites:
     site_type: product
     notes: Boss wants white version - watch for Coming Soon to change to Add to Cart
 
-# RSS / Social feeds (via RSS bridge or native feed)
+# ── RSS / Social Feeds ────────────────────────────────────────────────────────
 feeds:
-  # Add Instagram/Facebook/YouTube RSS bridge URLs here as you set them up
   - name: Steel Flame Instagram
     url: https://rss.app/feeds/PLACEHOLDER_STEEL_FLAME.xml
     poll_interval: 15
-    enabled: false  # enable once RSS bridge is configured
+    enabled: false
 
   - name: Steel Flame YouTube
     url: https://www.youtube.com/feeds/videos.xml?channel_id=PLACEHOLDER
     poll_interval: 30
-    enabled: false  # enable once channel ID is found
-
+    enabled: false
