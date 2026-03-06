@@ -21,13 +21,13 @@ load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 # ── Config ────────────────────────────────────────────────────────────────────
 RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
 FROM_ADDRESS     = 'Drop Watcher <alerts@instockornot.club>'
-ALERT_TO         = os.environ.get('SMTP_USER')           # reuse existing var
+ALERT_TO         = os.environ.get('ALERT_TO')
+REPLY_TO         = os.environ.get('ALERT_TO')
 ALERT_TO_BOSS    = os.environ.get('ALERT_TO_BOSS')
 ALERT_TO_FRIENDS_RAW = os.environ.get('ALERT_TO_FRIENDS', '')
 ALERT_TO_FRIENDS = [e.strip() for e in ALERT_TO_FRIENDS_RAW.split(',') if e.strip()]
 
-UNSUBSCRIBE_URL  = 'https://instockornot.club'           # placeholder until sub page exists
-REPLY_TO         = os.environ.get('SMTP_USER')           # replies come back to you
+UNSUBSCRIBE_URL  = 'https://instockornot.club'
 
 LOG_DIR   = os.path.join(BASE_DIR, 'logs')
 DROPS_LOG = os.path.join(LOG_DIR, 'drops.jsonl')
