@@ -284,9 +284,9 @@ feeds:
   - name: Reddit r/knifeclub
     url: https://www.reddit.com/r/knifeclub.rss
     poll_interval: 20
-    enabled: true
+    enabled: false # high noise 
 
   - name: Reddit r/EDC
     url: https://www.reddit.com/r/EDC.rss
     poll_interval: 20
-    enabled: true
+    enabled: false # high noise
