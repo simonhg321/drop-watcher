@@ -168,6 +168,53 @@ websites:
     poll_interval: 20
     enabled: true
 
+# ── Secondary Market / Pre-Owned ──────────────────────────────────────────
+
+  - name: Recon 1 — Pre-Owned
+    url: https://recon1.com/collections/pre-owned
+    poll_interval: 30
+    enabled: true
+
+  - name: eKnives — Pre-Owned
+    url: https://eknives.com/preowned/
+    poll_interval: 30
+    enabled: true
+
+  - name: Knife Purveyor
+    url: https://www.knifepurveyor.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Luv Them Knives — Pre-Owned
+    url: https://luvthemknives.com/collections/pre-owned-knives
+    poll_interval: 30
+    enabled: true
+
+  - name: Rivers Edge — Consignment
+    url: https://riversedgecutlery.com/consignment-shop/
+    poll_interval: 30
+    enabled: true
+
+  - name: EDC Lifestyle — Pre-Owned
+    url: https://www.edclifestyle.com/pre-owned-consignment/
+    poll_interval: 30
+    enabled: true
+
+  - name: Knife Market
+    url: https://knife-market.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Cutting Edge — Pre-Owned
+    url: https://cuttingedge.com
+    poll_interval: 30
+    enabled: true
+
+  - name: Blade Gallery
+    url: https://www.bladegallery.com
+    poll_interval: 30
+    enabled: false # 403 blocking scrapers
+
   # ── Maker Direct Sites ─────────────────────────────────────────────────────
 
   - name: Steel Flame
@@ -290,3 +337,13 @@ feeds:
     url: https://www.reddit.com/r/EDC.rss
     poll_interval: 20
     enabled: false # high noise
+
+  - name: Reddit r/knife_swap
+    url: https://www.reddit.com/r/knife_swap.rss
+    poll_interval: 20
+    enabled: true
+
+  - name: Reddit r/EDCexchange
+    url: https://www.reddit.com/r/EDCexchange.rss
+    poll_interval: 20
+    enabled: true
