@@ -241,8 +241,9 @@ def run():
             failure_count[url] = 0
 
             soup = BeautifulSoup(html, 'html.parser')
+            for tag in soup(['nav', 'header', 'footer', 'script', 'style', 'meta', 'link']):
+                 tag.decompose()
             text = soup.get_text(separator=' ', strip=True)
-
             fp     = fingerprint(text)
             old_fp = page_cache.get(url, {}).get('fingerprint')
 
