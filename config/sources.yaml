@@ -150,7 +150,7 @@ websites:
   - name: GP Knives
     url: https://www.gpknives.com
     poll_interval: 20
-    enabled: true
+    enabled: false
 
   - name: Urban EDC Supply
     url: https://urbanedcsupply.com
@@ -164,6 +164,7 @@ websites:
 
   - name: Miguron Knives
     url: https://www.miguronknives.com
+    ssl_permissive: true
     poll_interval: 20
     enabled: true
 
@@ -245,7 +246,7 @@ websites:
     enabled: true
 
   - name: Rike Knife
-    url: https://www.rikeknifeofficial.com
+    url: https://www.rikeknife.com
     poll_interval: 20
     enabled: true
 
