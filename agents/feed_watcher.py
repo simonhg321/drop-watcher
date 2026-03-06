@@ -181,6 +181,12 @@ def run():
 
         new_count = 0
         for entry in entries:
+
+            # Skip posts by site owner
+            entry_author = entry.get('author', '').lower()
+            if 'simonhg' in entry_author:
+                log.info(f"  Skipping own post: {entry.get('title', '')[:60]}")
+                continue
             entry_id = entry.get('id') or entry.get('link') or entry.get('title', '')
             key = entry_key(name, entry_id)
 
