@@ -118,8 +118,7 @@ def render_alert_card(alert):
     if makers_found:
         makers_html = f'<div class="makers-found">makers: {", ".join(makers_found)}</div>'
 
-    event_badge = 'BASELINE' if event == 'baseline_stock_found' else 'CHANGED'
-
+    event_badge = 'BASELINE' if event == 'baseline_stock_found' else 'FEED ENTRY' if event == 'feed_entry' else 'CHANGED'
     return f"""
     <div class="alert-card priority-{priority}">
         <div class="alert-header">
