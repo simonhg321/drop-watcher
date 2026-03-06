@@ -90,7 +90,9 @@ PRIORITY RULES:
 - "medium" = MEDIUM priority (interesting but not urgent)
 - If a notable_item matches a CRITICAL model or material set priority to "critical"
 - If a notable_item matches a HIGH model set priority to "high"
-- Collaborations between makers are always CRITICAL
+- Only THESE specific collaborations are CRITICAL: Hinderer x Steel Flame, CRK x Wilson Combat, Strider x Steel Flame. All other collabs are medium priority.
+- Recurring scheduled drops (e.g. "every Thursday 4pm", "daily at 3:30pm ET") are MEDIUM priority, not high or critical
+- Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority
 - Damascus on any CRK is always CRITICAL
 - Wood, brass, copper, walnut handles on Hinderer are always CRITICAL
 
