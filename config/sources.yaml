@@ -275,3 +275,18 @@ feeds:
     url: https://www.youtube.com/feeds/videos.xml?channel_id=PLACEHOLDER
     poll_interval: 30
     enabled: false
+
+  - name: Reddit r/bladesinstock
+    url: https://www.reddit.com/r/bladesinstock.rss
+    poll_interval: 15
+    enabled: true
+
+  - name: Reddit r/knifeclub
+    url: https://www.reddit.com/r/knifeclub.rss
+    poll_interval: 20
+    enabled: true
+
+  - name: Reddit r/EDC
+    url: https://www.reddit.com/r/EDC.rss
+    poll_interval: 20
+    enabled: true
