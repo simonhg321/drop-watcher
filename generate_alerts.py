@@ -61,7 +61,8 @@ def load_recent_alerts(hours=48):
                 continue
 
     # Newest first
-    alerts.sort(key=lambda a: a.get('timestamp', ''), reverse=True)
+    priority_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+    alerts.sort(key=lambda a: (priority_order.get(a.get('priority', 'medium').lower(), 2), a.get('timestamp', '')), reverse=False)
     return alerts
 
 def format_timestamp(ts_str):
@@ -220,19 +221,19 @@ def generate_alerts_page():
   </nav>
 
   <div class="stats">
-    <div class="stat">
+    <div class="stat" onclick="filterAlerts('all')" style="cursor:pointer">
       <div class="stat-label">TOTAL</div>
       <div class="stat-value" style="color:var(--white)">{len(alerts)}</div>
     </div>
-    <div class="stat">
+    <div class="stat" onclick="filterAlerts('critical')" style="cursor:pointer">
       <div class="stat-label">CRITICAL</div>
       <div class="stat-value" style="color:#e74c3c">{critical_count}</div>
     </div>
-    <div class="stat">
+    <div class="stat" onclick="filterAlerts('high')" style="cursor:pointer">
       <div class="stat-label">HIGH</div>
       <div class="stat-value" style="color:#e67e22">{high_count}</div>
     </div>
-    <div class="stat">
+    <div class="stat" onclick="filterAlerts('medium')" style="cursor:pointer">
       <div class="stat-label">MEDIUM</div>
       <div class="stat-value" style="color:#f1c40f">{medium_count}</div>
     </div>
@@ -248,6 +249,18 @@ def generate_alerts_page():
     <span>instockornot.club — simonhg321/drop-watcher</span>
     <span class="hgr">HGR</span>
   </footer>
+<script>
+function filterAlerts(priority) {{
+  const cards = document.querySelectorAll('.alert-card');
+  cards.forEach(card => {{
+    if (priority === 'all' || card.classList.contains('priority-' + priority)) {{
+      card.style.display = '';
+    }} else {{
+      card.style.display = 'none';
+    }}
+  }});
+}}
+</script>
 </body>
 </html>"""
 
