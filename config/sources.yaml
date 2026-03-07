@@ -227,6 +227,11 @@ websites:
     poll_interval: 15
     enabled: true
 
+  - name: Mick Strider Custom Knives
+    url: https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/
+    poll_interval: 30
+    enabled: true
+
   - name: Spyderco
     url: https://www.spyderco.com
     poll_interval: 20
