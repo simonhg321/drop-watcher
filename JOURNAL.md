@@ -1,0 +1,232 @@
+# Drop Watcher Dev Journal
+# instockornot.club | /home/shg/drop-watcher/
+
+---
+
+## HOW TO START A SESSION
+1. Run this on the server:
+```
+echo "=== JOURNAL ===" && cat /home/shg/drop-watcher/JOURNAL.md
+echo "=== RECENT DROPS ===" && tail -5 /home/shg/drop-watcher/drops.jsonl
+echo "=== ALERT COUNTS ===" && grep -c "priority-critical\|priority-high\|priority-medium" /var/www/html/alerts.html 2>/dev/null || echo "no alerts.html"
+echo "=== WATCHER STATUS ===" && sudo supervisorctl status
+```
+2. Paste output to Claude and say: "continuing Drop Watcher dev"
+
+---
+
+## CURRENT STATUS — 2026-03-07
+
+**Active bugs (fix these first):**
+- BUG-001: ✓ FIXED 2026-03-07 — OVERRIDE RULE added to ai_interpreter.py PRIORITY RULES
+- BUG-002: ✓ FIXED 2026-03-07 — content hash dedup added to web_watcher.py (4hr suppression window)
+- BUG-003: ✓ FIXED 2026-03-07 — OVERRIDE language added to Arno Bernard rule in ai_interpreter.py
+- BUG-004: AZ Custom Knives Steel Flame page not in sources.yaml — add https://www.arizonacustomknives.com/knives-by-maker/steel-flame/
+
+**Last confirmed working:**
+- Alert sort: newest-first within priority groups (generate_alerts.py ~line 64) — APPLIED, not yet verified
+- Reddit RSS: r/bladesinstock, r/knife_swap active. r/knifeclub, r/EDC disabled (noise)
+- Priority rules: Hinderer x SF / CRK x WC / Strider x SF = CRITICAL. MSC = CRITICAL. McNees drop banner = HIGH.
+
+---
+
+## FEATURE BACKLOG
+
+- [ ] Email subscription — Flask → magic link auth → BCC on alerts → unsubscribe
+- [x] Morning briefer wired to cron 7am daily — 2026-03-07
+- [ ] Instagram layer — waiting on friends' list of ~200-300 secondary market accounts
+- [x] Messerteam.de Arno Bernard page added to sources.yaml — 2026-03-07
+- [x] Rike Knife disabled in sources.yaml — 2026-03-07
+- [ ] Frontend priority override UI (manual CRITICAL/MEDIUM toggle on alerts.html)
+
+---
+
+## ARCHITECTURE REFERENCE
+
+### Daemons (supervisord)
+- web_watcher.py — scrapes monitored URLs, strips nav/header/footer, feeds ai_interpreter.py
+
+### Cron
+- */15  feed_watcher.py       — Reddit RSS (r/bladesinstock, r/knife_swap)
+- */2   generate_alerts.py    — builds /var/www/html/alerts.html
+- */30  alerter.py            — emails CRITICAL/HIGH alerts
+- 7am   alerter.py digest     — daily summary email
+- hourly preflight.py         — builds /var/www/html/status.html
+
+### Key files
+- agents/ai_interpreter.py   — AI analysis + PRIORITY RULES section
+- agents/feed_watcher.py     — Reddit RSS watcher
+- agents/web_watcher.py      — web scraper daemon
+- generate_alerts.py         — alerts HTML generator
+- config/sources.yaml        — all monitored URLs
+- config/makers.yaml         — maker priority config
+- /var/www/html/alerts.html  — live alerts page
+- /var/www/html/status.html  — preflight health check
+
+---
+
+## PRIORITY RULES (current)
+
+CRITICAL:
+- Hinderer x Steel Flame collab
+- CRK x Wilson Combat collab
+- Strider x Steel Flame collab
+- Any Mick Strider Custom Knife (MSC) available for purchase
+- (NOT other collabs — those are MEDIUM)
+
+HIGH:
+- McNees Knives drop announcement or DROP banner
+- Arno Bernard damascus or mammoth inlay variants
+
+MEDIUM:
+- All recurring scheduled drops (any maker, any time)
+- Standard Arno Bernard production (iMamba, Rinkhals, Turaco without special materials)
+- All other collabs not listed above
+
+---
+
+## SESSION LOG
+
+### Session 1 — 2026-03-06
+- Initial build: web_watcher.py, ai_interpreter.py, generate_alerts.py
+- sources.yaml, makers.yaml populated
+- Supervisord config, cron schedule
+
+### Session 2 — 2026-03-06
+- feed_watcher.py (Reddit RSS)
+- Nav stripping in web_watcher.py (BeautifulSoup)
+- Priority rules tightened
+- Secondary market sources added to sources.yaml
+- Mick Strider Custom Knives added
+
+### Session 3 — 2026-03-07
+- Alert sort fix applied (not yet verified)
+- BUG-001 through BUG-004 identified from live alerts.html review
+- JOURNAL.md created, session starter command established
+
+
+### Session 4 — 2026-03-07
+- BUG-001 fixed: OVERRIDE RULE added to ai_interpreter.py — recurring drops cap at MEDIUM
+- BUG-002 fixed: content hash dedup added to web_watcher.py — 4hr suppression window
+- BUG-003 fixed: Arno Bernard OVERRIDE language strengthened in ai_interpreter.py
+- BUG-004 fixed: AZ Custom Knives Steel Flame page added to sources.yaml
+- validate_watcher alias added to ~/.bashrc
+- JOURNAL.md session system established
+
+### Session 4 continued — 2026-03-07
+- Morning briefer wired: morning_briefer.py created, tested, cron 0 7 * * *
+- First email delivered successfully via Resend
+- [x] Messerteam.de added to sources.yaml
+- [x] Rike Knife disabled in sources.yaml
+
+### Session 4 final — 2026-03-07
+- backup_drop_watcher.sh created — tarballs ~/backups, keeps last 7
+- Weekly cron wired: 0 3 * * 0
+- First backup verified: extracted and confirmed complete on MacBook
+- scp command: scp 'shg@instockornot.club:~/backups/drop-watcher_*.tar.gz' ~/drop-watcher-backups/
+
+### Session 5 — 2026-03-07
+**Priority rule changes (ai_interpreter.py):**
+- Hinderer wood/walnut handles → HIGH (was CRITICAL)
+- CRK non-WC-collab drops → HIGH (was CRITICAL)
+- Demko AD20.5 → MEDIUM (common production knife)
+- Sold-out items never included in notable_items
+- Pro-Tech x Chaves → HIGH (not a designated CRITICAL collab)
+
+**generate_alerts.py rewritten:**
+- Dedup baked in — one entry per source across full 48h window
+- Reddit deduped per-hour (different posts)
+- Best priority wins when merging; notable_items merged across entries
+- Sort: priority groups, newest-first within each group
+
+**drops.jsonl cleaned:**
+- Removed/downgraded stale bad entries from before fixes
+- Page now shows ~25 clean alerts vs 115 stacked entries
+
+**Active bugs cleared this session — none remaining**
+
+**CURRENT PRIORITY RULES:**
+- CRITICAL: Hinderer x SF collab, CRK x Wilson Combat, Strider x SF, MSC available for purchase
+- HIGH: Hinderer wood/walnut/brass/copper handles, CRK specials (non-WC), McNees drop banner, Damascus CRK
+- MEDIUM: Arno Bernard standard (Rinkhals/iMamba/Turaco), Demko AD20.5, all other collabs, recurring scheduled drops
+- BASELINE events capped at HIGH maximum
+
+---
+
+## KNOWN GOOD STATE — 2026-03-07
+
+### Alert counts (clean baseline)
+- Total: ~25 (deduplicated)
+- CRITICAL: 0 (no false positives)
+- HIGH: ~12
+- MEDIUM: ~13
+
+### generate_alerts.py — key behavior
+- Dedup: ONE entry per source across full 48h window (best priority wins)
+- Reddit: deduped per-hour (different posts are distinct)
+- Notable items merged across duplicate entries
+- Sort: priority groups (critical → high → medium), newest-first within each group
+- Location: /home/shg/drop-watcher/generate_alerts.py
+
+### ai_interpreter.py — current priority rules
+CRITICAL:
+  - Hinderer x Steel Flame collab
+  - CRK x Wilson Combat collab
+  - Strider x Steel Flame collab
+  - MSC (Mick Strider Custom) available for purchase — Add to cart only, not Read more
+
+HIGH:
+  - Hinderer with wood/walnut/brass/copper handles
+  - CRK specials/drops (non-WC collab)
+  - McNees drop banner
+  - Damascus on any CRK
+  - DLT Exclusive Hinderer variants
+
+MEDIUM:
+  - Arno Bernard standard models (Rinkhals, iMamba, Turaco) — no damascus
+  - Demko AD20.5 (common production knife)
+  - All collabs not listed above
+  - Recurring scheduled drops (every Thursday, daily at X, weekday drops)
+
+NEVER:
+  - Sold-out items in notable_items
+  - BASELINE events at CRITICAL (capped at HIGH)
+
+### web_watcher.py — key behavior
+- Item dedup: seen_items.json (DEDUP_HOURS window)
+- Content dedup: seen_content.json (4hr suppression)
+- BASELINE events capped at HIGH
+- Location: /home/shg/drop-watcher/agents/web_watcher.py
+
+### Infrastructure
+- Daemon: supervisord → web_watcher.py
+- Cron: */2 generate_alerts, */15 feed_watcher, */30 alerter, 7am morning_briefer, 0 3 * * 0 backup
+- Backup: ~/backups/, weekly, keep last 7
+- scp: scp 'shg@instockornot.club:~/backups/drop-watcher_*.tar.gz' ~/drop-watcher-backups/
+
+### How to start next session
+1. Run session starter command (top of this file)
+2. Paste output to Claude
+3. Say "continuing Drop Watcher dev"
+4. Claude has Chrome extension available — say "take a look" and it will check alerts.html directly
+
+### Session 6+7 — 2026-03-07
+- generate_alerts.py dedup refined — ONE entry per source across full 48h window (best priority wins)
+- backup_drop_watcher.sh fixed — sudo check, root ownership bug, crontab backup bug all resolved
+- Boss list confirmed — Ubiquiti UVC-G6-180 Camera in sources.yaml, cool_list.yaml has ubiquiti/uvc-g6 keywords
+- Boss email tested and confirmed working — simon@binnysoakland.com receives BCC on Ubiquiti source alerts
+- Copyright headers added to all 6 key Python files — committed to GitHub (27fe293)
+- AI Guild Talk deck built — 11 slides, navy/teal theme, at /mnt/user-data/outputs/ai-guild-talk.pptx
+- Day 1 origin story slides built — 2 slides standalone, day1-story.pptx
+- Slide 5 fixed — Week 1-4 replaced with accurate Day 1-7 real dates
+- watchdog-framework product idea captured in handoff
+- DROP-WATCHER-HANDOFF.md written and saved
+
+**Pending next session:**
+- Simon to proofread ai-guild-talk.pptx
+- Day 2-5 origin story slides
+- SMS alerts via Twilio (CRITICAL → text)
+- instockornot.club/watchlist page (community-facing source list)
+- Ubiquiti white version (UVC-G6-180-W) is Coming Soon — will be first real boss alert
+- Urban EDC Supply 03/11 drop — CRK Sebenza 31 MagnaCut
+- Urban EDC Supply 03/18 drop — TBD
