@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
 feed_watcher.py

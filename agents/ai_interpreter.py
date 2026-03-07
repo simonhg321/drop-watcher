@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
 ai_interpreter.py
@@ -84,20 +85,30 @@ MAKERS WE CARE ABOUT:
 
 {priority_intel}
 
+nano +87 /home/shg/drop-watcher/agents/ai_interpreter.py
+```
+
+Replace the entire PRIORITY RULES block (lines 87-100) with this:
+```
 PRIORITY RULES:
+
+OVERRIDE RULE — applies before anything else:
+- If the page content contains recurring schedule language ("every Thursday", "daily at", "each weekday", "every week", "recurring", "every other") AND the drop does NOT contain a Hinderer x Steel Flame / CRK x Wilson Combat / Strider x Steel Flame collab or MSC knife — set priority to "medium" REGARDLESS of maker or model. Do not upgrade this.
+
+After applying the override above, use these rules:
 - "critical" = CRITICAL priority (rare, high value, drop everything)
-- "high" = HIGH priority (worth checking immediately)  
+- "high" = HIGH priority (worth checking immediately)
 - "medium" = MEDIUM priority (interesting but not urgent)
-- If a notable_item matches a CRITICAL model or material set priority to "critical"
-- If a notable_item matches a HIGH model set priority to "high"
-- Only THESE specific collaborations are CRITICAL: Hinderer x Steel Flame, CRK x Wilson Combat, Strider x Steel Flame. All other collabs are medium priority.
-- Recurring scheduled drops (e.g. "every Thursday 4pm", "daily at 3:30pm ET") are MEDIUM priority, not high or critical
-- Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority
+- Only THESE specific collaborations are CRITICAL: Hinderer x Steel Flame, CRK x Wilson Combat, Strider x Steel Flame. All other collabs are medium.
 - Any Mick Strider Custom Knife (MSC) available for purchase is always CRITICAL — these are extremely rare
+- IMPORTANT: "Read more" buttons mean the item is NOT directly purchasable. Only "Add to cart" or "Buy now" buttons mean an item is truly in stock and available. Do not mark items as in_stock if they only show "Read more".
 - Any drop announcement or DROP banner on McNees Knives is always HIGH priority
 - Damascus on any CRK is always CRITICAL
-- Wood, brass, copper, walnut handles on Hinderer are always CRITICAL
-
+- CRK x Wilson Combat collab is CRITICAL — all other CRK drops/specials are HIGH, not CRITICAL
+- CRK x Wilson Combat collab is CRITICAL — all other CRK drops/specials are HIGH, not CRITICAL
+- Wood, brass, copper, walnut handles on Hinderer are always HIGH (not CRITICAL)
+- Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority — this OVERRIDES the notable_item HIGH rule. Do not set these to high or critical unless damascus or mammoth inlay is explicitly mentioned.
+- Demko AD20.5 is a common production knife — always MEDIUM priority unless a rare sprint/collab variant is explicitly mentioned
 WEBPAGE CONTENT (truncated to 3000 chars):
 {page_content}
 
@@ -125,6 +136,7 @@ Rules:
 - alert_worthy should be true only if there are makers in stock OR a real drop announcement
 - Use the priority guide above to set priority accurately
 - Be conservative — false positives waste the owner's time
+- NEVER include sold-out or unavailable items in notable_items — only include items that are actually in stock or genuinely dropping soon
 - If no relevant content found return alert_worthy: false and empty arrays"""
 
 

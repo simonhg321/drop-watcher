@@ -1,15 +1,17 @@
+# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
 generate_alerts.py
 Drop Watcher — Alerts Page Generator
-Reads drops.jsonl and generates a live alerts page.
-Run via cron every 30 seconds or called from web_watcher after each alert.
+Reads drops.jsonl, deduplicates, and generates a live alerts page.
+One entry per source per day — best priority wins.
 HGR
 """
 
 import os
 import json
 from datetime import datetime, timezone, timedelta
+from collections import defaultdict
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
@@ -17,10 +19,10 @@ LOG_DIR     = os.path.join(BASE_DIR, 'logs')
 DROPS_LOG   = os.path.join(LOG_DIR, 'drops.jsonl')
 WWW_DIR     = '/var/www/html'
 ALERTS_HTML = os.path.join(WWW_DIR, 'alerts.html')
-
 HOURS_BACK  = 48
 
-# ── Priority styles ───────────────────────────────────────────────────────────
+PRIORITY_ORDER = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+
 PRIORITY_COLOR = {
     'critical': '#e74c3c',
     'high':     '#e67e22',
@@ -36,11 +38,11 @@ PRIORITY_LABEL = {
 }
 
 def load_recent_alerts(hours=48):
-    alerts = []
     if not os.path.exists(DROPS_LOG):
-        return alerts
+        return []
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    raw = []
 
     with open(DROPS_LOG, 'r') as f:
         for line in f:
@@ -49,21 +51,74 @@ def load_recent_alerts(hours=48):
                 continue
             try:
                 alert = json.loads(line)
-                # Skip raw keyword-only alerts — AI enriched only
-                if not alert.get("notable_items") and not alert.get("drop_announcement", {}).get("detected") and not alert.get("page_summary"):
+                # Skip bare keyword-only alerts with no AI enrichment
+                if (not alert.get('notable_items')
+                        and not alert.get('drop_announcement', {}).get('detected')
+                        and not alert.get('page_summary')):
                     continue
                 ts_str = alert.get('timestamp', '')
-                if ts_str:
-                    ts = datetime.fromisoformat(ts_str)
-                    if ts > cutoff:
-                        alerts.append(alert)
-            except json.JSONDecodeError:
+                if not ts_str:
+                    continue
+                ts = datetime.fromisoformat(ts_str)
+                if ts > cutoff:
+                    raw.append(alert)
+            except (json.JSONDecodeError, ValueError):
                 continue
 
-    # Newest first
-    priority_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
-    alerts.sort(key=lambda a: (priority_order.get(a.get('priority', 'medium').lower(), 2), a.get('timestamp', '')), reverse=False)
-    return alerts
+    # ── Dedup: one entry per source per day, best priority wins ───────────────
+    # For Reddit: group by source + hour (posts change faster)
+    groups = defaultdict(list)
+    for alert in raw:
+        source = alert.get('source', 'unknown')
+        ts_str = alert.get('timestamp', '')
+        if source.startswith('Reddit'):
+            # Reddit: per-hour so different posts are distinct
+            key = f"{source}:{ts_str[:13]}"
+        else:
+            # Web sources: one entry per source across full 48h window
+            key = source
+        groups[key].append(alert)
+
+    deduped = []
+    for key, entries in groups.items():
+        if len(entries) == 1:
+            deduped.append(entries[0])
+            continue
+        # Keep entry with best priority; break ties by most notable_items, then newest
+        entries.sort(key=lambda a: (
+            PRIORITY_ORDER.get(a.get('priority', 'low'), 3),
+            -len(a.get('notable_items', [])),
+            a.get('timestamp', ''),
+        ))
+        best = entries[0]
+        # Merge notable_items from all entries (deduplicated)
+        all_items = []
+        seen_items = set()
+        for e in entries:
+            for item in e.get('notable_items', []):
+                item_key = item.lower()[:60]
+                if item_key not in seen_items:
+                    seen_items.add(item_key)
+                    all_items.append(item)
+        best['notable_items'] = all_items
+        deduped.append(best)
+
+    # ── Sort: priority first, then newest-first within each priority ──────────
+    deduped.sort(key=lambda a: (
+        PRIORITY_ORDER.get(a.get('priority', 'medium').lower(), 2),
+        a.get('timestamp', ''),
+    ), reverse=False)
+    # stable re-sort to get newest-first within priority groups
+    from itertools import groupby
+    final = []
+    deduped.sort(key=lambda a: PRIORITY_ORDER.get(a.get('priority', 'medium').lower(), 2))
+    for _, group in groupby(deduped, key=lambda a: a.get('priority', 'medium').lower()):
+        group_list = list(group)
+        group_list.sort(key=lambda a: a.get('timestamp', ''), reverse=True)
+        final.extend(group_list)
+
+    return final
+
 
 def format_timestamp(ts_str):
     try:
@@ -72,30 +127,29 @@ def format_timestamp(ts_str):
     except:
         return ts_str
 
-def render_alert_card(alert):
-    priority    = alert.get('priority', 'medium').lower()
-    source      = alert.get('source', 'Unknown')
-    url         = alert.get('url', '#')
-    ts          = format_timestamp(alert.get('timestamp', ''))
-    event       = alert.get('event', 'page_changed')
-    color       = PRIORITY_COLOR.get(priority, '#888')
-    label       = PRIORITY_LABEL.get(priority, priority.upper())
 
-    # Notable items (AI layer)
+def render_alert_card(alert):
+    priority  = alert.get('priority', 'medium').lower()
+    source    = alert.get('source', 'Unknown')
+    url       = alert.get('url', '#')
+    ts        = format_timestamp(alert.get('timestamp', ''))
+    event     = alert.get('event', 'page_changed')
+    color     = PRIORITY_COLOR.get(priority, '#888')
+    label     = PRIORITY_LABEL.get(priority, priority.upper())
+
     notable_items = alert.get('notable_items', [])
     notable_html = ''
     if notable_items:
         items_html = ''.join(f'<li>{item}</li>' for item in notable_items)
         notable_html = f'<ul class="notable-items">{items_html}</ul>'
 
-    # Drop announcement (AI layer)
     drop = alert.get('drop_announcement', {})
     drop_html = ''
     if drop and drop.get('detected'):
-        maker   = drop.get('maker', '')
-        desc    = drop.get('description', '')
-        timing  = drop.get('timing', '')
-        conf    = drop.get('confidence', '')
+        maker  = drop.get('maker', '')
+        desc   = drop.get('description', '')
+        timing = drop.get('timing', '')
+        conf   = drop.get('confidence', '')
         drop_html = f"""
         <div class="drop-announcement">
             🔥 DROP ANNOUNCEMENT — {maker}: {desc}
@@ -103,23 +157,21 @@ def render_alert_card(alert):
             {f'<span class="confidence">confidence: {conf}</span>' if conf else ''}
         </div>"""
 
-    # Keyword matches (old layer fallback)
     matches = alert.get('matches', [])
     matches_html = ''
     if matches and not notable_items:
         matches_html = f'<div class="matches">matched: {", ".join(matches[:10])}</div>'
 
-    # Page summary (AI layer)
     summary = alert.get('page_summary', '')
     summary_html = f'<div class="summary">{summary}</div>' if summary else ''
 
-    # Makers found
     makers_found = alert.get('makers_found', [])
-    makers_html = ''
-    if makers_found:
-        makers_html = f'<div class="makers-found">makers: {", ".join(makers_found)}</div>'
+    makers_html = f'<div class="makers-found">makers: {", ".join(makers_found)}</div>' if makers_found else ''
 
-    event_badge = 'BASELINE' if event == 'baseline_stock_found' else 'FEED ENTRY' if event == 'feed_entry' else 'CHANGED'
+    event_badge = ('BASELINE' if event == 'baseline_stock_found'
+                   else 'FEED ENTRY' if event == 'feed_entry'
+                   else 'CHANGED')
+
     return f"""
     <div class="alert-card priority-{priority}">
         <div class="alert-header">
@@ -137,15 +189,12 @@ def render_alert_card(alert):
         </div>
     </div>"""
 
+
 def generate_alerts_page():
-    alerts = load_recent_alerts(HOURS_BACK)
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    alerts   = load_recent_alerts(HOURS_BACK)
+    now_str  = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
-    if not alerts:
-        alerts_html = '<div class="no-alerts">No alerts in the last 48 hours. All quiet. 🔍</div>'
-    else:
-        alerts_html = '\n'.join(render_alert_card(a) for a in alerts)
-
+    alerts_html    = '\n'.join(render_alert_card(a) for a in alerts) if alerts else '<div class="no-alerts">No alerts in the last 48 hours. All quiet. 🔍</div>'
     critical_count = sum(1 for a in alerts if a.get('priority') == 'critical')
     high_count     = sum(1 for a in alerts if a.get('priority') == 'high')
     medium_count   = sum(1 for a in alerts if a.get('priority') == 'medium')
@@ -170,29 +219,25 @@ def generate_alerts_page():
     h1 span {{ color: var(--ember); }}
     .subtitle {{ color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 0.5rem; }}
     .flame-line {{ height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 2rem; }}
-
     .nav {{ display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; letter-spacing: 0.2em; }}
     .nav a {{ color: var(--ash); text-decoration: none; }}
     .nav a:hover {{ color: var(--flame); }}
     .nav a.active {{ color: var(--flame); border-bottom: 1px solid var(--flame); }}
-
-    .stats {{ display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; }}
-    .stat {{ padding: 0.5rem 1rem; border: 1px solid var(--iron); }}
+    .stats {{ display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; flex-wrap: wrap; }}
+    .stat {{ padding: 0.5rem 1rem; border: 1px solid var(--iron); cursor: pointer; }}
+    .stat:hover {{ border-color: var(--flame); }}
     .stat-label {{ color: var(--ash); font-size: 0.65rem; letter-spacing: 0.2em; }}
     .stat-value {{ font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; }}
-
     .alert-card {{ border: 1px solid var(--iron); margin-bottom: 1rem; }}
     .alert-card.priority-critical {{ border-left: 3px solid #e74c3c; }}
     .alert-card.priority-high {{ border-left: 3px solid #e67e22; }}
     .alert-card.priority-medium {{ border-left: 3px solid #f1c40f; }}
-
     .alert-header {{ display: flex; gap: 1rem; align-items: center; padding: 0.6rem 1rem; background: var(--steel); flex-wrap: wrap; }}
     .priority-badge {{ font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.1em; }}
     .event-badge {{ font-size: 0.6rem; letter-spacing: 0.2em; color: var(--ash); border: 1px solid var(--iron); padding: 0.1rem 0.4rem; }}
     .site-name {{ color: var(--silver); text-decoration: none; font-size: 0.85rem; }}
     .site-name:hover {{ color: var(--flame); }}
     .alert-ts {{ color: var(--ash); font-size: 0.65rem; margin-left: auto; }}
-
     .alert-body {{ padding: 0.75rem 1rem; font-size: 0.75rem; }}
     .drop-announcement {{ background: rgba(192,57,43,0.15); color: var(--flame); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-left: 2px solid var(--ember); }}
     .timing {{ color: var(--white); margin-left: 1rem; }}
@@ -202,9 +247,7 @@ def generate_alerts_page():
     .summary {{ color: var(--ash); font-style: italic; margin-top: 0.5rem; font-family: 'Crimson Pro', serif; font-size: 0.85rem; }}
     .makers-found {{ color: var(--ash); font-size: 0.7rem; margin-top: 0.4rem; }}
     .matches {{ color: var(--ash); font-size: 0.7rem; margin-top: 0.4rem; }}
-
     .no-alerts {{ color: var(--ash); padding: 2rem; text-align: center; border: 1px solid var(--iron); }}
-
     footer {{ margin-top: 3rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; }}
     .hgr {{ font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }}
   </style>
@@ -213,27 +256,25 @@ def generate_alerts_page():
   <h1>DROP <span>WATCHER</span></h1>
   <p class="subtitle">LIVE ALERTS — LAST 48 HOURS — AUTO REFRESHES EVERY 30 SECONDS</p>
   <div class="flame-line"></div>
-
   <nav class="nav">
     <a href="/alerts.html" class="active">ALERTS</a>
     <a href="/status.html">STATUS</a>
     <a href="/index.html">HOME</a>
   </nav>
-
   <div class="stats">
-    <div class="stat" onclick="filterAlerts('all')" style="cursor:pointer">
+    <div class="stat" onclick="filterAlerts('all')">
       <div class="stat-label">TOTAL</div>
       <div class="stat-value" style="color:var(--white)">{len(alerts)}</div>
     </div>
-    <div class="stat" onclick="filterAlerts('critical')" style="cursor:pointer">
+    <div class="stat" onclick="filterAlerts('critical')">
       <div class="stat-label">CRITICAL</div>
       <div class="stat-value" style="color:#e74c3c">{critical_count}</div>
     </div>
-    <div class="stat" onclick="filterAlerts('high')" style="cursor:pointer">
+    <div class="stat" onclick="filterAlerts('high')">
       <div class="stat-label">HIGH</div>
       <div class="stat-value" style="color:#e67e22">{high_count}</div>
     </div>
-    <div class="stat" onclick="filterAlerts('medium')" style="cursor:pointer">
+    <div class="stat" onclick="filterAlerts('medium')">
       <div class="stat-label">MEDIUM</div>
       <div class="stat-value" style="color:#f1c40f">{medium_count}</div>
     </div>
@@ -251,13 +292,8 @@ def generate_alerts_page():
   </footer>
 <script>
 function filterAlerts(priority) {{
-  const cards = document.querySelectorAll('.alert-card');
-  cards.forEach(card => {{
-    if (priority === 'all' || card.classList.contains('priority-' + priority)) {{
-      card.style.display = '';
-    }} else {{
-      card.style.display = 'none';
-    }}
+  document.querySelectorAll('.alert-card').forEach(card => {{
+    card.style.display = (priority === 'all' || card.classList.contains('priority-' + priority)) ? '' : 'none';
   }});
 }}
 </script>
@@ -267,7 +303,7 @@ function filterAlerts(priority) {{
     try:
         with open(ALERTS_HTML, 'w') as f:
             f.write(html)
-        print(f"✓ Alerts page written — {len(alerts)} alerts in last {HOURS_BACK}h")
+        print(f"✓ Alerts page written — {len(alerts)} alerts (deduplicated) in last {HOURS_BACK}h")
     except PermissionError:
         print(f"✗ Cannot write to {ALERTS_HTML} — check permissions")
 

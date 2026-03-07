@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
 web_watcher.py
@@ -92,6 +93,32 @@ def prefilter(text, keywords):
 
 # ── Item deduplication ────────────────────────────────────────────────────────
 SEEN_ITEMS_FILE = os.path.join(LOG_DIR, 'seen_items.json')
+SEEN_CONTENT_FILE = os.path.join(LOG_DIR, 'seen_content.json')
+CONTENT_DEDUP_HOURS = 4  # suppress same-content alerts from same source for 4 hours
+
+def load_seen_content():
+    if os.path.exists(SEEN_CONTENT_FILE):
+        with open(SEEN_CONTENT_FILE) as f:
+            return json.load(f)
+    return {}
+
+def save_seen_content(seen):
+    with open(SEEN_CONTENT_FILE, 'w') as f:
+        json.dump(seen, f)
+
+def is_content_seen(source, summary, seen_content):
+    """Return True if we've alerted on very similar content from this source recently."""
+    import time
+    key = f"{source}:{hashlib.md5(summary.encode()).hexdigest()[:8]}"
+    last_seen = seen_content.get(key, 0)
+    return (time.time() - last_seen) < CONTENT_DEDUP_HOURS * 3600
+
+def mark_content_seen(source, summary, seen_content):
+    import time
+    key = f"{source}:{hashlib.md5(summary.encode()).hexdigest()[:8]}"
+    seen_content[key] = time.time()
+    cutoff = time.time() - CONTENT_DEDUP_HOURS * 3600 * 2
+    return {k: v for k, v in seen_content.items() if v > cutoff}
 DEDUP_HOURS = 24
 
 def load_seen_items():
@@ -212,6 +239,7 @@ def run():
     page_cache    = {}
     failure_count = {}
     seen_items    = load_seen_items()
+    seen_content  = load_seen_content()
 
     websites = [s for s in sources.get('websites', []) if s.get('enabled', True)]
 
@@ -265,6 +293,9 @@ def run():
                             result['agent'] = 'web_watcher'
                             result['source'] = name
                             result['event'] = 'baseline_stock_found'
+                            # Baseline events never fire CRITICAL — we haven't confirmed real availability yet
+                            if result.get('priority') == 'critical':
+                                result['priority'] = 'high'
                             write_alert(settings, result)
                             seen_items = mark_items_seen(name, new_items, seen_items)
                             save_seen_items(seen_items)
@@ -297,7 +328,13 @@ def run():
                     result['agent'] = 'web_watcher'
                     result['source'] = name
                     result['event'] = 'page_changed'
+                    summary = result.get('page_summary', '') + result.get('drop_announcement', {}).get('description', '')
+                    if is_content_seen(name, summary, seen_content):
+                        log.info(f"{name} — content unchanged since last alert, suppressing duplicate")
+                        continue
                     write_alert(settings, result)
+                    seen_content = mark_content_seen(name, summary, seen_content)
+                    save_seen_content(seen_content)
                     seen_items = mark_items_seen(name, new_items, seen_items)
                     save_seen_items(seen_items)
                 else:
