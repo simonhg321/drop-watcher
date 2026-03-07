@@ -120,8 +120,34 @@ makers:
         - emerson collab
 
   - name: Strider Knives
-    aliases: [strider, smf, smf-t, sng, tanto, mick strider]
+    aliases: [strider, smf, smf-t, sng, tanto, mick strider, strider knives]
     priority: high
+    notable_models:
+      critical:
+        - damascus
+        - steel flame
+        - steel flame collab
+        - custom
+        - mick strider
+        - msc
+      high:
+        - smf
+        - sng
+        - smf-t
+        - pt
+        - ar
+        - db
+        - wb
+      medium:
+        - bt
+        - cd
+
+  - name: Mick Strider Custom Knives
+    aliases: [mick strider, msc, mick strider custom, mickstridercustomknives]
+    priority: critical
+    notable_models:
+      critical:
+        - all
 
   - name: McNees Knives
     aliases: [mcnees, mcnees knives, kyle mcnees]

@@ -93,6 +93,7 @@ PRIORITY RULES:
 - Only THESE specific collaborations are CRITICAL: Hinderer x Steel Flame, CRK x Wilson Combat, Strider x Steel Flame. All other collabs are medium priority.
 - Recurring scheduled drops (e.g. "every Thursday 4pm", "daily at 3:30pm ET") are MEDIUM priority, not high or critical
 - Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority
+- Any Mick Strider Custom Knife (MSC) available for purchase is always CRITICAL — these are extremely rare
 - Damascus on any CRK is always CRITICAL
 - Wood, brass, copper, walnut handles on Hinderer are always CRITICAL
 
