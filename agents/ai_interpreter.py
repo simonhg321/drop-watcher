@@ -94,6 +94,7 @@ PRIORITY RULES:
 - Recurring scheduled drops (e.g. "every Thursday 4pm", "daily at 3:30pm ET") are MEDIUM priority, not high or critical
 - Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority
 - Any Mick Strider Custom Knife (MSC) available for purchase is always CRITICAL — these are extremely rare
+- Any drop announcement or DROP banner on McNees Knives is always HIGH priority
 - Damascus on any CRK is always CRITICAL
 - Wood, brass, copper, walnut handles on Hinderer are always CRITICAL
 
