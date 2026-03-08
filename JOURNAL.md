@@ -230,3 +230,35 @@ NEVER:
 - Ubiquiti white version (UVC-G6-180-W) is Coming Soon — will be first real boss alert
 - Urban EDC Supply 03/11 drop — CRK Sebenza 31 MagnaCut
 - Urban EDC Supply 03/18 drop — TBD
+
+### Session 8 — 2026-03-08
+
+**What we built:**
+- watchlist.html — public signup page live at instockornot.club/watchlist.html
+- watcher_signup.py — Flask API (POST /api/watch) running via gunicorn/supervisord on port 5001
+- per_user_alerter.py — cron */30 as shg, checks watchers.json, emails matches
+- Apache proxy wired — /api/ → 127.0.0.1:5001 in default-ssl.conf (443 vhost)
+- Rate limiting — max 10 signups/day, 24hr email cooldown, 50 emails/day cap
+- SMS approval gate — phone collected but sms_approved=False until Simon approves
+- Twilio account created — paid, number +19282498690 (928-WATCHER)
+- A2P 10DLC registration pending — need LLC EIN + RA address (do when back)
+- Email-to-SMS via vtext.com/vzwpix.com — bounced/delayed, not reliable
+- goaccess wired to root cron hourly — stats/index.html now auto-updates
+- Copyright headers on all 6 key Python files — committed to GitHub
+- All new files committed: watcher_signup.py, per_user_alerter.py (commit 2db8138)
+- hostname set to ironman via hostnamectl
+
+**Known issues:**
+- ironman can't reach southernedgeknives.com — DNS/network issue, investigate
+- Gmail spam-folders per_user_alerter emails — new domain reputation, will improve
+- Resend domain instockornot.club is Verified — SPF/DKIM already set
+
+**Pending next session:**
+- Twilio A2P 10DLC — complete Brand + Campaign registration (need LLC docs)
+- Wire Twilio send_sms into alerter.py once A2P approved
+- Confirmation email to user on signup (watcher_signup.py)
+- /my-watches page — magic link, view/manage active watches
+- southernedgeknives.com fetch failure — debug ironman network
+- Urban EDC Supply 03/11 — CRK Sebenza 31 MagnaCut dropping
+- Urban EDC Supply 03/18 — second drop TBD
+- Bloomberg terminal integration 😄
