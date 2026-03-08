@@ -262,3 +262,9 @@ NEVER:
 - Urban EDC Supply 03/11 — CRK Sebenza 31 MagnaCut dropping
 - Urban EDC Supply 03/18 — second drop TBD
 - Bloomberg terminal integration 😄
+### Session 8 addendum — 2026-03-08
+- watchlist.html password protected — Basic Auth via /var/www/html/.htaccess
+- htpasswd file at /etc/apache2/.htpasswd, username: dropwatcher
+- AllowOverride All confirmed in default-ssl.conf
+- Tested in incognito — prompts for credentials ✅
+- Committed to GitHub (3271e02)
