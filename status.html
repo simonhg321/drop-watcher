@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="60">
+  <title>Drop Watcher — Status</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 1rem; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 8vw, 3rem); color: var(--white); letter-spacing: 0.05em; }
+    h1 span { color: var(--ember); }
+    .subtitle { color: var(--ash); font-size: 0.7rem; letter-spacing: 0.2em; margin-bottom: 1rem; line-height: 1.6; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 1.5rem; }
+    .nav { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 0.75rem; letter-spacing: 0.2em; flex-wrap: wrap; }
+    .nav a { color: var(--ash); text-decoration: none; }
+    .nav a:hover { color: var(--flame); }
+    .nav a.active { color: var(--flame); border-bottom: 1px solid var(--flame); }
+    .run-block { border: 1px solid var(--iron); margin-bottom: 1.5rem; overflow-x: auto; }
+    .run-header { display: flex; gap: 1rem; align-items: center; padding: 0.75rem 1rem; background: var(--steel); border-bottom: 1px solid var(--iron); flex-wrap: wrap; }
+    .run-ts { color: var(--ash); font-size: 0.65rem; }
+    .run-status { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; }
+    .run-counts { display: flex; gap: 1rem; font-size: 0.75rem; margin-left: auto; }
+    .pass { color: #2ecc71; } .warn { color: #e67e22; } .fail { color: #e74c3c; }
+    .site-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 500px; }
+    .site-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--ember); font-size: 0.6rem; letter-spacing: 0.2em; border-bottom: 1px solid var(--iron); white-space: nowrap; }
+    .site-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--iron); color: var(--silver); }
+    .site-table tr:last-child td { border-bottom: none; }
+    .site-table tr:hover td { background: var(--steel); }
+    .site-table a { color: var(--silver); text-decoration: none; }
+    .site-table a:hover { color: var(--flame); }
+    .drop-alert td { background: rgba(192,57,43,0.15); color: var(--flame); font-weight: bold; }
+    footer { margin-top: 2rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>DROP <span>WATCHER</span></h1>
+  <p class="subtitle">PREFLIGHT STATUS — AUTO REFRESHES EVERY 60 SECONDS — instockornot.club</p>
+  <div class="flame-line"></div>
+
+  <nav class="nav">
+    <a href="/alerts.html">ALERTS</a>
+    <a href="/status.html" class="active">STATUS</a>
+    <a href="/index.html">HOME</a>
+  </nav>
+
+  <!-- RUNS_START -->
+  
+    <div class="run-block">
+        <div class="run-header">
+            <span class="run-ts">2026-03-13 19:03:30 UTC</span>
+            <span class="run-status" style="color:#2ecc71">HEALTHY</span>
+            <span class="run-counts">
+                <span class="pass">✓ 341</span>
+                <span class="warn">⚠ 43</span>
+                <span class="fail">✗ 0</span>
+            </span>
+        </div>
+        <table class="site-table">
+            <thead>
+                <tr>
+                    <th>Site</th>
+                    <th>Status</th>
+                    <th>Response</th>
+                    <th>Scrape</th>
+                    <th>Makers Found</th>
+                    <th>Poll</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><a href="https://www.knifejoy.com" target="_blank">KnifeJoy</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>202ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Strider Knives, Medford Knife and Tool, Spyderco, Microtech, Protech Knives</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.knifecenter.com" target="_blank">Knife Center</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>132ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Demko Knives, Spyderco, Microtech, Protech Knives, Shirogorov Knives, Sharp By Design, Shark Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.dlttrading.com" target="_blank">DLT Trading</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>174ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Demko Knives, Medford Knife and Tool, Spyderco, Microtech, Protech Knives, Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.dlttrading.com/rick-hinderer-knives" target="_blank">DLT Trading — Hinderer</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>974ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Strider Knives, Demko Knives, Medford Knife and Tool, Spyderco, Microtech, Protech Knives</td>
+            <td>15m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.dlttrading.com/chris-reeve-knives" target="_blank">DLT Trading — CRK</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>711ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Demko Knives, Medford Knife and Tool, Spyderco, Microtech, Protech Knives</td>
+            <td>15m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.dlttrading.com/newest-arrivals" target="_blank">DLT Trading — New Arrivals</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>752ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Strider Knives, Arno Bernard Knives, Demko Knives, Medford Knife and Tool, Spyderco, Microtech, Heretic Knives, Protech Knives, Shark Knife Co</td>
+            <td>10m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.lamnia.com" target="_blank">Lamnia</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>649ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Steel Flame, Strider Knives, Spyderco, Frag Knives, Microtech, Tactile Knife Co</td>
+            <td>60m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.nordicknives.com" target="_blank">Nordic Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>302ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Steel Flame, Microtech, Heretic Knives</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.tacticalelements.com" target="_blank">Tactical Elements</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>161ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Strider Knives, Demko Knives, Microtech</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.eknives.com" target="_blank">eKnives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>317ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Strider Knives, Mick Strider Custom Knives, McNees Knives, Demko Knives, Medford Knife and Tool, Spyderco, Microtech, Heretic Knives, Protech Knives, Chaves Knives, Shirogorov Knives, Tactile Knife Co, Sergey Rogovets, Pena Knives</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.monkeyedge.com" target="_blank">Monkey Edge</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>411ms</td>
+            <td> </td>
+            <td>Chris Reeve Knives, Monkey Edge</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.nashvilletacticallounge.com" target="_blank">Nashville Tactical Lounge</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>353ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Mick Strider Custom Knives, Demko Knives, Spyderco, Frag Knives, Microtech, Heretic Knives, Protech Knives, Prometheus Design Werx, Shark Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.steeladdiction.com" target="_blank">Steel Addiction</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>75ms</td>
+            <td>⚠ JS rendered ✓ sitemap</td>
+            <td>—</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.northwestknives.com" target="_blank">Northwest Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>335ms</td>
+            <td> ✓ sitemap</td>
+            <td>Hinderer Knives, Chris Reeve Knives, Steel Flame, McNees Knives, Spyderco, Microtech, Heretic Knives, Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.arizonacustomknives.com" target="_blank">Arizona Custom Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>200ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, Strider Knives, Mick Strider Custom Knives</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.messerteam.de/en/collections/arno-bernard-knives" target="_blank">Messerteam — Arno Bernard</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>781ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Steel Flame, Arno Bernard Knives, Microtech, Tactile Knife Co</td>
+            <td>60m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.arizonacustomknives.com/knives-by-maker/steel-flame/" target="_blank">Arizona Custom Knives — Steel Flame</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>360ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, Strider Knives</td>
+            <td>15m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://thunderbirdgear.ca" target="_blank">Thunderbird Gear</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>178ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, McNees Knives, Arno Bernard Knives, Chaves Knives, Curtiss Custom Knives, Tactile Knife Co, Lynch Northwest</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.knifeart.com" target="_blank">Knife Art</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>312ms</td>
+            <td> ✓ sitemap</td>
+            <td>Hinderer Knives, Chris Reeve Knives, Steel Flame, Pena Knives, Kirby Lambert, William Harsey</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.knivesshipfree.com" target="_blank">Knives Ship Free</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>192ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Arno Bernard Knives, Spyderco, Microtech, Todd Begg Knives, Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.africansportingcreations.com" target="_blank">African Sporting Creations</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>435ms</td>
+            <td> </td>
+            <td>Steel Flame, Arno Bernard Knives</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://southernedges.com" target="_blank">Southern Edges</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>184ms</td>
+            <td> ✓ sitemap</td>
+            <td>Hinderer Knives, Chris Reeve Knives, Steel Flame, Strider Knives, Starlingear, Demko Knives, Spyderco, Frag Knives, Microtech, Heretic Knives, Protech Knives, Chaves Knives, Shirogorov Knives, Prometheus Design Werx, Kirby Lambert, Dmitry Sinkevich, Shark Knife Co, William Harsey</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.smkw.com" target="_blank">SMKW</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>387ms</td>
+            <td> </td>
+            <td>Chris Reeve Knives, Spyderco, Microtech</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://exclusivefolders.com" target="_blank">Exclusive Folders</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>188ms</td>
+            <td> ✓ sitemap</td>
+            <td>Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://originalgoat.com" target="_blank">Original Goat</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>142ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, Demko Knives, Spyderco, Microtech, Protech Knives, Lynch Northwest, Shark Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://toolsforgents.com" target="_blank">Tools For Gents</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>1134ms</td>
+            <td> ✓ sitemap</td>
+            <td>Hinderer Knives, Chris Reeve Knives, Steel Flame, Arno Bernard Knives, Medford Knife and Tool, Spyderco, Microtech, Protech Knives, Rockstead Knife, Shirogorov Knives, Todd Begg Knives, Prometheus Design Werx, Tactile Knife Co, Pena Knives, Shark Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://riversedgecutlery.com" target="_blank">Rivers Edge Cutlery</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>178ms</td>
+            <td> </td>
+            <td>Steel Flame, Spyderco</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://hoghouseknives.com" target="_blank">Hog House Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>636ms</td>
+            <td> ✓ sitemap</td>
+            <td>Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://urbanedcsupply.com" target="_blank">Urban EDC Supply</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>373ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Strider Knives, Spyderco, Protech Knives, Chaves Knives, Tactile Knife Co, Lynch Northwest, Todd Rexford</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://bladebinge.com" target="_blank">Blade Binge</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>555ms</td>
+            <td> ✓ sitemap</td>
+            <td>—</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.miguronknives.com" target="_blank">Miguron Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>110ms</td>
+            <td>⚠ JS rendered </td>
+            <td>—</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://recon1.com/collections/pre-owned" target="_blank">Recon 1 — Pre-Owned</a></td>
+            <td style="color:#f39c12">404 </td>
+            <td>193ms</td>
+            <td> ✓ sitemap</td>
+            <td>—</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://eknives.com/preowned/" target="_blank">eKnives — Pre-Owned</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>969ms</td>
+            <td> </td>
+            <td>Hinderer Knives, Chris Reeve Knives, Steel Flame, Strider Knives, Mick Strider Custom Knives, McNees Knives, Demko Knives, Medford Knife and Tool, Spyderco, Frag Knives, Microtech, Heretic Knives, Protech Knives, Chaves Knives, Shirogorov Knives, Tactile Knife Co, Sergey Rogovets, Pena Knives</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.knifepurveyor.com" target="_blank">Knife Purveyor</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>310ms</td>
+            <td> ✓ sitemap</td>
+            <td>—</td>
+            <td>30m</td>
+        </tr>
+        <tr class="drop-alert"><td colspan="6">🔥 DROP ANNOUNCEMENT: launching</td></tr>
+        
+        <tr>
+            <td><a href="https://luvthemknives.com/collections/pre-owned-knives" target="_blank">Luv Them Knives — Pre-Owned</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>138ms</td>
+            <td> ✓ sitemap</td>
+            <td>—</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://riversedgecutlery.com/consignment-shop/" target="_blank">Rivers Edge — Consignment</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>849ms</td>
+            <td> </td>
+            <td>Steel Flame, Spyderco</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.edclifestyle.com/pre-owned-consignment/" target="_blank">EDC Lifestyle — Pre-Owned</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>733ms</td>
+            <td> </td>
+            <td>Chris Reeve Knives, Strider Knives, McNees Knives, Spyderco, Frag Knives, Microtech, Heretic Knives, Protech Knives, Chaves Knives, Shirogorov Knives, Sergey Rogovets, Shark Knife Co</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://knife-market.com" target="_blank">Knife Market</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>1903ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://cuttingedge.com" target="_blank">Cutting Edge — Pre-Owned</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>463ms</td>
+            <td> ✓ sitemap</td>
+            <td>—</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.steelflame.com" target="_blank">Steel Flame</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>605ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame</td>
+            <td>15m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.striderknives.com" target="_blank">Strider Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>202ms</td>
+            <td>⚠ JS rendered </td>
+            <td>—</td>
+            <td>15m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank">Mick Strider Custom Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>1298ms</td>
+            <td> ✓ sitemap</td>
+            <td>Strider Knives, Mick Strider Custom Knives</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.spyderco.com" target="_blank">Spyderco</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>325ms</td>
+            <td> ✓ sitemap</td>
+            <td>Spyderco, Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.chrisreeve.com" target="_blank">Chris Reeve Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>391ms</td>
+            <td> ✓ sitemap</td>
+            <td>Chris Reeve Knives, Strider Knives</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.curtisscustomknives.com" target="_blank">Curtiss Custom Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>161ms</td>
+            <td> ✓ sitemap</td>
+            <td>Curtiss Custom Knives</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://arnobernard.com" target="_blank">Arno Bernard Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>137ms</td>
+            <td> ✓ sitemap</td>
+            <td>Arno Bernard Knives</td>
+            <td>30m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://demkoknives.com" target="_blank">Demko Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>300ms</td>
+            <td> ✓ sitemap</td>
+            <td>Demko Knives, Shark Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://mcneesknives.com" target="_blank">McNees Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>167ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, McNees Knives, Spyderco, Frag Knives, Tactile Knife Co</td>
+            <td>15m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.tactileknife.com" target="_blank">Tactile Knife Co</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>307ms</td>
+            <td> ✓ sitemap</td>
+            <td>Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://ozmachinecompany.com" target="_blank">Oz Machine Company</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>212ms</td>
+            <td> ✓ sitemap</td>
+            <td>Oz Machine Company</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://kunwuknives.com" target="_blank">Kunwu Knives</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>446ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.kunwucrew.com" target="_blank">Kunwu Crew</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>324ms</td>
+            <td> ✓ sitemap</td>
+            <td>—</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://poikiloblade.com" target="_blank">Poikilo Blade</a></td>
+            <td style="color:#f39c12">401 </td>
+            <td>475ms</td>
+            <td> </td>
+            <td>—</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://veroengineering.com" target="_blank">Vero Engineering</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>212ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, Lynch Northwest</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://maxaceknife.com" target="_blank">Maxace Knife</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>1547ms</td>
+            <td> </td>
+            <td>—</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://www.flytanium.com" target="_blank">Flytanium</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>161ms</td>
+            <td> ✓ sitemap</td>
+            <td>Steel Flame, Spyderco, Tactile Knife Co</td>
+            <td>20m</td>
+        </tr>
+        
+        
+        <tr>
+            <td><a href="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180" target="_blank">Ubiquiti UVC-G6-180 Camera</a></td>
+            <td style="color:#2ecc71">200 </td>
+            <td>133ms</td>
+            <td> </td>
+            <td>—</td>
+            <td>15m</td>
+        </tr>
+        
+        
+            </tbody>
+        </table>
+    </div>
+    
+  
+  <!-- RUNS_END -->
+
+  <footer>
+    <span>instockornot.club — simonhg321/drop-watcher</span>
+    <span class="hgr">HGR</span>
+  </footer>
+</body>
+</html>

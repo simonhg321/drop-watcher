@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="30">
+  <title>Drop Watcher — Alerts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 2rem; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: var(--white); letter-spacing: 0.05em; }
+    h1 span { color: var(--ember); }
+    .subtitle { color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 0.5rem; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 2rem; }
+    .nav { display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; letter-spacing: 0.2em; }
+    .nav a { color: var(--ash); text-decoration: none; }
+    .nav a:hover { color: var(--flame); }
+    .nav a.active { color: var(--flame); border-bottom: 1px solid var(--flame); }
+    .stats { display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; flex-wrap: wrap; }
+    .stat { padding: 0.5rem 1rem; border: 1px solid var(--iron); cursor: pointer; }
+    .stat:hover { border-color: var(--flame); }
+    .stat-label { color: var(--ash); font-size: 0.65rem; letter-spacing: 0.2em; }
+    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; }
+    .alert-card { border: 1px solid var(--iron); margin-bottom: 1rem; }
+    .alert-card.priority-critical { border-left: 3px solid #e74c3c; }
+    .alert-card.priority-high { border-left: 3px solid #e67e22; }
+    .alert-card.priority-medium { border-left: 3px solid #f1c40f; }
+    .alert-header { display: flex; gap: 1rem; align-items: center; padding: 0.6rem 1rem; background: var(--steel); flex-wrap: wrap; }
+    .priority-badge { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.1em; }
+    .event-badge { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--ash); border: 1px solid var(--iron); padding: 0.1rem 0.4rem; }
+    .site-name { color: var(--silver); text-decoration: none; font-size: 0.85rem; }
+    .site-name:hover { color: var(--flame); }
+    .alert-ts { color: var(--ash); font-size: 0.65rem; margin-left: auto; }
+    .alert-body { padding: 0.75rem 1rem; font-size: 0.75rem; }
+    .drop-announcement { background: rgba(192,57,43,0.15); color: var(--flame); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-left: 2px solid var(--ember); }
+    .timing { color: var(--white); margin-left: 1rem; }
+    .confidence { color: var(--ash); margin-left: 1rem; font-size: 0.65rem; }
+    .notable-items { padding-left: 1.5rem; color: var(--silver); line-height: 1.8; }
+    .notable-items li { list-style: '→ '; }
+    .summary { color: var(--ash); font-style: italic; margin-top: 0.5rem; font-family: 'Crimson Pro', serif; font-size: 0.85rem; }
+    .makers-found { color: var(--ash); font-size: 0.7rem; margin-top: 0.4rem; }
+    .matches { color: var(--ash); font-size: 0.7rem; margin-top: 0.4rem; }
+    .no-alerts { color: var(--ash); padding: 2rem; text-align: center; border: 1px solid var(--iron); }
+    footer { margin-top: 3rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; }
+    .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>DROP <span>WATCHER</span></h1>
+  <p class="subtitle">LIVE ALERTS — LAST 48 HOURS — AUTO REFRESHES EVERY 30 SECONDS</p>
+  <div class="flame-line"></div>
+  <nav class="nav">
+    <a href="/alerts.html" class="active">ALERTS</a>
+    <a href="/status.html">STATUS</a>
+    <a href="/index.html">HOME</a>
+  </nav>
+  <div class="stats">
+    <div class="stat" onclick="filterAlerts('all')">
+      <div class="stat-label">TOTAL</div>
+      <div class="stat-value" style="color:var(--white)">43</div>
+    </div>
+    <div class="stat" onclick="filterAlerts('critical')">
+      <div class="stat-label">CRITICAL</div>
+      <div class="stat-value" style="color:#e74c3c">1</div>
+    </div>
+    <div class="stat" onclick="filterAlerts('high')">
+      <div class="stat-label">HIGH</div>
+      <div class="stat-value" style="color:#e67e22">17</div>
+    </div>
+    <div class="stat" onclick="filterAlerts('medium')">
+      <div class="stat-label">MEDIUM</div>
+      <div class="stat-value" style="color:#f1c40f">25</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">LAST UPDATED</div>
+      <div class="stat-value" style="color:var(--ash);font-size:0.8rem;padding-top:0.4rem">2026-03-13 19:38:01 UTC</div>
+    </div>
+  </div>
+
+  
+    <div class="alert-card priority-critical">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e74c3c">🔥 CRITICAL</span>
+            <span class="event-badge">CHANGED</span>
+            <a href="https://www.arizonacustomknives.com" target="_blank" class="site-name">Arizona Custom Knives</a>
+            <span class="alert-ts">2026-03-12 19:56 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+        <div class="drop-announcement">
+            🔥 DROP ANNOUNCEMENT — None: New knives offered each weekday at 3:30pm ET
+            <span class="timing">⏰ 3:30pm ET daily (weekdays)</span>
+            <span class="confidence">confidence: high</span>
+        </div>
+            <ul class="notable-items"><li>Vintage MSC XL - Damascus & Carbon Fiber by Mick Strider ($5,945.00) - CRITICAL: MSC knife in stock with Damascus</li><li>Full Dress Pearl CQC-5 - Steel Flame Wicked Darkness Clip by Emerson Knives x Steel Flame ($5,495.00) - CRITICAL: Steel Flame collab piece in stock</li><li>MSC Custom Fighter - Sole-Authorship Cobalt Damascus by Strider/Mick Strider Knives - $16,950.00 - CRITICAL (MSC knife, damascus, in stock with Buy Now)</li><li>MSC Custom Fighter - Sole-Authorship Cobalt Damascus - AFTERMARKET HANDLE AND FILEWORK by ALAN CARROLL WARREN ($16,950.00) - In stock, Buy Now</li><li>MSC Custom Fighter - Sole-Authorship Cobalt Damascus by Warren (Strider/Mick Strider) - $16,950</li><li>MSC Custom Fighter - Sole-Authorship Cobalt Damascus by Mick Strider/Alan Carroll Warren ($16,950) - CRITICAL: MSC knife with damascus and custom handle work, in stock with Buy Now button</li></ul>
+            <div class="summary">Arizona Custom Knives homepage showing recently added high-end custom knives with daily new inventory at 3:30pm ET, featuring an MSC Damascus piece and Steel Flame Emerson collab in stock.</div>
+            <div class="makers-found">makers: Mick Strider Custom Knives, Steel Flame, Emerson Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.dlttrading.com/newest-arrivals" target="_blank" class="site-name">DLT Trading — New Arrivals</a>
+            <span class="alert-ts">2026-03-13 19:35 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC - Translucent Green G-10 ($635)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC - Orange G-10 ($635)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC - OD Green G-10 ($635)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC - Coyote G-10 ($635)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC - Blue G-10 ($635)</li><li>Heretic Wraith V4 Manual S/E MagnaCut - Cotton Candy Cel Shading ($413)</li><li>Heretic Wraith V4 S/E Auto - Clip Point Battleworn Black MagnaCut ($292)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC - Red G-10 ($635)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC (multiple G-10 colors in stock)</li><li>Heretic Wraith V4 S/E Auto - Battleworn Black MagnaCut</li><li>Poikilo Blade Gecko M 2025 Blade Show - Zircu-Ti Handle ($980.00)</li><li>Hinderer XM-24 Harpoon Spanto S45VN - Battle Black DLC (5 color variants in stock)</li><li>Poikilo Blade Gecko M 2025 Blade Show - Zircu-Ti Handle - $980.00</li><li>Heretic Wraith V4 S/E Auto MagnaCut - Battleworn Black</li><li>Poikilo Blade Tuna Midtech - DLC Titanium with Timascus Clip - $550.00</li><li>Poikilo Blade Tuna Midtech - DLC Titanium - Timascus Clip - $550.00</li><li>Heretic Wraith V4 Manual S/E MagnaCut Clip Point - Cotton Candy Cel Shading - $413.00</li><li>Heretic Wraith V4 S/E Auto - Clip Point MagnaCut - Battleworn Black</li></ul>
+            <div class="summary">DLT Trading newest arrivals page featuring multiple Hinderer XM-24 Harpoon Spanto models in various G-10 colors and Heretic Wraith V4 automatics in stock.</div>
+            <div class="makers-found">makers: Hinderer Knives, Heretic Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rssr86/wts_beans_mcnees_freeman_north_mountain_vero_and/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 17:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>McNees MAC2 3.5 with custom mods (acid wash, mokume studs, bronze clip) - Magnacut - $400</li><li>Beans Blade Mini Warrior - BNIB, M390 - $300</li><li>CRK x DLT exclusive Elforyn Mnandi (MagnaCut, born 12/09/25, full kit, never cut or carried)</li><li>Para 3 custom – MetonBoss oil slick zirconium scales, purple hardware, Lynch NW Ti deep carry clip – $300</li><li>Manix 2 Salt custom – AWT OD green aluminum scales, MagnaCut blade – $200</li><li>PM2 custom – Flytanium Ti Lotus scales, DLC S45VN – $175</li><li>Shaman custom – Lynch NW Ti skinny samurai glass blasted scale kit with liner delete – $350</li><li>Military 2 custom – Rockscale Design Ti Hexi scales, Lynch NW Ti deep carry clip – $275</li><li>Hinderer XM-18 3.5 Bowie in Magnacut, Black/G-10 - $310</li></ul>
+            <div class="summary">Secondary market sale (r/knife_swap) featuring a McNees MAC2 3.5 with custom modifications and a Beans Blade Mini Warrior, along with other non-priority maker knives.</div>
+            <div class="makers-found">makers: Freeman Knives, McNees Knives, Beans Blade, Vero, North Mountain</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rsou90/wtspena_trapper_hinderer_xm18_35_scale/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 14:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Pena X Trapper SV 150 - jade G10 scales, lightly carried, factory edge</li><li>Hinderer XM-18 3.5" Ti stonewash scale SV 150 - 1st owner, mounted and carried, no defects</li><li>Spyderco Delica 4 20CV with Lynch NW Kit - SV $200</li><li>Spyderco Dragonfly 2 K390 with Flytanium G-10 scales - SV $110</li><li>Demko MGAD15 - DLC coated, 20CV steel, dyed scales, cerakoted hardware - $650</li></ul>
+            <div class="summary">Private knife_swap listing featuring a used Pena X Trapper and a Hinderer XM-18 3.5" with stonewash scale, both priced at $150 each.</div>
+            <div class="makers-found">makers: Pena Knives, Hinderer Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rs61mf/wts_rsk_paragon_x2_rsk_chaos_v1_socom_elite/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 23:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>RSK Paragon Skeleton - CPM Cruwear, first owner, $1000</li><li>RSK Paragon Timascus - CPM Cruwear, first owner, $1300</li><li>RSK Chaos Final V1 - Damaworx Ferus steel, checkered carbon fiber, $1300</li><li>Microtech Socom Elite - first owner, $200</li></ul>
+            <div class="summary">Private seller listing RSK Paragon knives (two variants) and RSK Chaos V1 along with a Microtech Socom Elite on r/Knife_Swap.</div>
+            <div class="makers-found">makers: Strider Knives, Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rs3nyc/wts_mcnees_dixon_microtech_cypher_ii_and/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 21:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>McNees Dixon - first owner, BNIB condition, $575</li><li>Microtech Cypher II - BNIB, $275</li><li>Microtech Luminary moss green cerakote with tritium button - BNIB, $475</li><li>Hinderer Jurassic Full Titanium - LNIB, Magnacut blade, working finish hollow grind slicer, $475</li><li>Demko MGAD20 OD Green G10 DLT Exclusive in CPM Cruwear - Second owner, never sharpened, carried condition</li></ul>
+            <div class="summary">Reddit Knife_Swap WTS post featuring a McNees Dixon and two Microtech automatics (Cypher II and Luminary) all in new/like-new condition.</div>
+            <div class="makers-found">makers: McNees Knives, Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.knifeart.com" target="_blank" class="site-name">Knife Art</a>
+            <span class="alert-ts">2026-03-12 19:17 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Chris Reeve Large Sebenza 31 Insingo - Carbon Fiber - MagnaCut ($625.00)</li><li>Chris Reeve Large Sebenza 31 Box Elder Burl Inlay #3 ($650.00)</li><li>William Henry B12 Golden Vine - Gold Koftgari Damascus ($3,500.00)</li><li>William Henry B12 Foliage - Boomerang Damascus ($1,750.00)</li><li>Spartan Harsey Folder - Damascus (multiple variants $675-$725.00)</li><li>Zero Tolerance 0562CF - Hinderer Design ($300.00)</li><li>Chris Reeve Large Sebenza 31 Insingo Box Elder Burl Inlay #3 and #10 (production, HIGH priority)</li><li>Chris Reeve Small Sebenza 31 Carbon Fiber - Drop Point (production, HIGH priority)</li><li>Spartan Harsey Folding Knife - Stainless Damascus (production, HIGH priority)</li><li>Spartan Harsey Folder - Damascus variants (multiple damascus options available, HIGH priority)</li><li>Zero Tolerance 0562CF - Hinderer Design (production, MEDIUM priority)</li><li>Chris Reeve Small Sebenza 31 Carbon Fiber - Drop Point</li><li>Spartan Harsey Folder - Damascus variants (multiple)</li><li>William Henry B12 Golden Vine - Gold Koftgari and Hornets Nest Damascus</li><li>Chris Reeve Small Sebenza 31 Carbon Fiber - Drop Point $550.00</li><li>Spartan Harsey Folder - Damascus (multiple variants) $675.00-$725.00</li><li>William Henry B12 Golden Vine - Stainless Damascus $3,500.00</li><li>William Henry B30 Eventide - Mammoth/Mokume/Wave Damascus $2,350.00</li><li>Chris Reeve Large Sebenza 31 Insingo - MagnaCut $625.00</li><li>Chris Reeve Small Sebenza 31 Carbon Fiber Drop Point $550.00</li><li>Spartan Harsey Folder - Stainless Damascus variants $675-725.00</li><li>William Henry B12 with Damascus inlays $1,450-3,500.00</li><li>Chris Reeve Large Sebenza 31 Insingo - MagnaCut</li><li>Chris Reeve Large Sebenza 31 with Box Elder Burl Inlay</li><li>William Henry B12 Foliage - Boomerang Damascus</li><li>William Henry B30 Eventide - Mammoth/Mokume/Wave Damascus</li><li>Chris Reeve Large Sebenza 31 Insingo Box Elder Burl Inlay - $650</li><li>Spartan Harsey Folder - Damascus (multiple variants) - $675-$725</li><li>William Henry B12 Golden Vine - Gold Koftgari and Damascus - $3,500</li><li>Spartan Harsey Folder - Stainless Damascus ($680)</li><li>William Henry B12 Damascus variants ($1,450-$3,500)</li><li>Chris Reeve Large Sebenza 31 Box Elder Burl Inlay #3 ($650)</li><li>Zero Tolerance 0562CF Carbon Fiber Flipper - Hinderer Design ($300)</li><li>Chris Reeve Small Sebenza 31 Carbon Fiber - Drop Point (in stock)</li><li>Spartan Harsey Folder - Damascus variants (multiple in stock)</li><li>William Henry B30 Eventide - Mammoth - Mokume - Wave Damascus (in stock)</li><li>Chris Reeve Small Sebenza 31 Carbon Fiber - Drop Point ($550)</li><li>Chris Reeve Large Sebenza 31 Insingo Box Elder Burl Inlay ($650)</li><li>Spartan Harsey Folder - Damascus variants ($675-$725)</li><li>William Henry B12 Foliage - Boomerang Damascus ($1,750)</li><li>Chris Reeve Large Sebenza 31 Box Elder Burl Inlay (#3, #10) ($650)</li><li>William Henry B12 models with Damascus and Mokume ($1,450-$3,500)</li><li>Spartan Harsey Folder - Stainless Damascus - Carbon Fiber ($680)</li><li>Spartan Harsey Folding Knife - Stainless Damascus ($680)</li><li>Spartan Harsey Folder - Damascus Steel ($675)</li><li>William Henry B12 Golden Vine - Gold Koftgari and Boomerang Damascus ($3,500)</li></ul>
+            <div class="summary">Knife Art's new products and featured knives page showcasing mid-range to high-end production folders and fixed blades from Chris Reeve, Winkler, William Henry, and Spartan Blades with multiple items in stock.</div>
+            <div class="makers-found">makers: Chris Reeve Knives, Winkler Knives, William Henry, Spartan Blades, Zero Tolerance, Toor Knives, White River Knives, Benchmade</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.dlttrading.com/rick-hinderer-knives" target="_blank" class="site-name">DLT Trading — Hinderer</a>
+            <span class="alert-ts">2026-03-12 19:11 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>XM-24 Swedged Spear (DLT Exclusive, in stock)</li><li>XM-24 Titanium Scales (in stock)</li></ul>
+            <div class="summary">Rick Hinderer Knives landing page on DLT Trading showcasing the maker's history, design philosophy, and available product lines with two currently in-stock items highlighted.</div>
+            <div class="makers-found">makers: Hinderer Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rrxtvu/deep_price_drop_grail_sale_fidget_finds_budget/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 18:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Spartan Harsey Folder - Chad Nichols Damascus blade, sandstone compass laser-etched handle (SV: $510)</li><li>SG Knives CRK Custom Zircuti Kit - Zircuti show scale and pocket clip for large Sebenza 31 (SV: $210)</li><li>Prince Customs Protean #816 - Dual-tone stonewash/zirblast with angle-milled frame, limited to 12 pieces (SV: $810)</li><li>Chris Reeve Knives Left Hand Umnumzaan Tanto - Magnacut blade, born March 27 2025, excellent condition - $425</li><li>Zero Tolerance 0044BLK Button Lock Titanium Flipper - CPM-S45VN black DLC, like new - $250</li></ul>
+            <div class="summary">Reddit r/Knife_Swap post featuring a cash raise sale with price drops on mid-range to grail knives including a Harsey Damascus folder, CRK Zircuti kit, and limited Prince Customs Protean.</div>
+            <div class="makers-found">makers: William Harsey, Starlingear, Chris Reeve Knives, Prince Customs</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">CHANGED</span>
+            <a href="https://urbanedcsupply.com" target="_blank" class="site-name">Urban EDC Supply</a>
+            <span class="alert-ts">2026-03-12 17:23 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+        <div class="drop-announcement">
+            🔥 DROP ANNOUNCEMENT — Chris Reeve Knives, Chaves Knives, Protech Knives, URBAN EDC Supply: Multiple knife drops including Chaves x Pro-Tech x URBAN Redencion 229, Chris Reeve Small Sebenza 31 (Insingo Magnacut with Bog Oak), and various URBAN Nitroglide variants with supporting gear
+            <span class="timing">⏰ 03/18/2025, 03/25/2025, 04/01/2025, 04/08/2025, 04/15/2025, 04/22/2025, 04/29/2025</span>
+            <span class="confidence">confidence: high</span>
+        </div>
+            <ul class="notable-items"><li>URBAN Nitroglide - Darkwashed Magnacut w/ Darkwashed Titanium ($299) - in stock</li><li>Chris Reeve Small Sebenza 31 - Insingo Magnacut & Glass Blasted Titanium w/ Bog Oak ($575) - dropping 03/18</li><li>Chaves x Pro-Tech x URBAN Redencion 229 - Black DLC S35VN & Blue Aluminum ($365) - dropping 03/18</li><li>EMP EDC x URBAN Nymble XT - Belt Satin Magnacut & Bead Blasted Ti ($349) - dropping 03/18</li><li>URBAN Nitroglide - Polished DLC Magnacut w/ Blackwashed Titanium ($349) - dropping 03/18</li><li>Chaves x Pro-Tech x URBAN Redencion 229 - Black DLC S35VN (drop 03/18, $365)</li><li>EMP EDC x URBAN Nymble XT - Belt Satin Magnacut (drop 03/18, $349)</li><li>Chaves x Pro-Tech x URBAN Redencion 229 (dropping 03/18)</li><li>Chris Reeve Small Sebenza 31 - Drop Point Glass Blasted Titanium w/ Natural Canvas Micarta (Drop 04/22)</li><li>Chris Reeve Large Sebenza 31 Drop Point - Magnacut & Glass Blasted Titanium w/ Black Canvas Micarta Inlay (in stock, $650)</li><li>Chaves x Pro-Tech x URBAN Redencion 229 (dropping 03/18, $365)</li><li>Chaves x Pro-Tech x URBAN Redencion 229 - Black DLC S35VN ($365) - dropping 03/18</li></ul>
+            <div class="summary">Urban EDC Supply features a scheduled series of gear drops throughout March-April 2025, including Chris Reeve Sebenza 31 variants and a Chaves x Pro-Tech x URBAN collaboration, with house-brand URBAN Nitroglide knives and accessories currently in stock.</div>
+            <div class="makers-found">makers: Chris Reeve Knives, Chaves Knives, Protech Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/bladesInStock/comments/1rrnici/hinderer_xm24_40_skinny_bowie_parkerized_1095/" target="_blank" class="site-name">Reddit r/bladesinstock</a>
+            <span class="alert-ts">2026-03-12 11:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Hinderer XM-24 4.0" Skinny Bowie Parkerized 1095 - Walnut Scale, Antique Green Ti Frame, Vintage Series - $635 (3 in stock)</li></ul>
+            <div class="summary">Hinderer XM-24 Skinny Bowie with walnut handle and parkerized 1095 blade in stock at PVK.</div>
+            <div class="makers-found">makers: Hinderer Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://southernedges.com" target="_blank" class="site-name">Southern Edges</a>
+            <span class="alert-ts">2026-03-12 05:46 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+        <div class="drop-announcement">
+            🔥 DROP ANNOUNCEMENT — Microtech: Microtech Combat Troodon Gen III OTF Knife (Double Edge, Tan/OD Green/Black Splatter) and Microtech Ultratech Gen IV (Stormtrooper Edition)
+            <span class="timing">⏰ Thursday 4PM Eastern Time</span>
+            <span class="confidence">confidence: high</span>
+        </div>
+            <ul class="notable-items"><li>Hinderer XM-24 4.0" Vintage Series - Skinny Bowie Edge - Working Finish - Walnut Handles - $635</li><li>Microtech Combat Troodon Gen III OTF - Tan/OD Green Splatter - $550 (NEXT DROP THURSDAY)</li><li>Strider Knives Fixed Blade - Tanto - Black D2 - $525</li><li>Protech Godfather OTS - Black with Maple Wood Inlay - $330</li><li>Half Face Blades Kwaiken - Blue Camoquartz Inlay - $650</li><li>Microtech Combat Troodon Gen III OTF - Tan/OD Green Black Splatter ($550.00)</li><li>Strider Knives Fixed Blade - Tanto Edge - Green Cord - Black D2 Blade ($525.00)</li><li>Protech Godfather OTS - Black Handle - Maple Wood Inlay - Satin Blade ($330.00)</li><li>Half Face Blades Kwaiken - Anodized Black - Blue Camoquartz Inlay ($650.00)</li><li>Strider Knives Fixed Blade - Tanto - Green Cord - Black D2 - $525.00</li><li>Protech Godfather OTS - Black Handle - Maple Wood Inlay - $330.00</li><li>Protech Godfather Operator OTS - Black Handle/Blade with Tritium - $3 (price cut off, likely incomplete listing)</li><li>Hinderer XM-24 4.0" Vintage Series - Skinny Bowie - Working Finish - Walnut Handles (CRITICAL: working finish + walnut handles)</li><li>Microtech M.S.I. Ram-Lok MINI - Frag Pattern (in stock, purchasable)</li><li>Microtech Socom Elite - Frag Pattern (in stock, purchasable)</li><li>Strider Knives Fixed Blade - Tanto - D2 (in stock, purchasable)</li><li>Half Face Blades Kwaiken Folder - Blue Camoquartz Inlay - S45VN Blade ($650.00)</li><li>Strider Knives Fixed Blade - Tanto Edge - Black D2 ($525.00)</li><li>Protech Godfather OTS - Maple Wood Inlay ($330.00)</li><li>Microtech Combat Troodon Gen III OTF - Tan with OD Green/Black Splatter - $550.00</li><li>Protech Godfather Operator OTS - Tritium Inlaid Button - $3 (price appears truncated)</li><li>Strider Knives Fixed Blade - Tanto Edge - Black D2 - $525.00</li><li>Microtech M.S.I. Ram-Lok MINI with Frag Pattern - $274.00</li><li>Strider Knives Fixed Blade Tanto - Green Cord - Black D2 - $525.00</li><li>Microtech Combat Troodon Gen III OTF - Tan/Splatter - $550.00</li><li>Microtech Combat Troodon Gen III OTF - Tan/OD Green & Black Splatter - $550.00</li><li>Protech Godfather OTS with Maple Wood Inlay - $330.00</li><li>Protech Malibu Flipper - Magnacut Blade - $240-280.00</li><li>Protech FlyFather 2 Balisong - $330.00</li><li>Microtech Combat Troodon Gen III OTF Knife - Tan Handle/Blade - OD Green and Black Splatter - $550.00</li><li>Strider Knives Fixed Blade - Tanto Edge - Black D2 Blade - $525.00</li><li>Half Face Blades Kwaiken with Blue Camoquartz Inlay - $650.00 (in stock)</li><li>Marfione Custom Nemesis IV with Cracked Ice Finished Blade - $2,180.00 (in stock)</li><li>Half Face Blades Kwaiken with Blue Camoquartz Inlay - $650 (in stock)</li><li>Marfione Custom Nemesis IV with Cracked Ice/Etched Hattori Cowry-Y Damascus - $2,180 (in stock)</li><li>Strider Knives Fixed Blade - Tanto - D2</li><li>Microtech M.S.I. Ram-Lok Folder MINI - Frag Pattern variants</li><li>Marfione Custom Nemesis IV with Cracked Ice/Hattori Cowry-Y Damascus - $2,180.00 (in stock)</li></ul>
+            <div class="summary">Southern Edges product showcase featuring mid-tech folders and fixed blades from established makers, with a Microtech drop announcement scheduled for Thursday 4PM ET.</div>
+            <div class="makers-found">makers: Half Face Blades, Microtech, Strider Knives, Protech, Hinderer Knives, RMJ</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rrfk4e/wts_nymble_adv_midtech_butcher_xm18_wharncliffe/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 04:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Hinderer XM-18 Wharncliffe, S35VN, green G10 - $300 (used, lightly carried, slightly sharpened, phosphorous washers)</li></ul>
+            <div class="summary">Reddit Knife_Swap listing selling a used Hinderer XM-18 Wharncliffe in S35VN with green G10 scales and several other knives.</div>
+            <div class="makers-found">makers: Hinderer Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rrb9m6/wts_hinderer_eklipse_harpoon_spanto_and_slicer/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 00:15 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Hinderer XM-18 3.5 Skinny Slicer - Magnacut, titanium ripple texture, stonewashed bronze, lightly used, $650</li><li>Hinderer Eklipse 3.5 Harpoon Spanto - fully stonewashed with Steel Flame winged crusader scale, blue titanium hardware, $600</li><li>Hinderer Eklipse 3.5 Hollow Ground Slicer - working finish, wooden Frag Pauduk scale, $425</li><li>Hinderer & Steel Flame Eklipse Scale - smooth titanium working finish, $210</li><li>Sharp By Design Kaviso Mini Tempest Flipper - drop point, 80s camo carbon fiber, $300</li><li>XM-18 3.0 Brass Hardware Kit - $75</li><li>XM-18 3.5 Copper/Black Nitride Hardware Kit - $75</li><li>Eklipse 3.5 Titanium Stonewashed Bronze Hardware Kit - $75</li></ul>
+            <div class="summary">Reddit knife_swap listing featuring multiple used Hinderer knives including XM-18 and Eklipse models with Magnacut steel and Steel Flame scales, plus SBD and hardware.</div>
+            <div class="makers-found">makers: Hinderer Knives, Steel Flame, Sharp By Design, Frag Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">CHANGED</span>
+            <a href="https://mcneesknives.com" target="_blank" class="site-name">McNees Knives</a>
+            <span class="alert-ts">2026-03-12 00:11 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+        <div class="drop-announcement">
+            🔥 DROP ANNOUNCEMENT — McNees Knives: Cerakoted Ridge Runners
+            
+            <span class="confidence">confidence: high</span>
+        </div>
+            <ul class="notable-items"><li>McNees Knives Cerakoted Ridge Runners (Flash Drop)</li><li>McNees Knives Cerakoted Ridge Runners - Flash Drop</li><li>McNees Knives Cerakoted Ridge Runners</li></ul>
+            <div class="summary">McNees Knives homepage announcing a surprise flash drop of Cerakoted Ridge Runners, with limited product information visible in the truncated content.</div>
+            <div class="makers-found">makers: McNees Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/EDCexchange/comments/1rr9xla/wts_couple_pens_and_various_items/" target="_blank" class="site-name">Reddit r/EDCexchange</a>
+            <span class="alert-ts">2026-03-11 23:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Chris Reeve Small Sebenza 31 Glass Bead Blasted Titanium with Timascus Thumb Studs, Backspacer, & Lanyard Barrel - $500</li></ul>
+            <div class="summary">Reddit EDCexchange secondhand listing featuring a Chris Reeve Small Sebenza 31 with custom Timascus components and other EDC items.</div>
+            <div class="makers-found">makers: Chris Reeve Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.edclifestyle.com/pre-owned-consignment/" target="_blank" class="site-name">EDC Lifestyle — Pre-Owned</a>
+            <span class="alert-ts">2026-03-11 22:27 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>HiTex Gear x Steel Flame Killbox Pile of Skulls Chip - $3,900.00 (CRITICAL - Steel Flame collaboration piece)</li><li>Microtech Marfione Select MSI Mini Slab Side Titanium Bronze Accent Partial Serrated - $350.00</li><li>Microtech Ultratech 122-3OCS D/E Full Serrated Olive Camo - $280.00</li><li>Sharp By Design Typhoon 10 Aspirated - $1,500.00</li><li>Pro-Tech Mordax Gridlock DLC Magnacut Blade - $195.00</li><li>Microtech Combat Troodon Urban Camo S/E Partial Serrated - $432.00</li><li>Microtech Combat Troodon Coyote Camo D/E Full Serrated - $400.00</li><li>Microtech Ultratech 119W-10RDS Red Warhound Stonewash - $280.00</li><li>Microtech Dirac 225-3OCS D/E Full Serrated Olive Camo - $250.00</li><li>Marfione Custom Combat Troodon Interceptor Bronze Two-Tone Apocalyptic - Preowned ($2,080.00) - in stock</li><li>Microtech Combat Troodon Urban Camo S/E Partial Serrated - Preowned ($432.00) - in stock</li><li>Microtech Combat Troodon Coyote Camo D/E Full Serrated - Preowned ($400.00) - in stock</li><li>Microtech Combat Troodon Urban Camo S/E Partial Serrated 143-2UCS S/N 38 - Preowned $432.00 (in stock)</li><li>Microtech Combat Troodon Coyote Camo D/E Full Serrated 142-3CCS S/N 258 - Preowned $400.00 (out of stock)</li></ul>
+            <div class="summary">Pre-owned consignment page featuring in-stock Microtech, Sharp By Design, Pro-Tech, and a notable Steel Flame collaboration piece from HiTex Gear.</div>
+            <div class="makers-found">makers: Microtech, Steel Flame, Sharp By Design, Pro-Tech Knives, Shirogorov</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-high">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#e67e22">⚡ HIGH</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.tacticalelements.com" target="_blank" class="site-name">Tactical Elements</a>
+            <span class="alert-ts">2026-03-11 20:15 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Rick Hinderer XM-24 4.0" Skinny Bowie Vintage Series 1095 Black Blade w/ Walnut Handle (#2203, #2194, #2193) - $635.00</li><li>Strider Knives SMF 20CV Tiger Stripe Blade w/ Tumbled Grandpa Titanium Handle - $1,105.00</li><li>Rick Hinderer Flashpoint Fixed Blade MagnaCut Stonewash w/ OD Green G-10 - $250.00</li><li>Enrique Pena Custom Apache Liner Lock Flipper Satin Blade w/ Micarta - $695.00</li><li>Rick Hinderer Knives Flashpoint Fixed Blade Knife - MagnaCut Stonewash, OD Green G-10 - $250</li><li>Rick Hinderer Knives XM-24 4.0" Skinny Bowie Vintage Series - 1095 Black Blade, Smooth Walnut Handle (#2203, #2194, #2193) - $635 each</li><li>Strider Knives SMF 20CV Tiger Stripe - Tumbled Grandpa Titanium Handle - $1,105</li><li>Enrique Pena Custom Apache Liner Lock Flipper Knife - Satin Blade w/ Brown Micarta - $695.00</li><li>Strider Knives SMF 20CV Tiger Stripe w/ Tumbled Grandpa Titanium ($1,105.00)</li><li>Enrique Pena Custom Apache Liner Lock Flipper w/ Brown Micarta ($695.00)</li><li>Rick Hinderer Flashpoint Fixed Blade MagnaCut Stonewash (in stock, HIGH priority - MagnaCut material)</li><li>Strider SMF 20CV Tiger Stripe w/ Tumbled Grandpa Titanium - $1,105.00</li><li>Strider Knives SMF 20CV Tiger Stripe w/ Titanium Handle ($1,105) - In stock</li><li>Strider Knives SMF 20CV Tiger Stripe - $1,105.00 (HIGH priority model in stock)</li></ul>
+            <div class="summary">Tactical Elements homepage featuring in-stock inventory from premium knife makers including Hinderer XM-24 Vintage Series with walnut handles, Strider SMF, and Pena custom models.</div>
+            <div class="makers-found">makers: Hinderer Knives, Demko Knives, Strider Knives, RMJ Tactical, Microtech, Pena Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rsupds/wts_microtech_ultratech_sith_lord_de_trigrip/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 18:15 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech Ultratech Sith Lord D/E Tri-Grip (Serial #5036, 07/2021) - First owner, pristine condition, $280 OBRO</li></ul>
+            <div class="summary">Reddit Knife_Swap listing for a used Microtech Ultratech Sith Lord double-edge tri-grip knife in excellent condition.</div>
+            <div class="makers-found">makers: Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rss8wp/wts_rockwall_v2_skeletonized_and_urbanedc/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 16:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Tactile Rockwall V2 Skeletonized Flipper (Magnacut, darkwash) - $269</li><li>UrbanEDC Micromilled Ti Beccero (Magnacut, darkwash, brass backspacer) - $239</li></ul>
+            <div class="summary">Reddit Knife_Swap listing selling two used mid-tech folders: a Tactile Rockwall V2 Skeletonized and an UrbanEDC Micromilled Ti Beccero, both in like-new condition.</div>
+            <div class="makers-found">makers: Tactile Knife Co, UrbanEDC</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rsqmzs/wts_reduced_mini_msi_marfione_select/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 15:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech Mini MSI Marfione Select - Fluted titanium, bronze spacer, M390 stonewash blade, $500 OBO</li></ul>
+            <div class="summary">Reddit knife_swap listing for a nearly-new Microtech Mini MSI Marfione Select with fluted titanium scales and premium M390 blade.</div>
+            <div class="makers-found">makers: Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/bladesInStock/comments/1rsolev/peaceneighbor_protech_avalon/" target="_blank" class="site-name">Reddit r/bladesinstock</a>
+            <span class="alert-ts">2026-03-13 14:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Protech PN1103 Peace Neighbor Avalon - Knurled Black Aluminum, DLC Magnacut Blade</li></ul>
+            <div class="summary">Reddit post alerting to one Protech Peace Neighbor Avalon in stock at Wild About Sporting Goods.</div>
+            <div class="makers-found">makers: Protech Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rsn8qy/spyderco_paramilitary_2_salt_magnacut/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 13:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Spyderco Paramilitary 2 SALT in CPM MagnaCut - Brand new, unused condition - $189</li></ul>
+            <div class="summary">Reddit r/Knife_Swap user selling a new Spyderco Paramilitary 2 SALT with Magnacut blade for $189.</div>
+            <div class="makers-found">makers: Spyderco</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rsg71b/wts_only_microtech_mini_msi_marfione_select/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 07:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech Mini MSI (Marfione Select) - Fluted Ti scales, Bronze spacer, M390 stonewash blade, essentially brand new, SV: $525</li></ul>
+            <div class="summary">Individual seller listing a brand new Microtech Mini MSI Marfione Select model on r/Knife_Swap for $525.</div>
+            <div class="makers-found">makers: Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rsboj8/wts_shamwari_oeser_tachi_sharknivco_holey_waka/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 03:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Cheka Washer Shamwari 3.3" in Damasteel - $2299</li><li>Shamwari 3" Bull Sham with Zirbwashed blade - $900</li><li>CRK Large Inkosi Drop Point in Magnacut - $380</li></ul>
+            <div class="summary">Reddit knife_swap post featuring secondary market sales of high-end custom and production knives including Shamwaris, Oeser Tachi, Sharknivco Waka, and CRK Inkosi.</div>
+            <div class="makers-found">makers: Shark Knife Co</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rs8i0b/wts_arius_mefp_sng_socom_elite/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-13 00:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Strider MEFP SNG in CPM-3V - green variant, Gen 4 batch 1, excellent condition ($600)</li><li>Chris Reeve Arius - slight user, professionally sharpened, comes with box and card ($500)</li><li>Microtech Socom Elite M390 - like new condition, comes with box and card ($200)</li></ul>
+            <div class="summary">Reddit Knife_Swap listing selling three knives: a Chris Reeve Arius, a Strider MEFP SNG, and a Microtech Socom Elite.</div>
+            <div class="makers-found">makers: Chris Reeve Knives, Strider Knives, Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rs5iej/wts_microtech_msi_mini_black_frag/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 22:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech MSI Mini (Black Frag) - $230</li></ul>
+            <div class="summary">Reddit knife_swap listing for a used Microtech MSI Mini in black with frag pattern, priced at $230.</div>
+            <div class="makers-found">makers: Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/bladesInStock/comments/1rs3j1g/heretic_wraith_v4_manual_cotton_candy_cel_shade/" target="_blank" class="site-name">Reddit r/bladesinstock</a>
+            <span class="alert-ts">2026-03-12 21:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Heretic Wraith V4 Manual Cotton Candy Cel Shade</li></ul>
+            <div class="summary">Heretic Knives Wraith V4 manual folder in Cotton Candy Cel Shade finish now in stock at GPKNIVES with UV reactive finish.</div>
+            <div class="makers-found">makers: Heretic Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.messerteam.de/en/collections/arno-bernard-knives" target="_blank" class="site-name">Messerteam — Arno Bernard</a>
+            <span class="alert-ts">2026-03-12 20:51 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Rinkhals Mammoth Molar €840,00</li><li>iMamba Micarta Polished two-handed opening €750,00</li><li>iMamba Dark Matter CF Glow German Edition €750,00</li><li>iMamba Carbon Copper German Edition €750,00</li><li>Springbok with African Blackwood €540,00</li><li>Zebra with desert ironwood €520,00</li><li>Sailfish with Kudu Bones €480,00</li><li>Rinkhals Mammoth Molar €840.00</li><li>iMamba Micarta Polished two-handed opening €750.00</li><li>iMamba Dark Matter CF Glow German Edition €750.00</li><li>iMamba Carbon Copper German Edition €750.00</li><li>Rinkhals Carbon Copper €599.00</li><li>Rinkhalsspalted Maple Beech €625.00</li><li>Rinkhals Mammoth Molar (€840.00)</li><li>iMamba Carbon Copper German Edition (€750.00)</li><li>Rinkhals Carbon Copper (€599.00)</li><li>Rinkhals Splated Maple Beech (€625.00)</li><li>Zebra with desert ironwood (€520.00)</li><li>Sailfish with Kudu Bones (€480.00)</li><li>Rinkhals Carbon Copper €599</li><li>Rinkhals Mammoth Molar €840</li><li>iMamba Micarta Polished €750</li><li>iMamba Carbon Copper €750</li><li>Rinkhalsspalted Maple Beech €625</li><li>Rinkhals Mammoth Molar (€840.00) - premium handle material</li><li>iMamba Micarta Polished two-handed opening (€750.00)</li><li>iMamba Dark Matter CF Glow German Edition (€750.00)</li><li>Springbok with African Blackwood (€540.00)</li><li>Rinkhals Polished Micarta (€599.00)</li><li>Rinkhalsspalted Maple Beech (€625.00)</li><li>Pen Titanium (€199.00)</li><li>iMamba Micarta Polished (two-handed opening) €750,00</li><li>iMamba Dark Matter CF Glow German Edition (two-handed opening) €750,00</li><li>iMamba Carbon Copper German Edition (two-handed opening) €750,00</li></ul>
+            <div class="summary">Arno Bernard Knives collection page showing 65 in-stock items including beads, pens, and various production knife models (Rinkhals, iMamba, Zebra, Wasp, Springbok, Sailfish, Marmoset, Marabou) with natural handle materials.</div>
+            <div class="makers-found">makers: Arno Bernard Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://demkoknives.com" target="_blank" class="site-name">Demko Knives</a>
+            <span class="alert-ts">2026-03-12 19:33 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>AD20.5 CPM 20CV Blue #2 G10 - $265.00</li><li>AD20.5 CPM 20CV Smooth Titanium - $330.00</li><li>AD20.5 CPM 20CV Milled Titanium - $390.00</li><li>AD20.5 3V Titanium - $315.00</li><li>Shark-Cub® 20CV G10 - $190.00</li><li>Shark-Cub® - GRN - $89.99</li><li>Shark-Cub® Stealth - $230.00</li><li>Nano-Shark® CPM 20CV Black G10 - $230.00</li></ul>
+            <div class="summary">Demko Knives homepage displaying production inventory of AD20.5 variants, Shark-Cub, and Nano-Shark models in various steel and handle configurations.</div>
+            <div class="makers-found">makers: Demko Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.smkw.com" target="_blank" class="site-name">SMKW</a>
+            <span class="alert-ts">2026-03-12 19:20 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Chaves Magnetic Integral Redencion 229 Folder Belt Finish Drop Point - $425.00</li></ul>
+            <div class="summary">SMKW homepage showcasing general knife inventory and promotions with limited representation from priority makers.</div>
+            <div class="makers-found">makers: Chaves Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.africansportingcreations.com" target="_blank" class="site-name">African Sporting Creations</a>
+            <span class="alert-ts">2026-03-12 19:19 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Arno Bernard Turaco in Blue Mammoth Molar</li></ul>
+            <div class="summary">African Sporting Creations is a safari-inspired retailer offering Arno Bernard knives, hunting gear, boots, and field equipment; currently featuring the Turaco folder with mammoth molar inlay.</div>
+            <div class="makers-found">makers: Arno Bernard Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rrzddn/wts_demko_nano_shark_20cv_g10/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 19:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Demko Nano Shark 20CV G10 - Second owner, minimal carry, perfect lockup and centering, $160 shipped</li></ul>
+            <div class="summary">Reddit Knife_Swap listing for a used Demko Nano Shark in 20CV with G10 scales available for immediate purchase.</div>
+            <div class="makers-found">makers: Demko Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rrww0q/wts_10_knives_for_sale_today_prometheus_design/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 17:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Prometheus Design Werx Invictus Auto Limited Edition (#39 of 100) - rare PDW/Protech collab from 9+ years ago, stonewash 154CM, glow push button auto, new condition, $350</li><li>Sharp By Design x Kaviso Mini Tempest Front Flipper Variant - Shipwrecked inlays, customized dye work, modified lock bar pressure, factory sharp</li></ul>
+            <div class="summary">Private seller listing 10 knives for sale including a rare limited edition Prometheus Design Werx Invictus Auto and other mid-range production knives.</div>
+            <div class="makers-found">makers: Prometheus Design Werx, Heretic Knives, Spyderco</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.knivesshipfree.com" target="_blank" class="site-name">Knives Ship Free</a>
+            <span class="alert-ts">2026-03-12 13:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Spyderco Paramilitary 2 - Brown Canvas Micarta - CPM CruWear - C81MPCW2 ($228.75)</li></ul>
+            <div class="summary">KnivesShipFree homepage displaying general production knife inventory including several Spyderco models in stock with promotional pricing.</div>
+            <div class="makers-found">makers: Spyderco</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rrbwcj/wts_bugout_jufule_cedar_rck9_custom_manix_xl/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-12 01:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Chaves Protech - 1st owner, no cut or carry, spiral aluminum handles, sapphire S35VN blade, excellent action ($300)</li><li>Chaves 229 - project knife with tanto blade modification, signs of wear ($150)</li></ul>
+            <div class="summary">Used knife sale on r/Knife_Swap featuring mostly production and mid-tier knives with several items already sold.</div>
+            <div class="makers-found">makers: Spyderco, Chaves Knives, Hinderer Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://eknives.com/preowned/" target="_blank" class="site-name">eKnives — Pre-Owned</a>
+            <span class="alert-ts">2026-03-11 23:46 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Preowned-ProTech Runt 5 Auto Red Aluminum 1.9" MagnaCut Wharncliffe Satin - $175.00</li><li>Preowned Spyderco Snap-It Salt Knife Yellow FRN 2.9" Satin Full Serrated - $75.00</li><li>Preowned Spyderco Bow River Phil Wilson Fixed Blade Knife Black/Gray G10 4.4" Satin - in stock</li><li>ProTech Runt 5 Auto Red Aluminum MagnaCut Wharncliffe - $175.00</li><li>Spyderco Snap-It Salt Knife Yellow FRN Full Serrated - $75.00</li><li>Spyderco Bow River Phil Wilson Fixed Blade - in stock</li></ul>
+            <div class="summary">This is a preowned/consignment section featuring budget-friendly knives from various makers, with limited inventory from priority brands.</div>
+            <div class="makers-found">makers: Toor Knives, ProTech Knives, Maxace, Gerber, Spyderco</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://originalgoat.com" target="_blank" class="site-name">Original Goat</a>
+            <span class="alert-ts">2026-03-11 23:40 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech Stitch with laser-engraved/anodized scales (Gold to Royal Blue transition)</li><li>Knafs Lander 2 with polymer scale options</li><li>Kizer Drop Bear V1 with Cerakote options</li><li>Knafs Co. Lander 2 Titanium handles (pre-order, coming soon)</li><li>Knafs Co. Lander 2 Aluminum scales ($75-$90)</li></ul>
+            <div class="summary">Original GOAT specializes in custom aftermarket scales and handles for popular EDC knives including Microtech, Knafs, Kizer, and others, with various in-stock and pre-order options.</div>
+            <div class="makers-found">makers: Microtech, Knafs Co., Kizer, Spyderco, Cold Steel, Demko, Doug Ritter, Hogue, Kershaw, Civivi</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rr9i2n/prices_reduced_super_bundle_toast_grini_zbp_rivery/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-11 23:00 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech ZBP Ultratech - Original owner, minor cut & carry, $252 (reduced from $280)</li></ul>
+            <div class="summary">Reddit knife_swap post selling a used Microtech ZBP Ultratech, a Michel Grini FFF folder bundle, PNW Toast, and a Rivery Zero.</div>
+            <div class="makers-found">makers: Microtech</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rr6yai/wts_chaves_chub_flipper/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-11 21:30 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Chaves Blue Line CHUB Flipper with titanium scales - $195</li></ul>
+            <div class="summary">Reddit Knife_Swap listing for a used Chaves CHUB Flipper with titanium scales, never carried or cut, asking $195.</div>
+            <div class="makers-found">makers: Chaves Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/bladesInStock/comments/1rr6ddl/dlc_avalon/" target="_blank" class="site-name">Reddit r/bladesinstock</a>
+            <span class="alert-ts">2026-03-11 21:15 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Protech Peace Neighbor Avalon DLC Magnacut 4.25"</li></ul>
+            <div class="summary">Reddit post linking to a Protech Knives Peace Neighbor designed Avalon with DLC coating and Magnacut blade available for purchase.</div>
+            <div class="makers-found">makers: Protech Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">BASELINE</span>
+            <a href="https://www.nashvilletacticallounge.com" target="_blank" class="site-name">Nashville Tactical Lounge</a>
+            <span class="alert-ts">2026-03-11 20:17 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech Stitch Auto Folder (consignment, in stock)</li><li>Hinderer Eklipse Slicer Folder Orange G10 (consignment, in stock)</li><li>Pro-Tech FlyFather 2 Balisong Squid Collab (in stock)</li><li>Pro-Tech Mordax Button Lock Flipper (in stock)</li><li>Microtech Stitch Auto Folder (consignment, $285.00)</li><li>Hinderer Eklipse Slicer Folder Orange G10 (consignment, $350.00)</li><li>Pro-Tech FlyFather 2 Balisong Squid Collab (in stock, $330.00)</li><li>Pro-Tech Mordax Button Lock Flipper All Black (in stock)</li><li>Microtech Stitch Auto Folder (Black Aluminum, 3.75" Stonewashed Blade) - Consignment, $285.00</li><li>Hinderer Knives Eklipse Slicer Folder (Orange G10, Stonewashed Bronzed Titanium, S45VN) - Consignment, $350.00</li><li>Pro-Tech FlyFather 2 Balisong Squid Collab (Black Aluminum, 154CM) - In Stock</li><li>Pro-Tech Mordax Button Lock Flipper (All Black Aluminum) - In Stock</li><li>Microtech MSI Mini RAM-LOK Folder Black Frag Aluminum - $281.00</li><li>Microtech Marfione Select MSI RAM-LOK Folder DLC Stonewashed - $674.00</li><li>Microtech Marfione Select Socom Elite Spearpoint - $532.00</li><li>Microtech Marfione Select Socom Delta Spearpoint - $532.00</li><li>Microtech MSI Mini RAM-LOK Folder (M390MK, Frag Aluminum) - $281.00</li><li>Microtech Marfione Select MSI RAM-LOK Folder (Titanium, M390MK) - $674.00</li><li>Microtech Marfione Select Socom Elite Spearpoint (M390MK, Titanium) - $532.00</li><li>Microtech Marfione Select Socom Delta Spearpoint (M390MK, Titanium) - $532.00</li><li>Microtech MSI Mini RAM-LOK Folder (Frag Aluminum, M390MK) - $281.00</li><li>Microtech Marfione Select MSI RAM-LOK Folder (DLC Titanium, M390MK) - $674.00</li><li>Microtech Marfione Select Socom Elite (Bronzed Titanium Accents, M390MK) - $532.00</li><li>Microtech Marfione Select Socom Delta (Bronzed Titanium Accents, M390MK) - $532.00</li><li>Microtech Stitch Auto Folder Black Aluminum (consignment, discounted to $285)</li><li>Hinderer Eklipse Slicer Folder Orange G10 and Stonewashed Bronzed Titanium (consignment, discounted to $350)</li><li>Pro-Tech FlyFather 2 Balisong Squid Collab ($330)</li><li>Microtech Stitch Auto Folder - Black Aluminum (consignment, in stock)</li><li>Hinderer Knives Eklipse Slicer - Orange G10 with Stonewashed Bronzed Titanium (consignment, in stock)</li><li>Pro-Tech FlyFather 2 Balisong Squid Collab - Black Aluminum (in stock)</li><li>Microtech Stitch Auto Folder - Black Aluminum, 3.75" Stonewashed Blade (consignment, reduced to $285)</li><li>Hinderer Knives Eklipse Slicer - Orange G10 and Stonewashed Bronzed Titanium, S45VN Blade (consignment, reduced to $350)</li><li>Pro-Tech FlyFather 2 Balisong - Squid Collab, Black Aluminum, 154CM Blade</li><li>Microtech Marfione Select MSI RAM-LOK Folder DLC - M390MK blade - $674.00 - in stock</li><li>Microtech Marfione Select Socom Elite Spearpoint - M390MK blade - $532.00 - in stock</li><li>Microtech Marfione Select Socom Delta Spearpoint - M390MK blade - $532.00 - in stock</li><li>Hinderer Knives Eklipse Slicer - Orange G10, Bronzed Titanium, S45VN (consignment, in stock)</li><li>Hinderer Knives Eklipse Slicer Folder - Orange G10, Stonewashed Bronzed Titanium, S45VN (consignment, discounted to $350)</li><li>Pro-Tech FlyFather 2 Balisong Squid Collab - Black Aluminum, 154CM (in stock)</li><li>Hinderer Eklipse Slicer Folder - Orange G10/Bronzed Ti, S45VN Blade (Consignment, in stock)</li></ul>
+            <div class="summary">Nashville Tactical Lounge homepage showcasing their knife inventory across multiple makers including production and consignment pieces, with emphasis on Spyderco, Heretic, and custom knife brands.</div>
+            <div class="makers-found">makers: Spyderco, Heretic Knives, Microtech, Demko Knives, Hinderer Knives, Pro-Tech Knives</div>
+            
+        </div>
+    </div>
+
+    <div class="alert-card priority-medium">
+        <div class="alert-header">
+            <span class="priority-badge" style="color:#f1c40f">· MEDIUM</span>
+            <span class="event-badge">FEED ENTRY</span>
+            <a href="https://www.reddit.com/r/Knife_Swap/comments/1rr3yxn/wts_microtech_halo_iv_clip_point/" target="_blank" class="site-name">Reddit r/knife_swap</a>
+            <span class="alert-ts">2026-03-11 19:45 UTC</span>
+        </div>
+        <div class="alert-body">
+            
+            <ul class="notable-items"><li>Microtech Halo IV Clip Point - First owner, never carried or cut, complete with factory box, $700</li></ul>
+            <div class="summary">Reddit Knife_Swap listing for a Microtech Halo IV clip point in like-new condition.</div>
+            <div class="makers-found">makers: Microtech</div>
+            
+        </div>
+    </div>
+
+  <footer>
+    <span>instockornot.club — simonhg321/drop-watcher</span>
+    <span class="hgr">HGR</span>
+  </footer>
+<script>
+function filterAlerts(priority) {
+  document.querySelectorAll('.alert-card').forEach(card => {
+    card.style.display = (priority === 'all' || card.classList.contains('priority-' + priority)) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
