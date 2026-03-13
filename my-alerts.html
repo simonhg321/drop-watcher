@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Alerts — Drop Watcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --border: #1e1e1e;
+    --text: #f0f0f0;
+    --muted: #888;
+    --red: #c0392b;
+    --orange: #e67e22;
+    --green: #2ecc71;
+    --yellow: #f1c40f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: monospace; min-height: 100vh; }
+
+  /* NAV */
+  .dw-nav { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--border); }
+  .dw-nav .logo { font-family:"Space Mono",monospace; font-size:18px; font-weight:700; letter-spacing:2px; text-decoration:none; color:var(--text); }
+  .dw-nav .logo span { color:var(--red); }
+  .dw-nav .nav-links { display:flex; gap:24px; }
+  .dw-nav .nav-links a { color:var(--muted); text-decoration:none; font-size:13px; letter-spacing:1px; }
+  .dw-nav .nav-links a:hover { color:var(--text); }
+  .dw-nav .nav-links a.active { color:var(--text); }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+  .watcher-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .watcher-card .field { display:flex; flex-direction:column; gap:4px; }
+  .watcher-card .label { font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .watcher-card .value { font-size:14px; color:var(--text); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  .badge-active { background: #1a3a1a; color: var(--green); }
+  .badge-inactive { background: #3a1a1a; color: var(--red); }
+  .badge-critical { background:#3a1a1a; color:var(--red); }
+  .badge-high     { background:#3a2a1a; color:var(--orange); }
+  .badge-medium   { background:#2a2a1a; color:var(--yellow); }
+  .badge-low      { background:#1a1a2a; color:#8888ff; }
+
+  h2 { font-family:"Space Mono",monospace; font-size:14px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:16px; }
+
+  .drop-list { display:flex; flex-direction:column; gap:12px; }
+  .drop-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    padding: 16px 20px;
+  }
+  .drop-card.critical { border-left-color: var(--red); }
+  .drop-card.high     { border-left-color: var(--orange); }
+  .drop-card.medium   { border-left-color: var(--yellow); }
+  .drop-card.low      { border-left-color: #555; }
+
+  .drop-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
+  .drop-site { font-family:"Space Mono",monospace; font-size:13px; font-weight:700; }
+  .drop-meta { display:flex; gap:8px; align-items:center; }
+  .drop-time { font-size:11px; color:var(--muted); }
+  .drop-summary { font-size:13px; color:#ccc; line-height:1.5; margin-top:4px; }
+  .drop-url { font-size:11px; color:var(--muted); margin-top:8px; }
+  .drop-url a { color:var(--orange); text-decoration:none; }
+  .drop-url a:hover { text-decoration:underline; }
+
+  .empty { color:var(--muted); font-size:14px; padding:32px 0; text-align:center; }
+  .loading { color:var(--muted); font-size:13px; padding:48px 0; text-align:center; }
+  .error { color:var(--red); font-size:13px; padding:32px 0; text-align:center; }
+  .stop-btn {
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 8px 20px;
+    font-family: monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .stop-btn:hover { background: var(--red); color: #fff; }
+</style>
+</head>
+<body>
+
+<nav class="dw-nav">
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <div class="nav-links">
+    <a href="/alerts.html">Alerts</a>
+    <a href="/status.html">Status</a>
+    <a href="/watchlist.html">Watch</a>
+    <a href="#" class="active">My Alerts</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div id="watcherCard" class="loading">Loading your watcher...</div>
+  <div id="dropsSection" style="display:none">
+    <h2 id="dropsHeader">Matched Drops</h2>
+    <div id="dropList" class="drop-list"></div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const token  = params.get('token');
+
+if (!token) {
+  document.getElementById('watcherCard').innerHTML =
+    '<div class="error">No token. Check your alert email for your personal link.</div>';
+} else {
+  Promise.all([
+    fetch('/api/my-watch/' + token).then(r => r.json()),
+    fetch('/api/my-alerts/' + token).then(r => r.json())
+  ]).then(([watcher, alertData]) => {
+    if (watcher.error) {
+      document.getElementById('watcherCard').innerHTML = '<div class="error">Token not found.</div>';
+      return;
+    }
+
+    const statusBadge = watcher.active
+      ? '<span class="badge badge-active">Active</span>'
+      : '<span class="badge badge-inactive">Pending Verification</span>';
+
+    const priorityBadge = `<span class="badge badge-${watcher.priority}">${watcher.priority}</span>`;
+
+    document.getElementById('watcherCard').innerHTML = `
+      <div class="watcher-card">
+        <div class="field"><div class="label">Email</div><div class="value">${watcher.email}</div></div>
+        <div class="field"><div class="label">Watching</div><div class="value">${watcher.url}</div></div>
+        <div class="field"><div class="label">Keywords</div><div class="value">${watcher.keywords}</div></div>
+        <div class="field"><div class="label">Priority</div><div class="value">${priorityBadge}</div></div>
+        <div class="field"><div class="label">Status</div><div class="value">${statusBadge}</div></div>
+      </div>`;
+
+    // Stop watching button
+    const stopBtn = document.createElement('button');
+    stopBtn.className = 'stop-btn';
+    stopBtn.textContent = 'STOP WATCHING';
+    stopBtn.onclick = () => {
+      if (!confirm('Remove this watcher? You will need to sign up again to restart alerts.')) return;
+      fetch('/api/my-watch/' + token, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === 'removed') window.location.href = '/watchlist.html?removed=1';
+          else alert('Error: ' + JSON.stringify(d));
+        });
+    };
+    document.getElementById('watcherCard').appendChild(stopBtn);
+
+    const drops = alertData.drops || [];
+    const section = document.getElementById('dropsSection');
+    const header  = document.getElementById('dropsHeader');
+    const list    = document.getElementById('dropList');
+    section.style.display = 'block';
+    header.textContent = `Matched Drops (${drops.length})`;
+
+    if (drops.length === 0) {
+      list.innerHTML = '<div class="empty">No matched drops yet. We\'re watching.</div>';
+    } else {
+      list.innerHTML = drops.map(d => {
+        const p     = (d.priority || 'low').toLowerCase();
+        const time  = d.timestamp ? new Date(d.timestamp).toLocaleString() : '';
+        const badge = `<span class="badge badge-${p}">${p}</span>`;
+        return `
+          <div class="drop-card ${p}">
+            <div class="drop-header">
+              <div class="drop-site">${d.site || d.source || d.url}</div>
+              <div class="drop-meta">${badge}<span class="drop-time">${time}</span></div>
+            </div>
+            <div class="drop-summary">${d.page_summary || ''}</div>
+            <div class="drop-url"><a href="${d.url}" target="_blank" rel="noopener">${d.url}</a></div>
+          </div>`;
+      }).join('');
+    }
+  }).catch(err => {
+    document.getElementById('watcherCard').innerHTML = '<div class="error">Failed to load. Try again.</div>';
+  });
+}
+</script>
+</body>
+</html>

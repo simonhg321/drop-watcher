@@ -102,7 +102,7 @@ instockornot.club
         <p style="color:#888;font-size:12px">CRITICAL alerts fire immediately. HIGH alerts within 30 minutes.</p>
 
         <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px">
-            <a href="https://instockornot.club/alerts.html" style="color:#e67e22">VIEW LIVE ALERTS</a>
+            <a href="{BASE_URL}/my-alerts.html?token={entry['unsubscribe_token']}" style="color:#e67e22">VIEW MY ALERTS</a>
             <div style="margin-top:8px;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>
             <p style="margin-top:12px">
                 <a href="{unsubscribe_url}" style="color:#e67e22;font-size:12px">Unsubscribe</a>
@@ -237,6 +237,74 @@ def watch():
 
 
 
+
+
+@app.route('/api/my-watch/<token>', methods=['DELETE'])
+def stop_watching(token):
+    watchers = load_watchers()
+    before   = len(watchers)
+    watchers = [w for w in watchers if w.get('unsubscribe_token') != token]
+    if len(watchers) == before:
+        return jsonify({'error': 'not found'}), 404
+    save_watchers(watchers)
+    log.info(f"Watcher removed via token {token[:8]}")
+    return jsonify({'status': 'removed'})
+
+@app.route('/api/my-watch/<token>', methods=['GET'])
+def my_watch(token):
+    watchers = load_watchers()
+    for w in watchers:
+        if w.get('unsubscribe_token') == token:
+            return jsonify({
+                'email':    w.get('email'),
+                'name':     w.get('name'),
+                'url':      w.get('url'),
+                'keywords': w.get('keywords'),
+                'priority': w.get('priority'),
+                'active':   w.get('active'),
+                'created':  w.get('created'),
+            })
+    return jsonify({'error': 'not found'}), 404
+
+
+@app.route('/api/my-alerts/<token>', methods=['GET'])
+def my_alerts(token):
+    import re
+    watchers = load_watchers()
+    watcher  = next((w for w in watchers if w.get('unsubscribe_token') == token), None)
+    if not watcher:
+        return jsonify({'error': 'not found'}), 404
+
+    keywords = [k.strip().lower() for k in re.split(r'[,\s]+', watcher.get('keywords', '')) if k.strip()]
+    watch_domain = re.sub(r'^https?://(www\.)?', '', watcher.get('url', '')).split('/')[0].lower()
+
+    drops = []
+    drops_log = os.path.join(os.path.dirname(__file__), 'logs', 'drops.jsonl')
+    try:
+        with open(drops_log) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    d = json.loads(line)
+                except Exception:
+                    continue
+                drop_domain = re.sub(r'^https?://(www\.)?', '', d.get('url', '')).split('/')[0].lower()
+                summary     = (d.get('page_summary') or '').lower()
+                site        = (d.get('site') or '').lower()
+                notable     = ' '.join(d.get('notable_items') or []).lower()
+                domain_match  = watch_domain and watch_domain == drop_domain
+                keyword_match = any(k in summary or k in site or k in notable for k in keywords)
+                if domain_match or keyword_match:
+                    drops.append(d)
+    except FileNotFoundError:
+        pass
+
+    # newest first, cap at 50
+    drops.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    return jsonify({'watcher': watcher.get('email'), 'drops': drops[:50]})
+
 @app.route('/api/verify/<token>', methods=['GET'])
 def verify(token):
     watchers = load_watchers()
@@ -253,10 +321,11 @@ def verify(token):
             save_watchers(watchers)
             log.info(f"Verified: {w['email']}")
             send_confirmation_email(w)  # welcome email — existing function
-            return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+            my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
+            return f"""<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
                     <h1 style="color:#2ecc71">VERIFIED</h1>
                     <p style="font-size:18px;margin-top:24px;color:#f0f0f0">You are live. Alerts are active.</p>
-                    <p style="margin-top:32px"><a href="https://instockornot.club/alerts.html" style="color:#e67e22">VIEW LIVE ALERTS</a></p>
+                    <p style="margin-top:32px"><a href="{my_alerts_url}" style="color:#e67e22">VIEW MY ALERTS</a></p>
                     <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">HGR</div>
                 </body></html>""", 200
     return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
