@@ -268,3 +268,39 @@ NEVER:
 - AllowOverride All confirmed in default-ssl.conf
 - Tested in incognito — prompts for credentials ✅
 - Committed to GitHub (3271e02)
+
+### Session 9 — 2026-03-09
+
+**What we did:**
+- System intentionally shut down before Montana trip
+- supervisord stopped: web_watcher STOPPED, watcher_signup STOPPED
+- shg crontab: all lines commented out (##)
+- root crontab: goaccess and per_user_alerter commented out
+- ALERT_TO_FRIENDS commented out in .env — friends alerts silenced
+- .htaccess fixed — scoped to watchlist.html only via <Files> wrapper
+- Tested on mobile incognito — password prompt confirmed working
+- Twilio A2P 10DLC still pending — need LLC EIN + RA address
+- Hostname ironman confirmed working
+
+**To restart on return:**
+1. sudo supervisorctl start all
+2. crontab -e — remove # from all lines
+3. sudo crontab -e — remove # from all lines
+4. Verify: sudo supervisorctl status
+
+**GitHub:** 74cbccf — last clean commit
+### Session 10 — 2026-03-13
+
+**What we did:**
+- A2P 10DLC campaign completed — pending carrier vetting (CM9512a8edb874e3b0865f3e19d60daeb1)
+- sms_alerter.py built — CRITICAL only, sms_approved watchers, per-alert dedup, fails silently
+- alerter.py cleaned — boss/friends dropped, SMS wired in, legacy BCC removed
+- README rewritten — platform mission, architecture, stack
+- Platform direction confirmed — public URL/keyword alert platform
+
+**Pending:**
+- Google Workspace setup — simon@, info@, noreply@instockornot.club
+- Confirmation email on signup (watcher_signup.py)
+- Unsubscribe mechanism — token-based, one-click
+- User-facing URL/keyword entry UI
+- UptimeRobot infra monitoring
