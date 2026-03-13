@@ -88,21 +88,19 @@ instockornot.club
         <p style="color:#d0d0d0;font-size:16px">Hey {name}, you're set up.</p>
 
         <div style="background:#1c1c1c;padding:16px;margin:20px 0">
-            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:12px">WATCHING</div>
-            <div style="margin-bottom:8px">
-                <span style="color:#888;font-size:11px">URL</span><br>
-                <a href="{url}" style="color:#e67e22;font-size:13px">{url}</a>
-            </div>
-            <div style="margin-top:12px">
+            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:12px">MY ALERTS</div>
+            <div style="margin-top:8px">
                 <span style="color:#888;font-size:11px">KEYWORDS</span><br>
                 <span style="color:#f0f0f0;font-size:14px">{keywords}</span>
             </div>
         </div>
+        <p style="color:#888;font-size:12px;margin-bottom:20px">Save this email — it contains your personal alerts link. If you lose it, visit <a href="{BASE_URL}/get-my-link.html" style="color:#e67e22">instockornot.club/get-my-link</a> and we will resend it.</p>
 
         <p style="color:#888;font-size:12px">CRITICAL alerts fire immediately. HIGH alerts within 30 minutes.</p>
 
         <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px">
-            <a href="{BASE_URL}/my-alerts.html?token={entry['unsubscribe_token']}" style="color:#e67e22">VIEW MY ALERTS</a>
+            <a href="{BASE_URL}/my-alerts.html?token={entry['unsubscribe_token']}" style="color:#e67e22;display:block;margin-bottom:8px">VIEW MY ALERTS</a>
+            <a href="{BASE_URL}/alerts.html" style="color:#888;font-size:11px">View all alerts</a>
             <div style="margin-top:8px;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>
             <p style="margin-top:12px">
                 <a href="{unsubscribe_url}" style="color:#e67e22;font-size:12px">Unsubscribe</a>
@@ -238,6 +236,55 @@ def watch():
 
 
 
+
+
+@app.route('/api/resend-link', methods=['POST'])
+def resend_link():
+    data  = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'error': 'email required'}), 400
+
+    watchers = load_watchers()
+    matches  = [w for w in watchers if w.get('email', '').lower() == email and w.get('active')]
+    if not matches:
+        # Return 200 regardless — don't leak whether email exists
+        log.info(f"resend-link: no active watcher for {email}")
+        return jsonify({'status': 'sent'})
+
+    for w in matches:
+        my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
+        name          = w.get('name') or 'Collector'
+        subject       = "Drop Watcher — Your alerts link"
+        body_text     = (
+            f"Hey {name},\n\n"
+            f"Your personal Drop Watcher alerts page:\n  {my_alerts_url}\n\n"
+            f"Bookmark it.\n\nHGR\ninstockornot.club\n"
+        )
+        body_html = (
+            f'<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:monospace;padding:24px;max-width:600px">' +
+            '<h1 style="font-size:28px;letter-spacing:2px;margin:0">DROP <span style="color:#c0392b">WATCHER</span></h1>' +
+            '<div style="height:2px;background:linear-gradient(90deg,transparent,#c0392b,#e67e22,#c0392b,transparent);margin:12px 0 24px"></div>' +
+            f'<p style="color:#d0d0d0;font-size:16px">Hey {name} — your personal link.</p>' +
+            f'<div style="margin:24px 0"><a href="{my_alerts_url}" style="background:#c0392b;color:#fff;padding:14px 28px;text-decoration:none;font-size:14px;letter-spacing:1px;display:inline-block">VIEW MY ALERTS</a></div>' +
+            f'<p style="color:#888;font-size:12px;margin-top:16px">Or copy this URL:<br><a href="{my_alerts_url}" style="color:#e67e22">{my_alerts_url}</a></p>' +
+            '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
+            '</body></html>'
+        )
+        try:
+            r = httpx.post(
+                RESEND_API_URL,
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+                json={"from": FROM_ADDRESS, "to": [w["email"]], "subject": subject,
+                      "html": body_html, "text": body_text},
+                timeout=15
+            )
+            r.raise_for_status()
+            log.info(f"resend-link sent to {email}")
+        except Exception as e:
+            log.error(f"resend-link failed for {email}: {e}")
+
+    return jsonify({"status": "sent"})
 
 @app.route('/api/my-watch/<token>', methods=['DELETE'])
 def stop_watching(token):
