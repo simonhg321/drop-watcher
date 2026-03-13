@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 import httpx
+from sms_alerter import send_sms_alert
 
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,9 +25,6 @@ RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
 FROM_ADDRESS     = 'Drop Watcher <alerts@instockornot.club>'
 ALERT_TO         = os.environ.get('ALERT_TO')
 REPLY_TO         = os.environ.get('ALERT_TO')
-ALERT_TO_BOSS    = os.environ.get('ALERT_TO_BOSS')
-ALERT_TO_FRIENDS_RAW = os.environ.get('ALERT_TO_FRIENDS', '')
-ALERT_TO_FRIENDS = [e.strip() for e in ALERT_TO_FRIENDS_RAW.split(',') if e.strip()]
 
 UNSUBSCRIBE_URL  = 'https://instockornot.club'
 
@@ -35,7 +33,6 @@ DROPS_LOG = os.path.join(LOG_DIR, 'drops.jsonl')
 SENT_LOG  = os.path.join(LOG_DIR, 'alerts_sent.jsonl')
 
 IMMEDIATE_PRIORITIES = {'critical', 'high'}
-BOSS_SOURCES = {'Ubiquiti UVC-G6-180 Camera'}
 
 RESEND_API_URL = 'https://api.resend.com/emails'
 
@@ -331,11 +328,9 @@ def send_immediate_alerts():
                     continue
 
                 subject, body_html, body_text = format_immediate_email(alert)
-                extra = list(ALERT_TO_FRIENDS)
-                if ALERT_TO_BOSS and alert.get('source') in BOSS_SOURCES:
-                    extra.append(ALERT_TO_BOSS)
-                if send_email(subject, body_html, body_text, extra_recipients=extra or None):
+                if send_email(subject, body_html, body_text, extra_recipients=None):
                     mark_sent(alert_id, 'immediate')
+                    send_sms_alert(alert)
                     sent_count += 1
 
             except json.JSONDecodeError:
@@ -369,8 +364,7 @@ def send_daily_digest():
                 continue
 
     subject, body_html, body_text = format_digest_email(alerts)
-    extra = list(ALERT_TO_FRIENDS) if ALERT_TO_FRIENDS else None
-    if send_email(subject, body_html, body_text, extra_recipients=extra):
+    if send_email(subject, body_html, body_text, extra_recipients=None):
         log.info(f"Daily digest sent via Resend — {len(alerts)} alerts")
 
 # ── Test ──────────────────────────────────────────────────────────────────────
