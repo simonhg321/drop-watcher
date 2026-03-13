@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DROP WATCHER — HGR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0a0a0a;
+      --steel: #1c1c1c;
+      --iron: #2a2a2a;
+      --ember: #c0392b;
+      --flame: #e67e22;
+      --ash: #888;
+      --silver: #d0d0d0;
+      --white: #f0f0f0;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--black);
+      color: var(--white);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent);
+    }
+
+    .flame-line {
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--ember) 30%, var(--flame) 50%, var(--ember) 70%, transparent 100%);
+      animation: flamePulse 3s ease-in-out infinite;
+      margin-bottom: 3rem;
+    }
+
+    @keyframes flamePulse {
+      0%, 100% { opacity: 0.6; filter: blur(0px); }
+      50% { opacity: 1; filter: blur(1px); }
+    }
+
+    .hero-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 1.5rem;
+    }
+
+    .eyebrow {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.4em;
+      color: var(--ember);
+      text-transform: uppercase;
+      animation: fadeInDown 1s ease forwards;
+      opacity: 0;
+    }
+
+    .main-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 18vw, 16rem);
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      color: var(--white);
+      animation: fadeInUp 1s ease 0.2s forwards;
+      opacity: 0;
+      position: relative;
+    }
+
+    .main-title span {
+      display: block;
+      -webkit-text-stroke: 1px var(--ember);
+      color: transparent;
+      animation: fadeInUp 1s ease 0.4s forwards;
+      opacity: 0;
+    }
+
+    .tagline {
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      color: var(--ash);
+      max-width: 480px;
+      line-height: 1.6;
+      animation: fadeInUp 1s ease 0.6s forwards;
+      opacity: 0;
+    }
+
+    .hgr-badge {
+      display: inline-block;
+      border: 1px solid var(--ember);
+      padding: 0.4rem 1.2rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.5em;
+      color: var(--ember);
+      text-transform: uppercase;
+      animation: fadeInUp 1s ease 0.8s forwards;
+      opacity: 0;
+      position: relative;
+    }
+
+    .hgr-badge::before, .hgr-badge::after {
+      content: '—';
+      margin: 0 0.5rem;
+      color: var(--flame);
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--ash);
+      text-transform: uppercase;
+      animation: fadeIn 1s ease 1.2s forwards;
+      opacity: 0;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ember);
+      margin-right: 0.5rem;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+
+    .section {
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.5em;
+      color: var(--ember);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      line-height: 1;
+      margin-bottom: 2rem;
+      color: var(--white);
+    }
+
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--iron);
+      border: 1px solid var(--iron);
+      margin-top: 3rem;
+    }
+
+    .agent-card {
+      background: var(--black);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s ease;
+    }
+
+    .agent-card:hover { background: var(--steel); }
+
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 0;
+      background: linear-gradient(to bottom, var(--ember), var(--flame));
+      transition: height 0.4s ease;
+    }
+
+    .agent-card:hover::before { height: 100%; }
+
+    .agent-number { font-size: 0.6rem; letter-spacing: 0.3em; color: var(--ember); margin-bottom: 1rem; }
+    .agent-name { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--white); margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+    .agent-desc { font-family: 'Crimson Pro', serif; font-weight: 300; font-size: 1rem; color: var(--ash); line-height: 1.7; }
+
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 3rem;
+      margin-top: 3rem;
+    }
+
+    .principle { position: relative; padding-left: 1.5rem; border-left: 1px solid var(--iron); }
+    .principle-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--flame); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+    .principle-text { font-family: 'Crimson Pro', serif; font-style: italic; font-weight: 300; font-size: 0.95rem; color: var(--ash); line-height: 1.7; }
+
+    .stack-list { display: flex; flex-direction: column; gap: 0; margin-top: 3rem; border: 1px solid var(--iron); }
+
+    .stack-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--iron);
+      transition: background 0.2s ease;
+    }
+
+    .stack-item:last-child { border-bottom: none; }
+    .stack-item:hover { background: var(--steel); }
+
+    .stack-key { font-size: 0.7rem; letter-spacing: 0.3em; color: var(--ember); text-transform: uppercase; min-width: 160px; }
+    .stack-val { font-family: 'Crimson Pro', serif; font-size: 1rem; color: var(--silver); text-align: right; }
+
+    footer {
+      border-top: 1px solid var(--iron);
+      padding: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--ash);
+      text-transform: uppercase;
+    }
+
+    .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--iron), transparent);
+      margin: 0;
+    }
+
+    .scroll-hint {
+      text-align: center;
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: var(--iron);
+      text-transform: uppercase;
+      animation: fadeIn 1s ease 2s forwards, nudge 2s ease-in-out 3s infinite;
+      opacity: 0;
+    }
+
+    @keyframes nudge {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+  </style>
+  <style>
+    .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; background: #0a0a0a; }
+    .dw-nav .logo { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: #e8e8e8; text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo span { color: #ff2d2d; }
+    .dw-nav a:not(.logo) { font-family: 'Space Mono', monospace; font-size: 12px; text-decoration: none; color: #555555; letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: #e8e8e8; }
+  </style>
+</head>
+<body>
+<nav class="dw-nav">
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <a href="/index.html" class="active">Home</a>
+  <a href="/watchlist.html">Watch</a>
+</nav>
+
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="flame-line"></div>
+
+    <div class="hero-center">
+      <p class="eyebrow">System Online — Watching the drop</p>
+      <h1 class="main-title">
+        DROP
+        <span>WATCHER</span>
+      </h1>
+      <p class="tagline">An always-on intelligence daemon hunting knife drops and Steel Flame releases across the web — so you never miss what matters.</p>
+     </div>
+
+    <div class="status-bar">
+      <span><span class="status-dot"></span>Daemon Active</span>
+      <span>simonhg321 / drop-watcher</span>
+      <span>Est. 2026</span>
+    </div>
+  </section>
+
+
+  <div class="divider"></div>
+
+  <!-- MISSION -->
+  <section class="section">
+    <p class="section-label">01 — Mission</p>
+    <h2 class="section-title">Score cool gear.<br>Be a good citizen.</h2>
+    <p style="font-family: 'Crimson Pro', serif; font-size: 1.15rem; color: var(--ash); max-width: 620px; line-height: 1.8; font-weight: 300;">
+      Drop Watcher monitors maker websites, social feeds, and dealer pages for new releases and restocks in the Bushido mid-tech folder and Steel Flame jewelry space. It watches quietly, logs locally, and alerts only you — never hammering small makers, never bothering the community.
+    </p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- AGENTS -->
+  <section class="section">
+    <p class="section-label">02 — Agents</p>
+    <h2 class="section-title">Always On.<br>Never Sleeping.</h2>
+
+    <div class="agents-grid">
+      <div class="agent-card">
+        <p class="agent-number">AGENT / 01</p>
+        <h3 class="agent-name">Web Watcher</h3>
+        <p class="agent-desc">Polls maker and dealer websites on polite randomized intervals. Detects inventory changes, new listings, and restocks matching your cool list.</p>
+      </div>
+      <div class="agent-card">
+        <p class="agent-number">AGENT / 02</p>
+        <h3 class="agent-name">Feed Watcher</h3>
+        <p class="agent-desc">Consumes RSS feeds from Instagram, Facebook, and YouTube — watching for drop announcements and keyword matches from the makers you follow.</p>
+      </div>
+      <div class="agent-card">
+        <p class="agent-number">AGENT / 03</p>
+        <h3 class="agent-name">Orchestrator</h3>
+        <p class="agent-desc">Keeps everything alive. Manages rate limits, handles restarts, enforces the good citizen rules, and writes structured logs when something hits.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PRINCIPLES -->
+  <section class="section">
+    <p class="section-label">03 — Principles</p>
+    <h2 class="section-title">The Code.</h2>
+
+    <div class="principles">
+      <div class="principle">
+        <h3 class="principle-title">You Decide</h3>
+        <p class="principle-text">The system watches and alerts. Every purchase decision belongs to the human. No automation crosses that line.</p>
+      </div>
+      <div class="principle">
+        <h3 class="principle-title">Polite by Design</h3>
+        <p class="principle-text">Randomized intervals. One request at a time per domain. Robots.txt respected. Small makers protected.</p>
+      </div>
+      <div class="principle">
+        <h3 class="principle-title">Local First</h3>
+        <p class="principle-text">Logs stay on this machine. No cloud sync, no third party data. Your intel is yours alone.</p>
+      </div>
+      <div class="principle">
+        <h3 class="principle-title">Config Driven</h3>
+        <p class="principle-text">You own the cool list. Add makers, remove keywords, update sources — all in plain YAML. No code required.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- STACK -->
+  <section class="section">
+    <p class="section-label">04 — Stack</p>
+    <h2 class="section-title">Built Right.</h2>
+
+    <div class="stack-list">
+      <div class="stack-item">
+        <span class="stack-key">Language</span>
+        <span class="stack-val">Python 3.10</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Infrastructure</span>
+        <span class="stack-val">Linode Nanode — Ubuntu 22.04 LTS</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Process Management</span>
+        <span class="stack-val">supervisord</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Web Server</span>
+        <span class="stack-val">Apache 2.4 — TLS</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Social Feeds</span>
+        <span class="stack-val">RSS Bridge — YouTube Data API</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Source Control</span>
+        <span class="stack-val">GitHub — simonhg321/drop-watcher</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Logging</span>
+        <span class="stack-val">Local JSON Lines — /logs</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>Drop Watcher — Est. 2026</span>
+    <span class="footer-hgr">HGR</span>
+    <span><a href="mailto:alerts@instockornot.club" style="color:var(--flame);text-decoration:none;">Contact Simon HGR</a> — All rights reserved</span
+  </footer>
+
+</body>
+</html>

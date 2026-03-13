@@ -1,0 +1,461 @@
+<!-- Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drop Watcher — Watch Anything</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --red: #ff2d2d;
+    --orange: #ff6b2b;
+    --text: #e8e8e8;
+    --muted: #555555;
+    --input-bg: #161616;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* NAV */
+  nav {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--red); }
+
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  nav a:hover, nav a.active { color: var(--text); }
+
+  /* HERO */
+  .hero {
+    padding: 40px 32px 30px;
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--red);
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+
+  /* FORM */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .field {
+    margin-bottom: 24px;
+  }
+
+  label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  label span {
+    color: var(--red);
+    margin-left: 2px;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--orange);
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--muted);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  /* PRIORITY PILLS */
+  .priority-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pill-input { display: none; }
+
+  .pill-label {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--muted);
+    user-select: none;
+  }
+
+  .pill-input:checked + .pill-label {
+    border-color: var(--orange);
+    color: var(--orange);
+    background: rgba(255,107,43,0.08);
+  }
+
+  /* SUBMIT */
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  button[type="submit"] {
+    background: var(--red);
+    color: white;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  button[type="submit"]:hover { background: #e02222; }
+
+  .submit-note {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* SUCCESS STATE */
+  .success {
+    display: none;
+    background: var(--surface);
+    border: 1px solid #1a3a1a;
+    padding: 32px;
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .success .check {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  .success h2 {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #4caf50;
+  }
+
+  .success p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    margin: 48px auto 0;
+    max-width: 640px;
+    padding: 0 32px;
+    display: flex;
+    gap: 32px;
+  }
+
+  .stat {
+    font-family: 'Space Mono', monospace;
+  }
+
+  .stat-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--red);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* FOOTER */
+  footer {
+    margin-top: auto;
+    padding: 24px 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--text); }
+
+  /* SPINNER */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+
+  button.loading .spinner { display: inline-block; }
+  button.loading .btn-text { display: none; }
+  .removed-banner {
+    background: #1a0a0a;
+    border: 1px solid var(--red, #c0392b);
+    color: #e0a0a0;
+    padding: 16px 24px;
+    max-width: 640px;
+    margin: 24px auto;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <a href="/alerts.html">Alerts</a>
+  <a href="/status.html">Status</a>
+  <a href="/watchlist.html" class="active">Watch</a>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">⚡ instockornot.club</div>
+  <h1>Watch anything.<br>Miss <em>nothing.</em></h1>
+  <p class="subtitle">Tell us what you're watching for — a knife drop, a restock, a collab announcement. We'll monitor it and email you the moment something changes.</p>
+</div>
+
+<div class="removed-banner" id="removedBanner">
+  Watcher removed. Sign up below to start a new one.
+</div>
+<form id="watchForm" style="padding: 0 32px; max-width: 640px; margin: 0 auto; width: 100%;">
+  <div class="form-card">
+
+    <div class="field">
+      <label>URL to watch <span>*</span></label>
+      <input type="url" name="url" placeholder="https://example.com/product-page" required>
+      <div class="hint">Paste any page URL — a maker's site, a dealer's drop page, a product listing.</div>
+    </div>
+
+    <div class="field">
+      <label>What to watch for <span>*</span></label>
+      <textarea name="keywords" placeholder="Hinderer XM-18, add to cart, CRK collab, steel flame, drop announcement..." required></textarea>
+      <div class="hint">Keywords, phrases, or describe what you're looking for. The more specific, the better.</div>
+    </div>
+
+    <div class="field">
+      <label>Alert priority</label>
+      <div class="priority-group">
+        <input type="radio" name="priority" id="p-critical" value="critical" class="pill-input">
+        <label for="p-critical" class="pill-label">Critical — email immediately</label>
+
+        <input type="radio" name="priority" id="p-high" value="high" class="pill-input" checked>
+        <label for="p-high" class="pill-label">High — email immediately</label>
+
+        <input type="radio" name="priority" id="p-medium" value="medium" class="pill-input">
+        <label for="p-medium" class="pill-label">Medium — daily digest</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Your email <span>*</span></label>
+      <input type="email" name="email" placeholder="you@example.com" required>
+      <div class="hint">We'll only email you when we detect what you're watching for. No spam.</div>
+    </div>
+
+    <div class="field">
+      <label>Your name <span style="color:var(--muted);">(optional)</span></label>
+      <input type="text" name="name" placeholder="Handle or first name">
+    </div>
+
+    <div class="submit-row">
+      <button type="submit" id="submitBtn">
+        <span class="btn-text">Start Watching</span>
+        <span class="spinner"></span>
+      </button>
+      <div class="submit-note">Free forever. No account needed.<br>Unsubscribe any time.</div>
+    </div>
+
+  </div>
+</form>
+
+<div class="success" id="successMsg">
+  <div class="check">✓</div>
+  <h2>Check your email.</h2>
+  <p>We sent a confirmation to <strong id="confirmedEmail"></strong>. Click the link in that email to activate your alerts — then we'll watch and notify you the moment we detect something.<br><br>
+  Average detection time: under 20 minutes.</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num">40+</div>
+    <div class="stat-label">Sources monitored</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">264</div>
+    <div class="stat-label">Keywords tracked</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">&lt;20m</div>
+    <div class="stat-label">Detection time</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">0</div>
+    <div class="stat-label">False criticals</div>
+  </div>
+</div>
+
+<footer>
+  <span>instockornot.club — built for collectors, not dealers</span>
+  <a href="/privacy.html">Privacy</a> · <a href="https://github.com/simonhg321/drop-watcher">GitHub</a>
+</footer>
+
+<script>
+if (new URLSearchParams(window.location.search).get('removed') === '1') {
+  document.getElementById('removedBanner').style.display = 'block';
+}
+
+document.getElementById('watchForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading');
+
+  const data = {
+    url: this.url.value,
+    keywords: this.keywords.value,
+    priority: this.priority.value,
+    email: this.email.value,
+    name: this.name.value,
+    created: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch('/api/watch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      document.getElementById('watchForm').style.display = 'none';
+      document.querySelector('.hero').style.display = 'none';
+      document.querySelector('.stats-bar').style.display = 'none';
+      document.getElementById('confirmedEmail').textContent = data.email;
+      document.getElementById('successMsg').style.display = 'block';
+      document.getElementById('successMsg').style.padding = '80px 32px';
+    } else {
+      alert('Something went wrong. Try again or email info@instockornot.club');
+    }
+  } catch(err) {
+    alert('Could not connect. Try again shortly.');
+  }
+
+  btn.classList.remove('loading');
+});
+</script>
+
+</body>
+</html>
