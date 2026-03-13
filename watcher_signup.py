@@ -140,6 +140,50 @@ instockornot.club
         return False
 
 
+
+# ── Verification email (sent on signup) ──────────────────────────────────────────────────
+
+def send_verification_email(entry):
+    if not RESEND_API_KEY:
+        log.error("RESEND_API_KEY not set — cannot send verification email")
+        return False
+
+    name       = entry.get("name") or "Collector"
+    verify_url = f"{BASE_URL}/api/verify/{entry['verify_token']}"
+    subject    = "Drop Watcher — Confirm your alerts"
+
+    body_text = (
+        f"Hey {name},\n\n"
+        f"Confirm your Drop Watcher alerts:\n  {verify_url}\n\n"
+        f"Once confirmed you will get alerted on matches.\n\n"
+        f"HGR\ninstockornot.club\n"
+    )
+    body_html = (
+        '<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:monospace;padding:24px;max-width:600px">' +
+        '<h1 style="font-size:28px;letter-spacing:2px;margin:0">DROP <span style="color:#c0392b">WATCHER</span></h1>' +
+        '<div style="height:2px;background:linear-gradient(90deg,transparent,#c0392b,#e67e22,#c0392b,transparent);margin:12px 0 24px"></div>' +
+        f'<p style="color:#d0d0d0;font-size:16px">Hey {name} — one click to confirm.</p>' +
+        f'<div style="margin:24px 0"><a href="{verify_url}" style="background:#c0392b;color:#fff;padding:14px 28px;text-decoration:none;font-size:14px;letter-spacing:1px;display:inline-block">CONFIRM ALERTS</a></div>' +
+        '<p style="color:#888;font-size:12px">If you did not sign up for Drop Watcher, ignore this email.</p>' +
+        '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
+        '</body></html>'
+    )
+
+    try:
+        r = httpx.post(
+            RESEND_API_URL,
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json={"from": FROM_ADDRESS, "to": [entry["email"]], "subject": subject,
+                  "html": body_html, "text": body_text},
+            timeout=15
+        )
+        r.raise_for_status()
+        log.info(f"Verification email sent to {entry['email']} — id: {r.json().get('id')}")
+        return True
+    except Exception as e:
+        log.error(f"Verification email failed for {entry['email']}: {e}")
+        return False
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/watch', methods=['POST'])
@@ -153,7 +197,8 @@ def watch():
 
     entry = {
         'id':                str(uuid.uuid4())[:8],
-        'unsubscribe_token': str(uuid.uuid4()),  # full UUID — unguessable
+        'verify_token':      str(uuid.uuid4()),  # one-time -- nulled after use
+        'unsubscribe_token': str(uuid.uuid4()),  # permanent -- unguessable — unguessable
         'url':               data['url'].strip(),
         'keywords':          data['keywords'].strip(),
         'email':             data['email'].strip().lower(),
@@ -161,7 +206,7 @@ def watch():
         'priority':          data.get('priority', 'high'),
         'phone':             data.get('phone', '').strip(),
         'sms_approved':      False,
-        'active':            True,
+        'active':            False,  # inactive until email verified
         'created':           datetime.now(timezone.utc).isoformat(),
         'last_alert':        None,
         'alert_count':       0,
@@ -175,6 +220,9 @@ def watch():
         log.info(f"Duplicate watcher for {entry['email']} / {entry['url']} — updating keywords")
         existing[0]['keywords'] = entry['keywords']
         existing[0]['priority'] = entry['priority']
+        # Resend verification if still pending
+        if not existing[0].get('active') and existing[0].get('verify_token'):
+            send_verification_email(existing[0])
         save_watchers(watchers)
         return jsonify({'status': 'updated', 'id': existing[0]['id']}), 200
 
@@ -182,10 +230,40 @@ def watch():
     save_watchers(watchers)
     log.info(f"New watcher: {entry['id']} | {entry['email']} | {entry['url']}")
 
-    # Send confirmation email — non-blocking, failure doesn't break signup
-    send_confirmation_email(entry)
+    # Send verification email — non-blocking, failure doesn't break signup
+    send_verification_email(entry)
 
     return jsonify({'status': 'created', 'id': entry['id']}), 201
+
+
+
+@app.route('/api/verify/<token>', methods=['GET'])
+def verify(token):
+    watchers = load_watchers()
+    for w in watchers:
+        if w.get('verify_token') == token:
+            if w.get('active'):
+                return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                    <h1 style="color:#c0392b">DROP WATCHER</h1>
+                    <p style="font-size:18px;margin-top:24px">Already verified.</p>
+                    <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
+                </body></html>""", 200
+            w['active'] = True
+            w['verify_token'] = None  # nulled after use — structure kept for audit
+            save_watchers(watchers)
+            log.info(f"Verified: {w['email']}")
+            send_confirmation_email(w)  # welcome email — existing function
+            return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                    <h1 style="color:#2ecc71">VERIFIED</h1>
+                    <p style="font-size:18px;margin-top:24px;color:#f0f0f0">You are live. Alerts are active.</p>
+                    <p style="margin-top:32px"><a href="https://instockornot.club/alerts.html" style="color:#e67e22">VIEW LIVE ALERTS</a></p>
+                    <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">HGR</div>
+                </body></html>""", 200
+    return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                    <h1 style="color:#888">DROP WATCHER</h1>
+                    <p style="color:#888;font-size:14px;margin-top:24px">Link not found or already used.</p>
+                </body></html>""", 404
+
 
 
 @app.route('/api/unsubscribe/<token>', methods=['GET', 'POST'])
