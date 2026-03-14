@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <title>DROP WATCHER — HGR</title>
+  <title>DROP WATCHER — Watch Any Page for the Things You're Looking For</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -333,7 +333,8 @@
         DROP
         <span>WATCHER</span>
       </h1>
-      <p class="tagline">An always-on intelligence daemon hunting knife drops and Steel Flame releases across the web — so you never miss what matters.</p>
+      <p class="tagline">Born hunting Steel Flame and mid-tech knife drops. Now it watches any page for anything you're after.</p>
+      <a href="/watchlist.html" style="display:inline-block;background:var(--ember);color:var(--white);padding:0.8rem 2.4rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;animation:fadeInUp 1s ease 0.8s forwards;opacity:0;margin-top:0.5rem;">Start Watching</a>
      </div>
 
     <div class="status-bar">
@@ -351,7 +352,7 @@
     <p class="section-label">01 — Mission</p>
     <h2 class="section-title">Score cool gear.<br>Be a good citizen.</h2>
     <p style="font-family: 'Crimson Pro', serif; font-size: 1.15rem; color: var(--ash); max-width: 620px; line-height: 1.8; font-weight: 300;">
-      Drop Watcher monitors maker websites, social feeds, and dealer pages for new releases and restocks in the Bushido mid-tech folder and Steel Flame jewelry space. It watches quietly, logs locally, and alerts only you — never hammering small makers, never bothering the community.
+      Drop Watcher was born to track Steel Flame jewelry and mid-tech knife drops — the kind of gear that sells out in seconds. Now it's open to everyone. Give us a URL and your keywords, and we'll watch the page around the clock. When your keywords show up, you get an alert. Simple. We watch quietly, never hammering sites, never bothering anyone.
     </p>
   </section>
 
@@ -366,17 +367,22 @@
       <div class="agent-card">
         <p class="agent-number">AGENT / 01</p>
         <h3 class="agent-name">Web Watcher</h3>
-        <p class="agent-desc">Polls maker and dealer websites on polite randomized intervals. Detects inventory changes, new listings, and restocks matching your cool list.</p>
+        <p class="agent-desc">Polls your watched URLs on polite randomized intervals. Detects page changes, new listings, and restocks — anything that matches your keywords.</p>
       </div>
       <div class="agent-card">
         <p class="agent-number">AGENT / 02</p>
         <h3 class="agent-name">Feed Watcher</h3>
-        <p class="agent-desc">Consumes RSS feeds from Instagram, Facebook, and YouTube — watching for drop announcements and keyword matches from the makers you follow.</p>
+        <p class="agent-desc">Consumes RSS feeds from Instagram, Facebook, and YouTube — watching for drop announcements and keyword matches across social channels.</p>
       </div>
       <div class="agent-card">
         <p class="agent-number">AGENT / 03</p>
-        <h3 class="agent-name">Orchestrator</h3>
-        <p class="agent-desc">Keeps everything alive. Manages rate limits, handles restarts, enforces the good citizen rules, and writes structured logs when something hits.</p>
+        <h3 class="agent-name">Per-User Alerter</h3>
+        <p class="agent-desc">Your personal pipeline. Fetches your URL, checks your keywords, and fires an email the moment something matches. No noise — just signal.</p>
+      </div>
+      <div class="agent-card">
+        <p class="agent-number">AGENT / 04</p>
+        <h3 class="agent-name">Watchdog</h3>
+        <p class="agent-desc">Self-healing monitor. Checks every service every two minutes. If something dies, it restarts it automatically. You sleep — the watchdog doesn't.</p>
       </div>
     </div>
   </section>
@@ -398,12 +404,12 @@
         <p class="principle-text">Randomized intervals. One request at a time per domain. Robots.txt respected. Small makers protected.</p>
       </div>
       <div class="principle">
-        <h3 class="principle-title">Local First</h3>
-        <p class="principle-text">Logs stay on this machine. No cloud sync, no third party data. Your intel is yours alone.</p>
+        <h3 class="principle-title">Your Data, Your Business</h3>
+        <p class="principle-text">We don't sell, share, or analyze what you watch. Your URL, your keywords, your alerts — that's between you and the page.</p>
       </div>
       <div class="principle">
-        <h3 class="principle-title">Config Driven</h3>
-        <p class="principle-text">You own the cool list. Add makers, remove keywords, update sources — all in plain YAML. No code required.</p>
+        <h3 class="principle-title">URL + Keywords</h3>
+        <p class="principle-text">No account. No app. Give us a URL and the words you're looking for. Verify your email. That's it — you're watching.</p>
       </div>
     </div>
   </section>
@@ -433,6 +439,18 @@
         <span class="stack-val">Apache 2.4 — TLS</span>
       </div>
       <div class="stack-item">
+        <span class="stack-key">API</span>
+        <span class="stack-val">Flask + Gunicorn — rate-limited, CORS-locked</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Email</span>
+        <span class="stack-val">Resend — SPF + DKIM + DMARC</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">AI</span>
+        <span class="stack-val">Claude Haiku — page analysis and drop detection</span>
+      </div>
+      <div class="stack-item">
         <span class="stack-key">Social Feeds</span>
         <span class="stack-val">RSS Bridge — YouTube Data API</span>
       </div>
@@ -441,8 +459,8 @@
         <span class="stack-val">GitHub — simonhg321/drop-watcher</span>
       </div>
       <div class="stack-item">
-        <span class="stack-key">Logging</span>
-        <span class="stack-val">Local JSON Lines — /logs</span>
+        <span class="stack-key">Monitoring</span>
+        <span class="stack-val">Self-healing watchdog — auto-restarts on failure</span>
       </div>
     </div>
   </section>
@@ -451,9 +469,9 @@
 
   <!-- FOOTER -->
   <footer>
-    <span>Drop Watcher — Est. 2026</span>
+    <span>instockornot.club — Est. 2026</span>
     <span class="footer-hgr">HGR</span>
-    <span><a href="mailto:alerts@instockornot.club" style="color:var(--flame);text-decoration:none;">Contact Simon HGR</a> — All rights reserved</span
+    <span><a href="mailto:info@instockornot.club" style="color:var(--flame);text-decoration:none;">info@instockornot.club</a></span>
   </footer>
 
 </body>
