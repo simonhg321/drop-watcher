@@ -113,7 +113,20 @@ fetch('/api/stats')
           <div class="value">${s.last_preflight ? new Date(s.last_preflight).toLocaleString() : '—'}</div>
           <div class="ago">${timeAgo(s.last_preflight)}</div>
         </div>
+      </div>
+      <div class="card" style="margin-bottom:32px;text-align:left;padding:20px 24px">
+        <div class="label" style="margin-bottom:12px">Watchdog</div>
+        ${(() => {
+          const fails = Object.keys(s.watchdog_failures || {});
+          if (fails.length === 0) {
+            return '<div style="color:var(--green);font-size:14px">All services healthy</div>';
+          } else {
+            return fails.map(f => '<div style="color:var(--red);font-size:14px;margin-bottom:4px">' + f + ' — DOWN since ' + new Date(s.watchdog_failures[f]).toLocaleString() + '</div>').join('');
+          }
+        })()}
+        <div class="detail" style="margin-top:8px">Last check: ${s.last_watchdog || 'never'}</div>
       </div>`;
+
   })
   .catch(() => {
     document.getElementById('content').innerHTML = '<div class="error">Failed to load stats. Is the API running?</div>';
