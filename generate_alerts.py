@@ -8,6 +8,7 @@ One entry per source per day — best priority wins.
 HGR
 """
 
+import html as html_mod
 import os
 import json
 from datetime import datetime, timezone, timedelta
@@ -130,8 +131,8 @@ def format_timestamp(ts_str):
 
 def render_alert_card(alert):
     priority  = alert.get('priority', 'medium').lower()
-    source    = alert.get('source', 'Unknown')
-    url       = alert.get('url', '#')
+    source    = html_mod.escape(alert.get('source', 'Unknown'))
+    url       = html_mod.escape(alert.get('url', '#'))
     ts        = format_timestamp(alert.get('timestamp', ''))
     event     = alert.get('event', 'page_changed')
     color     = PRIORITY_COLOR.get(priority, '#888')
@@ -140,16 +141,16 @@ def render_alert_card(alert):
     notable_items = alert.get('notable_items', [])
     notable_html = ''
     if notable_items:
-        items_html = ''.join(f'<li>{item}</li>' for item in notable_items)
+        items_html = ''.join(f'<li>{html_mod.escape(item)}</li>' for item in notable_items)
         notable_html = f'<ul class="notable-items">{items_html}</ul>'
 
     drop = alert.get('drop_announcement', {})
     drop_html = ''
     if drop and drop.get('detected'):
-        maker  = drop.get('maker', '')
-        desc   = drop.get('description', '')
-        timing = drop.get('timing', '')
-        conf   = drop.get('confidence', '')
+        maker  = html_mod.escape(drop.get('maker', ''))
+        desc   = html_mod.escape(drop.get('description', ''))
+        timing = html_mod.escape(drop.get('timing', ''))
+        conf   = html_mod.escape(drop.get('confidence', ''))
         drop_html = f"""
         <div class="drop-announcement">
             🔥 DROP ANNOUNCEMENT — {maker}: {desc}
@@ -160,13 +161,13 @@ def render_alert_card(alert):
     matches = alert.get('matches', [])
     matches_html = ''
     if matches and not notable_items:
-        matches_html = f'<div class="matches">matched: {", ".join(matches[:10])}</div>'
+        matches_html = f'<div class="matches">matched: {", ".join(html_mod.escape(m) for m in matches[:10])}</div>'
 
-    summary = alert.get('page_summary', '')
+    summary = html_mod.escape(alert.get('page_summary', ''))
     summary_html = f'<div class="summary">{summary}</div>' if summary else ''
 
     makers_found = alert.get('makers_found', [])
-    makers_html = f'<div class="makers-found">makers: {", ".join(makers_found)}</div>' if makers_found else ''
+    makers_html = f'<div class="makers-found">makers: {", ".join(html_mod.escape(m) for m in makers_found)}</div>' if makers_found else ''
 
     event_badge = ('BASELINE' if event == 'baseline_stock_found'
                    else 'FEED ENTRY' if event == 'feed_entry'
@@ -205,6 +206,7 @@ def generate_alerts_page():
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="30">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>Drop Watcher — Alerts</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>

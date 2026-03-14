@@ -10,6 +10,7 @@ For each active watcher:
   3. If match found AND not recently alerted → sends email
 """
 
+import html as html_mod
 import json
 import os
 import re
@@ -49,6 +50,11 @@ def save_watchers(watchers):
 
 
 def fetch_page_text(url):
+    from safe_fetch import is_safe_url
+    safe, reason = is_safe_url(url)
+    if not safe:
+        log.warning(f"Blocked fetch for {url}: {reason}")
+        return None
     try:
         r = requests.get(url, headers=HEADERS, timeout=15)
         r.raise_for_status()
@@ -85,37 +91,43 @@ def build_alert_email(watcher, matches, url):
     name = watcher.get('name') or 'Watcher'
     subject = f"[DROP WATCHER] Match found — {url[:60]}"
 
-    html = f"""
+    # Escape user input for HTML context
+    safe_name    = html_mod.escape(name)
+    safe_url     = html_mod.escape(url)
+    safe_matches = [html_mod.escape(m) for m in matches]
+    unsub_token  = watcher['unsubscribe_token']
+
+    email_html = f"""
     <div style="font-family: monospace; background: #0a0a0a; color: #e8e8e8; padding: 24px; max-width: 600px;">
       <h2 style="color: #ff2d2d; margin: 0 0 16px;">⚡ DROP WATCHER</h2>
       <p style="color: #aaa; margin: 0 0 20px; font-size: 13px;">instockornot.club</p>
 
-      <p>Hey {name} — we found a match on the page you're watching.</p>
+      <p>Hey {safe_name} — we found a match on the page you're watching.</p>
 
       <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
         <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Page</div>
-        <a href="{url}" style="color: #ff6b2b;">{url}</a>
+        <a href="{safe_url}" style="color: #ff6b2b;">{safe_url}</a>
       </div>
 
       <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
         <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Keywords matched</div>
-        <div style="color: #e8e8e8;">{'  ·  '.join(matches)}</div>
+        <div style="color: #e8e8e8;">{'  ·  '.join(safe_matches)}</div>
       </div>
 
       <p style="margin: 20px 0 0;">
-        <a href="{url}" style="background: #ff2d2d; color: white; padding: 12px 24px; text-decoration: none; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">View Page Now →</a>
+        <a href="{safe_url}" style="background: #ff2d2d; color: white; padding: 12px 24px; text-decoration: none; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">View Page Now →</a>
       </p>
 
       <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
       <p style="color: #444; font-size: 11px;">
-        <a href="https://instockornot.club/api/unsubscribe/{watcher['id']}" style="color: #444;">Unsubscribe</a> · instockornot.club
+        <a href="https://instockornot.club/api/unsubscribe/{unsub_token}" style="color: #444;">Unsubscribe</a> · instockornot.club
       </p>
     </div>
     """
 
-    text = f"DROP WATCHER — Match found\n\nPage: {url}\nMatched: {', '.join(matches)}\n\nView: {url}\n\nUnsubscribe: https://instockornot.club/api/unsubscribe/{watcher['id']}"
+    text = f"DROP WATCHER — Match found\n\nPage: {url}\nMatched: {', '.join(matches)}\n\nView: {url}\n\nUnsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
 
-    return subject, html, text
+    return subject, email_html, text
 
 
 def run():

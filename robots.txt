@@ -1,0 +1,70 @@
+# Drop Watcher — instockornot.club
+# HGR
+
+# Google
+User-agent: Googlebot
+Allow: /index.html
+Allow: /watchlist.html
+Allow: /alerts.html
+Allow: /privacy.html
+Allow: /terms.html
+Disallow: /api/
+Disallow: /stats/
+Disallow: /status.html
+Disallow: /watcher_status.html
+Disallow: /my-alerts.html
+Disallow: /get-my-link.html
+Disallow: /all_the_things.html
+Disallow: /test-drop.html
+
+# Bing
+User-agent: Bingbot
+Allow: /index.html
+Allow: /watchlist.html
+Allow: /alerts.html
+Disallow: /api/
+Disallow: /stats/
+Disallow: /status.html
+Disallow: /watcher_status.html
+Disallow: /my-alerts.html
+
+# AI crawlers — no training on our data
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+# Everything else
+User-agent: *
+Allow: /index.html
+Allow: /watchlist.html
+Allow: /alerts.html
+Allow: /privacy.html
+Allow: /terms.html
+Disallow: /api/
+Disallow: /stats/
+Disallow: /status.html
+Disallow: /watcher_status.html
+Disallow: /my-alerts.html
+Disallow: /get-my-link.html
+
+Sitemap: https://instockornot.club/sitemap.xml

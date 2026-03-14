@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>My Alerts — Drop Watcher</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -125,6 +126,21 @@
 const params = new URLSearchParams(window.location.search);
 const token  = params.get('token');
 
+// Escape text for safe insertion — prevents XSS from API data
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// Validate URL protocol — only allow http/https in href attributes
+function safeHref(url) {
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'http:' || u.protocol === 'https:') ? esc(url) : '#';
+  } catch { return '#'; }
+}
+
 if (!token) {
   document.getElementById('watcherCard').innerHTML =
     '<div class="error">No token. Check your alert email for your personal link.</div>';
@@ -138,17 +154,17 @@ if (!token) {
       return;
     }
 
+    const pri = esc((watcher.priority || 'high').toLowerCase());
     const statusBadge = watcher.active
       ? '<span class="badge badge-active">Active</span>'
       : '<span class="badge badge-inactive">Pending Verification</span>';
-
-    const priorityBadge = `<span class="badge badge-${watcher.priority}">${watcher.priority}</span>`;
+    const priorityBadge = `<span class="badge badge-${pri}">${pri}</span>`;
 
     document.getElementById('watcherCard').innerHTML = `
       <div class="watcher-card">
-        <div class="field"><div class="label">Email</div><div class="value">${watcher.email}</div></div>
-        <div class="field"><div class="label">Watching</div><div class="value">${watcher.url}</div></div>
-        <div class="field"><div class="label">Keywords</div><div class="value">${watcher.keywords}</div></div>
+        <div class="field"><div class="label">Email</div><div class="value">${esc(watcher.email || '')}</div></div>
+        <div class="field"><div class="label">Watching</div><div class="value">${esc(watcher.url || '')}</div></div>
+        <div class="field"><div class="label">Keywords</div><div class="value">${esc(watcher.keywords || '')}</div></div>
         <div class="field"><div class="label">Priority</div><div class="value">${priorityBadge}</div></div>
         <div class="field"><div class="label">Status</div><div class="value">${statusBadge}</div></div>
       </div>`;
@@ -179,17 +195,18 @@ if (!token) {
       list.innerHTML = '<div class="empty">No matched drops yet. We\'re watching.</div>';
     } else {
       list.innerHTML = drops.map(d => {
-        const p     = (d.priority || 'low').toLowerCase();
+        const p     = esc((d.priority || 'low').toLowerCase());
         const time  = d.timestamp ? new Date(d.timestamp).toLocaleString() : '';
-        const badge = `<span class="badge badge-${p}">${p}</span>`;
+        const badge = `<span class="badge badge-${p}">${esc(p)}</span>`;
+        const href  = safeHref(d.url || '');
         return `
           <div class="drop-card ${p}">
             <div class="drop-header">
-              <div class="drop-site">${d.site || d.source || d.url}</div>
-              <div class="drop-meta">${badge}<span class="drop-time">${time}</span></div>
+              <div class="drop-site">${esc(d.site || d.source || d.url || '')}</div>
+              <div class="drop-meta">${badge}<span class="drop-time">${esc(time)}</span></div>
             </div>
-            <div class="drop-summary">${d.page_summary || ''}</div>
-            <div class="drop-url"><a href="${d.url}" target="_blank" rel="noopener">${d.url}</a></div>
+            <div class="drop-summary">${esc(d.page_summary || '')}</div>
+            <div class="drop-url"><a href="${href}" target="_blank" rel="noopener">${esc(d.url || '')}</a></div>
           </div>`;
       }).join('');
     }

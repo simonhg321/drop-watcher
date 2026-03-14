@@ -8,6 +8,7 @@ Sends daily digest for all alerts.
 HGR
 """
 
+import html as html_mod
 import os
 import json
 import logging
@@ -117,6 +118,13 @@ def format_immediate_email(alert):
     drop          = alert.get('drop_announcement', {})
     summary       = alert.get('page_summary', '')
 
+    # Escape for HTML context
+    esc_source  = html_mod.escape(source)
+    esc_url     = html_mod.escape(url)
+    esc_summary = html_mod.escape(summary)
+    esc_items   = [html_mod.escape(i) for i in notable_items]
+    esc_matches = [html_mod.escape(m) for m in matches]
+
     subject = f"[DROP WATCHER] {priority} — {source}"
 
     # Plain text
@@ -165,7 +173,7 @@ def format_immediate_email(alert):
 
     notable_html = ''
     if notable_items:
-        items = ''.join(f'<li style="margin:4px 0">{item}</li>' for item in notable_items)
+        items = ''.join(f'<li style="margin:4px 0">{item}</li>' for item in esc_items)
         notable_html = f'<h3 style="color:#d0d0d0;margin:16px 0 8px">Notable Items</h3><ul style="color:#d0d0d0;padding-left:20px">{items}</ul>'
 
     drop_html = ''
@@ -174,18 +182,18 @@ def format_immediate_email(alert):
         <div style="background:rgba(192,57,43,0.2);border-left:3px solid #e74c3c;padding:12px 16px;margin:16px 0">
             <div style="color:#e74c3c;font-weight:bold;font-size:16px">🔥 DROP ANNOUNCEMENT</div>
             <div style="color:#d0d0d0;margin-top:8px">
-                <strong>Maker:</strong> {drop.get('maker', '')}<br>
-                <strong>What:</strong> {drop.get('description', '')}<br>
-                <strong>When:</strong> {drop.get('timing', 'unknown')}<br>
-                <strong>Confidence:</strong> {drop.get('confidence', '')}
+                <strong>Maker:</strong> {html_mod.escape(drop.get('maker', ''))}<br>
+                <strong>What:</strong> {html_mod.escape(drop.get('description', ''))}<br>
+                <strong>When:</strong> {html_mod.escape(drop.get('timing', 'unknown'))}<br>
+                <strong>Confidence:</strong> {html_mod.escape(drop.get('confidence', ''))}
             </div>
         </div>"""
 
     matches_html = ''
     if matches and not notable_items:
-        matches_html = f'<p style="color:#888;font-size:12px">Matched: {", ".join(matches[:15])}</p>'
+        matches_html = f'<p style="color:#888;font-size:12px">Matched: {", ".join(esc_matches[:15])}</p>'
 
-    summary_html = f'<p style="color:#888;font-style:italic;margin-top:12px">{summary}</p>' if summary else ''
+    summary_html = f'<p style="color:#888;font-style:italic;margin-top:12px">{esc_summary}</p>' if summary else ''
 
     unsubscribe_html = f'<p style="margin-top:8px"><a href="{UNSUBSCRIBE_URL}" style="color:#555;font-size:10px">Unsubscribe</a></p>'
 
@@ -201,9 +209,9 @@ def format_immediate_email(alert):
 
         <div style="background:#1c1c1c;padding:16px;margin-bottom:16px">
             <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:8px">SITE</div>
-            <div style="font-size:20px;font-weight:bold;margin-bottom:12px">{source}</div>
-            <a href="{url}" style="display:inline-block;background:#c0392b;color:#ffffff;font-size:14px;font-weight:bold;letter-spacing:2px;padding:12px 24px;text-decoration:none;margin-bottom:8px">→ GO TO SITE NOW</a>
-            <div style="margin-top:8px"><a href="{url}" style="color:#888;font-size:11px">{url}</a></div>
+            <div style="font-size:20px;font-weight:bold;margin-bottom:12px">{esc_source}</div>
+            <a href="{esc_url}" style="display:inline-block;background:#c0392b;color:#ffffff;font-size:14px;font-weight:bold;letter-spacing:2px;padding:12px 24px;text-decoration:none;margin-bottom:8px">→ GO TO SITE NOW</a>
+            <div style="margin-top:8px"><a href="{esc_url}" style="color:#888;font-size:11px">{esc_url}</a></div>
         </div>
 
         {drop_html}
@@ -232,12 +240,12 @@ def format_digest_email(alerts):
     medium   = [a for a in alerts if a.get('priority') == 'medium']
 
     def alert_row(alert):
-        source  = alert.get('source', 'Unknown')
-        url     = alert.get('url', '#')
+        source  = html_mod.escape(alert.get('source', 'Unknown'))
+        url     = html_mod.escape(alert.get('url', '#'))
         ts      = alert.get('timestamp', '')[:16].replace('T', ' ')
         items   = alert.get('notable_items', [])
         matches = alert.get('matches', [])
-        detail  = items[0] if items else (', '.join(matches[:3]) if matches else '')
+        detail  = html_mod.escape(items[0]) if items else (', '.join(html_mod.escape(m) for m in matches[:3]) if matches else '')
         return f'<tr><td style="padding:6px 12px;color:#d0d0d0"><a href="{url}" style="color:#d0d0d0">{source}</a></td><td style="padding:6px 12px;color:#888;font-size:11px">{ts}</td><td style="padding:6px 12px;color:#888;font-size:11px">{detail}</td></tr>'
 
     def section(title, color, alerts_list):

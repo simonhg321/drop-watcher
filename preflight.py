@@ -6,6 +6,7 @@ Runs health checks before agents start. Non-blocking — warns and logs but neve
 HGR
 """
 
+import html as html_mod
 import os
 import re
 import sys
@@ -496,13 +497,13 @@ def render_html_block():
         blocked  = '🚫 BLOCKED' if site.get('blocked') else ''
         js_flag  = '⚠ JS rendered' if site.get('js_rendered') else ''
         sitemap  = '✓ sitemap' if site.get('has_sitemap') else ''
-        makers   = ', '.join(site.get('makers_found', [])) or '—'
-        announce = ' | '.join(site.get('drop_announcements', []))
+        makers   = ', '.join(html_mod.escape(m) for m in site.get('makers_found', [])) or '—'
+        announce = ' | '.join(html_mod.escape(a) for a in site.get('drop_announcements', []))
         drop_row = f'<tr class="drop-alert"><td colspan="6">🔥 DROP ANNOUNCEMENT: {announce}</td></tr>' if announce else ''
 
         site_rows += f"""
         <tr>
-            <td><a href="{site['url']}" target="_blank">{site['name']}</a></td>
+            <td><a href="{html_mod.escape(site['url'])}" target="_blank">{html_mod.escape(site['name'])}</a></td>
             <td style="color:{color}">{code} {blocked}</td>
             <td>{rt}</td>
             <td>{js_flag} {sitemap}</td>
@@ -571,6 +572,7 @@ def write_html_status():
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="60">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>Drop Watcher — Status</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>

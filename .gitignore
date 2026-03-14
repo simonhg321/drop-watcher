@@ -7,6 +7,9 @@ logs/
 .env
 *.env
 
+# User data (PII + tokens)
+config/watchers.json
+
 # Python
 __pycache__/
 *.pyc

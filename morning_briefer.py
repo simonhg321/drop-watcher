@@ -54,8 +54,9 @@ def main():
     briefing = generate_morning_briefing(alerts, sites_checked)
     log.info(f"Briefing: {briefing[:80]}...")
 
+    import html as html_mod
     subject = f"Drop Watcher — {datetime.now().strftime('%a %b %d')}"
-    body_html = f"<pre style='font-family:monospace'>{briefing}</pre>"
+    body_html = f"<pre style='font-family:monospace'>{html_mod.escape(briefing)}</pre>"
     send_email(subject, body_html, briefing)
     log.info("Morning brief sent.")
 
