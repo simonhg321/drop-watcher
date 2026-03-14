@@ -314,7 +314,8 @@ NEVER:
 - FROM_ADDRESS changed from noreply@ to info@instockornot.club in watcher_signup.py
 
 **Active bugs:**
-- BUG-005: User who signs up but doesn't receive verification email cannot re-sign up — duplicate check blocks them, resend may not fire. Investigate and test next session.
+- ~~BUG-005~~: FIXED — re-signup now issues fresh verify token and resends.
+- BUG-006: On verify, quick_keyword_check finds matches and says "We found X matches" on the verified page, but /api/my-alerts shows 0 matched drops. The immediate check matches against the live page, but my-alerts reads from drops.jsonl which only gets written by the cron pipeline (per_user_alerter/web_watcher). The verify-check match is ephemeral — not persisted to drops.jsonl.
 
 **Pending:**
 - Test BUG-005 — sign up flow when verification email fails/missing
