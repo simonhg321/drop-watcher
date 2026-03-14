@@ -15,16 +15,16 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # ── Load environment ──────────────────────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
+import paths
+load_dotenv(paths.ENV_FILE, override=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN  = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_FROM        = os.environ.get('TWILIO_FROM')  # +19282498690
 
-WATCHERS_FILE = os.path.join(BASE_DIR, 'config', 'watchers.json')
-SMS_SENT_LOG  = os.path.join(BASE_DIR, 'logs', 'sms_sent.jsonl')
+WATCHERS_FILE = paths.WATCHERS_JSON
+SMS_SENT_LOG  = paths.SMS_SENT_JSONL
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 log = logging.getLogger('sms_alerter')

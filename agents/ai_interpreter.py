@@ -17,7 +17,10 @@ import anthropic
 
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+import sys
+sys.path.insert(0, BASE_DIR)
+import paths
+load_dotenv(paths.ENV_FILE)
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 log = logging.getLogger('ai_interpreter')
@@ -29,7 +32,7 @@ MODEL = 'claude-haiku-4-5-20251001'
 
 # ── Load makers config ────────────────────────────────────────────────────────
 def load_makers_config():
-    makers_path = os.path.join(BASE_DIR, 'config', 'makers.yaml')
+    makers_path = paths.MAKERS_YAML
     try:
         with open(makers_path, 'r') as f:
             return yaml.safe_load(f)

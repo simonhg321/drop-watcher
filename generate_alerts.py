@@ -15,11 +15,9 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
-LOG_DIR     = os.path.join(BASE_DIR, 'logs')
-DROPS_LOG   = os.path.join(LOG_DIR, 'drops.jsonl')
-WWW_DIR     = '/var/www/html'
-ALERTS_HTML = os.path.join(WWW_DIR, 'alerts.html')
+import paths
+DROPS_LOG   = paths.DROPS_JSONL
+ALERTS_HTML = paths.ALERTS_HTML
 HOURS_BACK  = 48
 
 PRIORITY_ORDER = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}

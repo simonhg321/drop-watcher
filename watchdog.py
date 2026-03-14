@@ -16,12 +16,12 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import paths
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [watchdog] %(message)s')
 log = logging.getLogger(__name__)
 
-BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
-STATE_FILE   = os.path.join(BASE_DIR, 'logs', 'watchdog_state.json')
+STATE_FILE   = paths.WATCHDOG_STATE
 COOLDOWN_MIN = 30
 
 

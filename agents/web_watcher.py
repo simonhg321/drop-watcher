@@ -29,20 +29,22 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+sys.path.insert(0, BASE_DIR)
+import paths
+load_dotenv(paths.ENV_FILE)
 
 # ── Add agents dir to path so we can import ai_interpreter ───────────────────
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 from ai_interpreter import analyze_page
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-CONFIG_DIR = os.path.join(BASE_DIR, 'config')
-LOG_DIR    = os.path.join(BASE_DIR, 'logs')
+CONFIG_DIR = paths.CONFIG_DIR
+LOG_DIR    = paths.LOG_DIR
 
-SOURCES_FILE   = os.path.join(CONFIG_DIR, 'sources.yaml')
-COOL_LIST_FILE = os.path.join(CONFIG_DIR, 'cool_list.yaml')
-MAKERS_FILE    = os.path.join(CONFIG_DIR, 'makers.yaml')
-SETTINGS_FILE  = os.path.join(CONFIG_DIR, 'settings.yaml')
+SOURCES_FILE   = paths.SOURCES_YAML
+COOL_LIST_FILE = paths.COOL_LIST_YAML
+MAKERS_FILE    = paths.MAKERS_YAML
+SETTINGS_FILE  = paths.SETTINGS_YAML
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -92,8 +94,8 @@ def prefilter(text, keywords):
 
 
 # ── Item deduplication ────────────────────────────────────────────────────────
-SEEN_ITEMS_FILE = os.path.join(LOG_DIR, 'seen_items.json')
-SEEN_CONTENT_FILE = os.path.join(LOG_DIR, 'seen_content.json')
+SEEN_ITEMS_FILE = paths.SEEN_ITEMS_JSON
+SEEN_CONTENT_FILE = paths.SEEN_CONTENT_JSON
 CONTENT_DEDUP_HOURS = 4  # suppress same-content alerts from same source for 4 hours
 
 def load_seen_content():
