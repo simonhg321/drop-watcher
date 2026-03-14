@@ -319,10 +319,12 @@ NEVER:
 **Pending:**
 - Test BUG-005 — sign up flow when verification email fails/missing
 - ~~Favicon for instockornot.club~~ DONE
-- ~~Live pulse — /api/stats + watcher_status.html~~ DONE (private dashboard)
+- ~~Live pulse — /api/stats + watcher_status.html~~ DONE
+- ~~Security cleanup — XSS, SSRF, CORS, rate limiting, input validation, file locking~~ DONE
+- Server hardening — separate code/config/data dirs, file permissions, move PII out of ~/drop-watcher
+- DMARC setup for instockornot.club
 - UptimeRobot infra monitoring
 - Discord webhook — CRITICAL drops auto-post to a Discord channel
-- Easter egg /hgr page — the build story across 11 sessions
+- Easter egg /hgr page — the build story across sessions
 - Browser sound alert — alerts.html plays a ping on new CRITICAL
-- Security cleanup — audit endpoints, harden admin routes, review exposed data
-- Redesign index.html — reflect public platform direction (URL/keyword alerts for anyone) without losing the original aesthetic
+- Redesign index.html — reflect public platform direction without losing the original aesthetic

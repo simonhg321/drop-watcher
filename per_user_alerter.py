@@ -10,6 +10,7 @@ For each active watcher:
   3. If match found AND not recently alerted → sends email
 """
 
+import fcntl
 import html as html_mod
 import json
 import os
@@ -37,16 +38,29 @@ HEADERS = {
 }
 
 
+LOCK_FILE = WATCHERS_FILE + '.lock'
+
 def load_watchers():
     if not os.path.exists(WATCHERS_FILE):
         return []
     with open(WATCHERS_FILE) as f:
-        return json.load(f)
+        fcntl.flock(f, fcntl.LOCK_SH)
+        data = json.load(f)
+        fcntl.flock(f, fcntl.LOCK_UN)
+        return data
 
 
 def save_watchers(watchers):
-    with open(WATCHERS_FILE, 'w') as f:
-        json.dump(watchers, f, indent=2)
+    lock_fd = open(LOCK_FILE, 'w')
+    fcntl.flock(lock_fd, fcntl.LOCK_EX)
+    try:
+        tmp = WATCHERS_FILE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(watchers, f, indent=2)
+        os.replace(tmp, WATCHERS_FILE)
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        lock_fd.close()
 
 
 def fetch_page_text(url):

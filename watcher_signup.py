@@ -10,9 +10,11 @@ Apache proxies /api/ → localhost:5001
 HGR
 """
 
+import fcntl
 import html as html_mod
 import json
 import os
+import re
 import uuid
 import logging
 import httpx
@@ -20,9 +22,12 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['https://instockornot.club'])
+limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
 BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
 WATCHERS_FILE = os.path.join(BASE_DIR, 'config', 'watchers.json')
@@ -38,19 +43,60 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-# ── Watchers file helpers ─────────────────────────────────────────────────────
+# ── Watchers file helpers (with file locking) ────────────────────────────────
+
+LOCK_FILE = WATCHERS_FILE + '.lock'
 
 def load_watchers():
     if not os.path.exists(WATCHERS_FILE):
         return []
     with open(WATCHERS_FILE) as f:
-        return json.load(f)
+        fcntl.flock(f, fcntl.LOCK_SH)  # shared lock for reads
+        data = json.load(f)
+        fcntl.flock(f, fcntl.LOCK_UN)
+        return data
 
 
 def save_watchers(watchers):
     os.makedirs(os.path.dirname(WATCHERS_FILE), exist_ok=True)
-    with open(WATCHERS_FILE, 'w') as f:
-        json.dump(watchers, f, indent=2)
+    lock_fd = open(LOCK_FILE, 'w')
+    fcntl.flock(lock_fd, fcntl.LOCK_EX)  # exclusive lock for writes
+    try:
+        # Write to temp file then rename — atomic on same filesystem
+        tmp = WATCHERS_FILE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(watchers, f, indent=2)
+        os.replace(tmp, WATCHERS_FILE)
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        lock_fd.close()
+
+
+# ── Quick keyword check ──────────────────────────────────────────────────────
+
+def quick_keyword_check(url, keywords_str):
+    """Fetch a page and check for keyword matches. Returns list of matched keywords."""
+    import requests as req
+    from bs4 import BeautifulSoup
+    from safe_fetch import is_safe_url
+
+    safe, _ = is_safe_url(url)
+    if not safe:
+        return []
+
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club)'}
+        r = req.get(url, headers=headers, timeout=10)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, 'html.parser')
+        for tag in soup(['nav', 'footer', 'script', 'style', 'header']):
+            tag.decompose()
+        text = soup.get_text(separator=' ', strip=True).lower()
+    except Exception:
+        return []
+
+    keywords = [k.strip().lower() for k in keywords_str.split(',') if k.strip()]
+    return [kw for kw in keywords if kw in text]
 
 
 # ── Confirmation email ────────────────────────────────────────────────────────
@@ -192,6 +238,7 @@ def send_verification_email(entry):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/watch', methods=['POST'])
+@limiter.limit("5 per minute")
 def watch():
     data = request.get_json(force=True)
 
@@ -200,16 +247,50 @@ def watch():
         if not data.get(field, '').strip():
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
+    # ── Input validation ─────────────────────────────────────────────────────
+    email = data['email'].strip().lower()
+    url   = data['url'].strip()
+    keywords = data['keywords'].strip()
+    name  = data.get('name', '').strip()
+    phone = data.get('phone', '').strip()
+    priority = data.get('priority', 'high')
+
+    # Email format
+    if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email) or len(email) > 254:
+        return jsonify({'error': 'Invalid email address.'}), 400
+
+    # URL: must be http(s), reasonable length
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    if len(url) > 2048:
+        return jsonify({'error': 'URL is too long (max 2048 chars).'}), 400
+
+    # Keywords: reasonable length
+    if len(keywords) > 1000:
+        return jsonify({'error': 'Keywords too long (max 1000 chars).'}), 400
+
+    # Name: optional, cap length
+    if len(name) > 100:
+        return jsonify({'error': 'Name too long (max 100 chars).'}), 400
+
+    # Priority: whitelist
+    if priority not in ('critical', 'high', 'medium', 'low'):
+        priority = 'high'
+
+    # Phone: digits, plus, dashes, spaces, parens only
+    if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
+        return jsonify({'error': 'Invalid phone number format.'}), 400
+
     entry = {
         'id':                str(uuid.uuid4())[:8],
         'verify_token':      str(uuid.uuid4()),  # one-time -- nulled after use
         'unsubscribe_token': str(uuid.uuid4()),  # permanent -- unguessable — unguessable
-        'url':               data['url'].strip(),
-        'keywords':          data['keywords'].strip(),
-        'email':             data['email'].strip().lower(),
-        'name':              data.get('name', '').strip(),
-        'priority':          data.get('priority', 'high'),
-        'phone':             data.get('phone', '').strip(),
+        'url':               url,
+        'keywords':          keywords,
+        'email':             email,
+        'name':              name,
+        'priority':          priority,
+        'phone':             phone,
         'sms_approved':      False,
         'active':            False,  # inactive until email verified
         'created':           datetime.now(timezone.utc).isoformat(),
@@ -225,8 +306,10 @@ def watch():
         log.info(f"Duplicate watcher for {entry['email']} / {entry['url']} — updating keywords")
         existing[0]['keywords'] = entry['keywords']
         existing[0]['priority'] = entry['priority']
-        # Resend verification if still pending
-        if not existing[0].get('active') and existing[0].get('verify_token'):
+        if not existing[0].get('active'):
+            # Inactive — issue fresh verify token if missing, then resend
+            if not existing[0].get('verify_token'):
+                existing[0]['verify_token'] = str(uuid.uuid4())
             send_verification_email(existing[0])
         save_watchers(watchers)
         return jsonify({'status': 'updated', 'id': existing[0]['id']}), 200
@@ -238,7 +321,16 @@ def watch():
     # Send verification email — non-blocking, failure doesn't break signup
     send_verification_email(entry)
 
-    return jsonify({'status': 'created', 'id': entry['id']}), 201
+    # Quick keyword preview — show user what we found right now
+    matches = quick_keyword_check(url, keywords)
+    resp = {'status': 'created', 'id': entry['id']}
+    if matches:
+        resp['preview'] = matches
+        resp['preview_msg'] = f"We already see {len(matches)} keyword match{'es' if len(matches) != 1 else ''} on that page. You'll get alerted once you verify your email."
+    else:
+        resp['preview_msg'] = "No matches yet — we'll keep watching and alert you when something hits."
+
+    return jsonify(resp), 201
 
 
 
@@ -246,11 +338,14 @@ def watch():
 
 
 @app.route('/api/resend-link', methods=['POST'])
+@limiter.limit("3 per minute")
 def resend_link():
     data  = request.get_json(silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     if not email:
         return jsonify({'error': 'email required'}), 400
+    if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email) or len(email) > 254:
+        return jsonify({'error': 'Invalid email address.'}), 400
 
     watchers = load_watchers()
     matches  = [w for w in watchers if w.get('email', '').lower() == email and w.get('active')]
@@ -373,6 +468,7 @@ def my_alerts(token):
     return jsonify({'watcher': watcher.get('email'), 'drops': drops[:50]})
 
 @app.route('/api/verify/<token>', methods=['GET'])
+@limiter.limit("10 per minute")
 def verify(token):
     watchers = load_watchers()
     for w in watchers:
@@ -388,10 +484,34 @@ def verify(token):
             save_watchers(watchers)
             log.info(f"Verified: {w['email']}")
             send_confirmation_email(w)  # welcome email — existing function
+
+            # Immediate first check — don't make them wait 30 min
+            matches = quick_keyword_check(w['url'], w['keywords'])
+            match_msg = ''
+            if matches:
+                log.info(f"Verify-check: {len(matches)} matches for {w['email']}: {matches}")
+                match_msg = f'<p style="color:#2ecc71;font-size:14px;margin-top:16px">We already found {len(matches)} match{"es" if len(matches) != 1 else ""}: {html_mod.escape(", ".join(matches))}. Alert incoming.</p>'
+                # Fire the alert via per_user_alerter logic
+                try:
+                    from per_user_alerter import build_alert_email
+                    from alerter import send_email as _send
+                    subject, alert_html, alert_txt = build_alert_email(w, matches, w['url'])
+                    import alerter as _alerter
+                    original_to = _alerter.ALERT_TO
+                    _alerter.ALERT_TO = w['email']
+                    _send(subject, alert_html, alert_txt)
+                    _alerter.ALERT_TO = original_to
+                    w['last_alert'] = datetime.now(timezone.utc).isoformat()
+                    w['alert_count'] = w.get('alert_count', 0) + 1
+                    save_watchers(watchers)
+                except Exception as e:
+                    log.error(f"Verify-check alert failed: {e}")
+
             my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
             return f"""<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
                     <h1 style="color:#2ecc71">VERIFIED</h1>
                     <p style="font-size:18px;margin-top:24px;color:#f0f0f0">You are live. Alerts are active.</p>
+                    {match_msg}
                     <p style="margin-top:32px"><a href="{my_alerts_url}" style="color:#e67e22">VIEW MY ALERTS</a></p>
                     <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">HGR</div>
                 </body></html>""", 200
@@ -403,6 +523,7 @@ def verify(token):
 
 
 @app.route('/api/unsubscribe/<token>', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def unsubscribe(token):
     watchers = load_watchers()
     for w in watchers:
@@ -483,6 +604,33 @@ def stats():
     except FileNotFoundError:
         pass
 
+    # Watchdog status
+    watchdog_state = {}
+    watchdog_log = os.path.join(os.path.dirname(__file__), 'logs', 'watchdog_state.json')
+    try:
+        with open(watchdog_log) as f:
+            watchdog_state = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    # Last watchdog run time — read last line of watchdog.log
+    last_watchdog = None
+    watchdog_logfile = os.path.join(os.path.dirname(__file__), 'logs', 'watchdog.log')
+    try:
+        with open(watchdog_logfile, 'rb') as f:
+            f.seek(0, 2)
+            size = f.tell()
+            pos = max(0, size - 512)
+            f.seek(pos)
+            lines = f.read().decode(errors='replace').strip().split('\n')
+            if lines:
+                last_line = lines[-1]
+                # Extract timestamp from "2026-03-14 16:30:00 [watchdog]..."
+                if '[watchdog]' in last_line:
+                    last_watchdog = last_line.split(' [watchdog]')[0].strip()
+    except FileNotFoundError:
+        pass
+
     return jsonify({
         'watchers_active': active_count,
         'drops_24h': drops_24h,
@@ -492,10 +640,13 @@ def stats():
         'medium_24h': medium,
         'latest_drop': latest_ts,
         'last_preflight': last_preflight,
+        'watchdog_failures': watchdog_state,
+        'last_watchdog': last_watchdog,
     })
 
 
 @app.route('/api/check-url', methods=['POST'])
+@limiter.limit("10 per minute")
 def check_url():
     """Quick scrapeability check — called on URL blur from watchlist.html."""
     import requests
@@ -507,6 +658,8 @@ def check_url():
 
     if not url:
         return jsonify({'ok': False, 'msg': 'No URL provided.'}), 400
+    if len(url) > 2048:
+        return jsonify({'ok': False, 'msg': 'URL is too long.'}), 400
 
     if not url.startswith('http'):
         url = 'https://' + url

@@ -404,6 +404,7 @@
   <h2>Check your email.</h2>
   <p>We sent a confirmation to <strong id="confirmedEmail"></strong>. Click the link in that email to activate your alerts — then we'll watch and notify you the moment we detect something.<br><br>
   Average detection time: under 20 minutes.</p>
+  <p id="previewMsg" style="display:none;margin-top:16px;color:#ff6b2b;font-size:14px"></p>
 </div>
 
 <div class="stats-bar">
@@ -522,12 +523,18 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
     });
 
     if (res.ok) {
+      const result = await res.json();
       document.getElementById('watchForm').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
       document.querySelector('.stats-bar').style.display = 'none';
       document.getElementById('confirmedEmail').textContent = data.email;
       document.getElementById('successMsg').style.display = 'block';
       document.getElementById('successMsg').style.padding = '80px 32px';
+      if (result.preview_msg) {
+        const pm = document.getElementById('previewMsg');
+        pm.textContent = result.preview_msg;
+        pm.style.display = 'block';
+      }
     } else {
       alert('Something went wrong. Try again or email info@instockornot.club');
     }
