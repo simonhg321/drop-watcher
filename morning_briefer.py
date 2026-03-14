@@ -9,19 +9,21 @@ HGR
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-sys.path.insert(0, '/home/shg/drop-watcher')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from paths import DROPS_JSONL, CODE_DIR
 from agents.ai_interpreter import generate_morning_briefing
 from alerter import send_email
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('morning_briefer')
 
-DROPS_FILE = '/home/shg/drop-watcher/logs/drops.jsonl'
+DROPS_FILE = DROPS_JSONL
 LOOKBACK_HOURS = 24
 
 def load_overnight_alerts():

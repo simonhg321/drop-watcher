@@ -18,8 +18,8 @@ import httpx
 from sms_alerter import send_sms_alert
 
 # ── Load environment ──────────────────────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
+import paths
+load_dotenv(paths.ENV_FILE, override=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
@@ -29,9 +29,8 @@ REPLY_TO         = os.environ.get('ALERT_TO')
 
 UNSUBSCRIBE_URL  = 'https://instockornot.club'
 
-LOG_DIR   = os.path.join(BASE_DIR, 'logs')
-DROPS_LOG = os.path.join(LOG_DIR, 'drops.jsonl')
-SENT_LOG  = os.path.join(LOG_DIR, 'alerts_sent.jsonl')
+DROPS_LOG = paths.DROPS_JSONL
+SENT_LOG  = paths.ALERTS_SENT_JSONL
 
 IMMEDIATE_PRIORITIES = {'critical', 'high'}
 

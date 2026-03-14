@@ -20,8 +20,8 @@ import requests
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 
-BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
-WATCHERS_FILE = os.path.join(BASE_DIR, 'config', 'watchers.json')
+import paths
+WATCHERS_FILE = paths.WATCHERS_JSON
 ALERT_COOLDOWN_HOURS = 6  # Don't re-alert same watcher within this window
 
 # Reuse existing Resend email setup
