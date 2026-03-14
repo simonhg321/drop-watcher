@@ -299,8 +299,30 @@ NEVER:
 - Platform direction confirmed — public URL/keyword alert platform
 
 **Pending:**
-- Google Workspace setup — simon@, info@, noreply@instockornot.club
 - Confirmation email on signup (watcher_signup.py)
 - Unsubscribe mechanism — token-based, one-click
 - User-facing URL/keyword entry UI
 - UptimeRobot infra monitoring
+
+### Session 11 — 2026-03-13
+
+**What we fixed:**
+- my-alerts.html showing unrelated drops — `/api/my-alerts` was matching too broadly
+  - Keywords now split on commas only (multi-word keywords like "in stock" stay intact)
+  - Domain match required — drops from unrelated sites excluded
+  - 3-day cutoff added — old drops filtered out
+- FROM_ADDRESS changed from noreply@ to info@instockornot.club in watcher_signup.py
+
+**Active bugs:**
+- BUG-005: User who signs up but doesn't receive verification email cannot re-sign up — duplicate check blocks them, resend may not fire. Investigate and test next session.
+
+**Pending:**
+- Test BUG-005 — sign up flow when verification email fails/missing
+- ~~Favicon for instockornot.club~~ DONE
+- ~~Live pulse — /api/stats + watcher_status.html~~ DONE (private dashboard)
+- UptimeRobot infra monitoring
+- Discord webhook — CRITICAL drops auto-post to a Discord channel
+- Easter egg /hgr page — the build story across 11 sessions
+- Browser sound alert — alerts.html plays a ping on new CRITICAL
+- Security cleanup — audit endpoints, harden admin routes, review exposed data
+- Redesign index.html — reflect public platform direction (URL/keyword alerts for anyone) without losing the original aesthetic

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Location pin drop shape -->
+  <path d="M6 14 A10 10 0 1 1 26 14 L16 28 Z" fill="#c0392b"/>
+  <!-- Crosshair ticks (cut into red as negative space) -->
+  <rect x="15" y="5.5" width="2" height="4"  fill="#0a0a0a"/>
+  <rect x="7"  y="13"  width="4"  height="2" fill="#0a0a0a"/>
+  <rect x="21" y="13"  width="4"  height="2" fill="#0a0a0a"/>
+  <!-- Reticle: black ring + orange hot center -->
+  <circle cx="16" cy="14" r="2.5" fill="#0a0a0a"/>
+  <circle cx="16" cy="14" r="1.2" fill="#e67e22"/>
+</svg>
