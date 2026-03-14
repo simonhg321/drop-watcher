@@ -118,13 +118,20 @@ def send_confirmation_email(entry):
 
     subject = "Drop Watcher — You're set up"
 
+    my_alerts_url = f"{BASE_URL}/my-alerts.html?token={entry['unsubscribe_token']}"
+
     body_text = f"""Hey {name},
 
 You're now watching:
   URL: {url}
   Keywords: {keywords}
 
-You'll get alerted when we detect a match. CRITICAL alerts go immediately, HIGH within 30 minutes.
+HOW THIS WORKS:
+  1. We check your page every 30 minutes for your keywords.
+  2. When we find a match, we email you immediately.
+  3. Your personal dashboard: {my_alerts_url}
+     Bookmark it — this is where you see all your matched drops.
+  4. Lost this link? Go to instockornot.club/get-my-link and we'll resend it.
 
 To stop watching: {unsubscribe_url}
 
@@ -140,23 +147,34 @@ instockornot.club
         <p style="color:#d0d0d0;font-size:16px">Hey {safe_name}, you're set up.</p>
 
         <div style="background:#1c1c1c;padding:16px;margin:20px 0">
-            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:12px">MY ALERTS</div>
+            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:8px">WATCHING</div>
             <div style="margin-top:8px">
                 <span style="color:#888;font-size:11px">KEYWORDS</span><br>
                 <span style="color:#f0f0f0;font-size:14px">{safe_keywords}</span>
             </div>
+            <div style="margin-top:12px">
+                <span style="color:#888;font-size:11px">PAGE</span><br>
+                <a href="{safe_url}" style="color:#e67e22;font-size:13px;word-break:break-all">{safe_url}</a>
+            </div>
         </div>
-        <p style="color:#888;font-size:12px;margin-bottom:20px">Save this email — it contains your personal alerts link. If you lose it, visit <a href="{BASE_URL}/get-my-link.html" style="color:#e67e22">instockornot.club/get-my-link</a> and we will resend it.</p>
 
-        <p style="color:#888;font-size:12px">CRITICAL alerts fire immediately. HIGH alerts within 30 minutes.</p>
+        <div style="background:#1c1c1c;padding:16px;margin:20px 0">
+            <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:12px">HOW THIS WORKS</div>
+            <div style="color:#d0d0d0;font-size:13px;line-height:1.8">
+                <span style="color:#e67e22">1.</span> We check your page every 30 minutes for your keywords.<br>
+                <span style="color:#e67e22">2.</span> When we find a match, we email you immediately.<br>
+                <span style="color:#e67e22">3.</span> Your personal dashboard is the link below — bookmark it.<br>
+                <span style="color:#e67e22">4.</span> Lost the link? Visit <a href="{BASE_URL}/get-my-link.html" style="color:#e67e22">instockornot.club/get-my-link</a> to get it back.
+            </div>
+        </div>
 
-        <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px">
-            <a href="{BASE_URL}/my-alerts.html?token={entry['unsubscribe_token']}" style="color:#e67e22;display:block;margin-bottom:8px">VIEW MY ALERTS</a>
-            <a href="{BASE_URL}/alerts.html" style="color:#888;font-size:11px">View all alerts</a>
-            <div style="margin-top:8px;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>
-            <p style="margin-top:12px">
-                <a href="{unsubscribe_url}" style="color:#e67e22;font-size:12px">Unsubscribe</a>
-            </p>
+        <div style="text-align:center;margin:28px 0">
+            <a href="{my_alerts_url}" style="display:inline-block;background:#e67e22;color:#fff;padding:16px 32px;text-decoration:none;font-size:14px;letter-spacing:2px;">VIEW MY ALERTS</a>
+        </div>
+
+        <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px;text-align:center">
+            <div style="color:#c0392b;font-size:16px;font-weight:bold;margin-bottom:8px">HGR</div>
+            <a href="{unsubscribe_url}" style="color:#555;font-size:11px">Unsubscribe</a>
         </div>
     </body></html>"""
 
@@ -206,7 +224,8 @@ def send_verification_email(entry):
     body_text = (
         f"Hey {name},\n\n"
         f"Confirm your Drop Watcher alerts:\n  {verify_url}\n\n"
-        f"Once confirmed you will get alerted on matches.\n\n"
+        f"Once confirmed, we'll start watching your page every 30 minutes.\n"
+        f"When your keywords show up, you'll get an email immediately.\n\n"
         f"HGR\ninstockornot.club\n"
     )
     body_html = (
@@ -214,9 +233,10 @@ def send_verification_email(entry):
         '<h1 style="font-size:28px;letter-spacing:2px;margin:0">DROP <span style="color:#c0392b">WATCHER</span></h1>' +
         '<div style="height:2px;background:linear-gradient(90deg,transparent,#c0392b,#e67e22,#c0392b,transparent);margin:12px 0 24px"></div>' +
         f'<p style="color:#d0d0d0;font-size:16px">Hey {safe_name} — one click to confirm.</p>' +
-        f'<div style="margin:24px 0"><a href="{verify_url}" style="background:#c0392b;color:#fff;padding:14px 28px;text-decoration:none;font-size:14px;letter-spacing:1px;display:inline-block">CONFIRM ALERTS</a></div>' +
-        '<p style="color:#888;font-size:12px">If you did not sign up for Drop Watcher, ignore this email.</p>' +
-        '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
+        f'<div style="text-align:center;margin:24px 0"><a href="{verify_url}" style="background:#c0392b;color:#fff;padding:16px 32px;text-decoration:none;font-size:14px;letter-spacing:2px;display:inline-block">CONFIRM ALERTS</a></div>' +
+        '<p style="color:#888;font-size:13px;line-height:1.7">Once confirmed, we start watching your page every 30 minutes. When your keywords appear, you get an email right away.</p>' +
+        '<p style="color:#888;font-size:12px;margin-top:12px">If you did not sign up for Drop Watcher, ignore this email.</p>' +
+        '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;text-align:center;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
         '</body></html>'
     )
 
@@ -361,17 +381,20 @@ def resend_link():
         subject       = "Drop Watcher — Your alerts link"
         body_text     = (
             f"Hey {name},\n\n"
-            f"Your personal Drop Watcher alerts page:\n  {my_alerts_url}\n\n"
-            f"Bookmark it.\n\nHGR\ninstockornot.club\n"
+            f"Your personal Drop Watcher dashboard:\n  {my_alerts_url}\n\n"
+            f"Bookmark this link — it's how you check your alerts.\n"
+            f"We check your page every 30 minutes. When your keywords show up, we email you.\n\n"
+            f"HGR\ninstockornot.club\n"
         )
         body_html = (
             f'<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:monospace;padding:24px;max-width:600px">' +
             '<h1 style="font-size:28px;letter-spacing:2px;margin:0">DROP <span style="color:#c0392b">WATCHER</span></h1>' +
             '<div style="height:2px;background:linear-gradient(90deg,transparent,#c0392b,#e67e22,#c0392b,transparent);margin:12px 0 24px"></div>' +
-            f'<p style="color:#d0d0d0;font-size:16px">Hey {safe_name} — your personal link.</p>' +
-            f'<div style="margin:24px 0"><a href="{my_alerts_url}" style="background:#c0392b;color:#fff;padding:14px 28px;text-decoration:none;font-size:14px;letter-spacing:1px;display:inline-block">VIEW MY ALERTS</a></div>' +
-            f'<p style="color:#888;font-size:12px;margin-top:16px">Or copy this URL:<br><a href="{my_alerts_url}" style="color:#e67e22">{my_alerts_url}</a></p>' +
-            '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
+            f'<p style="color:#d0d0d0;font-size:16px">Hey {safe_name} — here is your personal link.</p>' +
+            '<p style="color:#888;font-size:13px;line-height:1.7;margin:16px 0">This is your alerts dashboard. Bookmark it — it shows all your matched drops and your watcher status. We check your page every 30 minutes and email you when your keywords show up.</p>' +
+            f'<div style="text-align:center;margin:24px 0"><a href="{my_alerts_url}" style="display:inline-block;background:#e67e22;color:#fff;padding:16px 32px;text-decoration:none;font-size:14px;letter-spacing:2px;">VIEW MY ALERTS</a></div>' +
+            f'<p style="color:#555;font-size:11px;margin-top:16px;word-break:break-all">{my_alerts_url}</p>' +
+            '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;text-align:center;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
             '</body></html>'
         )
         try:
@@ -491,6 +514,28 @@ def verify(token):
             if matches:
                 log.info(f"Verify-check: {len(matches)} matches for {w['email']}: {matches}")
                 match_msg = f'<p style="color:#2ecc71;font-size:14px;margin-top:16px">We already found {len(matches)} match{"es" if len(matches) != 1 else ""}: {html_mod.escape(", ".join(matches))}. Alert incoming.</p>'
+
+                # Write drop to drops.jsonl so /api/my-alerts can find it
+                from urllib.parse import urlparse
+                drop_entry = {
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'source': urlparse(w['url']).netloc.replace('www.', ''),
+                    'url': w['url'],
+                    'priority': w.get('priority', 'high'),
+                    'event': 'verify_check',
+                    'matches': matches,
+                    'page_summary': f"Keyword match on signup: {', '.join(matches)}",
+                    'notable_items': [],
+                }
+                drops_log = os.path.join(os.path.dirname(__file__), 'logs', 'drops.jsonl')
+                try:
+                    os.makedirs(os.path.dirname(drops_log), exist_ok=True)
+                    with open(drops_log, 'a') as df:
+                        df.write(json.dumps(drop_entry) + '\n')
+                    log.info(f"Verify-check: wrote drop to drops.jsonl for {w['email']}")
+                except Exception as e:
+                    log.error(f"Verify-check: failed to write drop: {e}")
+
                 # Fire the alert via per_user_alerter logic
                 try:
                     from per_user_alerter import build_alert_email
@@ -512,7 +557,7 @@ def verify(token):
                     <h1 style="color:#2ecc71">VERIFIED</h1>
                     <p style="font-size:18px;margin-top:24px;color:#f0f0f0">You are live. Alerts are active.</p>
                     {match_msg}
-                    <p style="margin-top:32px"><a href="{my_alerts_url}" style="color:#e67e22">VIEW MY ALERTS</a></p>
+                    <p style="margin-top:32px"><a href="{my_alerts_url}" style="display:inline-block;background:#e67e22;color:#fff;padding:16px 32px;text-decoration:none;font-size:16px;letter-spacing:2px;">VIEW MY ALERTS</a></p>
                     <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">HGR</div>
                 </body></html>""", 200
     return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
