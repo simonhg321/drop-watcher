@@ -29,10 +29,10 @@ app = Flask(__name__)
 CORS(app, origins=['https://instockornot.club'])
 limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
-BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
-WATCHERS_FILE = os.path.join(BASE_DIR, 'config', 'watchers.json')
+import paths
+WATCHERS_FILE = paths.WATCHERS_JSON
 
-load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
+load_dotenv(paths.ENV_FILE, override=True)
 
 RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
 FROM_ADDRESS     = 'Drop Watcher <info@instockornot.club>'
@@ -456,7 +456,7 @@ def my_alerts(token):
     drops = []
     from datetime import timedelta
     cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    drops_log = os.path.join(os.path.dirname(__file__), 'logs', 'drops.jsonl')
+    drops_log = paths.DROPS_JSONL
     try:
         with open(drops_log) as f:
             for line in f:
@@ -527,7 +527,7 @@ def verify(token):
                     'page_summary': f"Keyword match on signup: {', '.join(matches)}",
                     'notable_items': [],
                 }
-                drops_log = os.path.join(os.path.dirname(__file__), 'logs', 'drops.jsonl')
+                drops_log = paths.DROPS_JSONL
                 try:
                     os.makedirs(os.path.dirname(drops_log), exist_ok=True)
                     with open(drops_log, 'a') as df:
@@ -597,7 +597,7 @@ def stats():
     watchers = load_watchers()
     active_count = sum(1 for w in watchers if w.get('active'))
 
-    drops_log = os.path.join(os.path.dirname(__file__), 'logs', 'drops.jsonl')
+    drops_log = paths.DROPS_JSONL
     total_drops = 0
     critical = 0
     high = 0
@@ -634,7 +634,7 @@ def stats():
         pass
 
     # Last preflight run
-    preflight_log = os.path.join(os.path.dirname(__file__), 'logs', 'preflight.jsonl')
+    preflight_log = paths.PREFLIGHT_JSONL
     last_preflight = None
     try:
         with open(preflight_log) as f:
@@ -651,7 +651,7 @@ def stats():
 
     # Watchdog status
     watchdog_state = {}
-    watchdog_log = os.path.join(os.path.dirname(__file__), 'logs', 'watchdog_state.json')
+    watchdog_log = paths.WATCHDOG_STATE
     try:
         with open(watchdog_log) as f:
             watchdog_state = json.load(f)
@@ -660,7 +660,7 @@ def stats():
 
     # Last watchdog run time — read last line of watchdog.log
     last_watchdog = None
-    watchdog_logfile = os.path.join(os.path.dirname(__file__), 'logs', 'watchdog.log')
+    watchdog_logfile = os.path.join(paths.LOG_DIR, 'watchdog.log')
     try:
         with open(watchdog_logfile, 'rb') as f:
             f.seek(0, 2)

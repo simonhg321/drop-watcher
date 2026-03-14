@@ -38,16 +38,16 @@ class PermissiveSSLAdapter(HTTPAdapter):
         return super().init_poolmanager(*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(BASE_DIR, 'config')
-LOG_DIR    = os.path.join(BASE_DIR, 'logs')
-WWW_DIR    = '/var/www/html'
-STATUS_HTML = os.path.join(WWW_DIR, 'status.html')
+import paths
+CONFIG_DIR  = paths.CONFIG_DIR
+LOG_DIR     = paths.LOG_DIR
+WWW_DIR     = paths.WWW_DIR
+STATUS_HTML = paths.STATUS_HTML
 
-SOURCES_FILE   = os.path.join(CONFIG_DIR, 'sources.yaml')
-COOL_LIST_FILE = os.path.join(CONFIG_DIR, 'cool_list.yaml')
-MAKERS_FILE    = os.path.join(CONFIG_DIR, 'makers.yaml')
-SETTINGS_FILE  = os.path.join(CONFIG_DIR, 'settings.yaml')
+SOURCES_FILE   = paths.SOURCES_YAML
+COOL_LIST_FILE = paths.COOL_LIST_YAML
+MAKERS_FILE    = paths.MAKERS_YAML
+SETTINGS_FILE  = paths.SETTINGS_YAML
 
 REQUIRED_PACKAGES = ['requests', 'yaml', 'bs4', 'feedparser', 'schedule']
 
