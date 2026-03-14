@@ -4,6 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Drop Watcher — Watch Anything</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
@@ -300,6 +301,21 @@
 
   button.loading .spinner { display: inline-block; }
   button.loading .btn-text { display: none; }
+
+  /* URL CHECK INDICATOR */
+  .url-status {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px; font-size: 12px; min-height: 20px;
+  }
+  .url-status .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .url-status.checking { color: var(--muted); }
+  .url-status.checking .dot { background: var(--orange); animation: spin 0.6s linear infinite; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; }
+  .url-status.ok { color: #4caf50; }
+  .url-status.ok .dot { background: #4caf50; }
+  .url-status.fail { color: var(--red); }
+  .url-status.fail .dot { background: var(--red); }
   .removed-banner {
     background: #1a0a0a;
     border: 1px solid var(--red, #c0392b);
@@ -336,8 +352,9 @@
 
     <div class="field">
       <label>URL to watch <span>*</span></label>
-      <input type="url" name="url" placeholder="https://example.com/product-page" required>
+      <input type="url" name="url" id="urlInput" placeholder="https://example.com/product-page" required>
       <div class="hint">Paste any page URL — a maker's site, a dealer's drop page, a product listing.</div>
+      <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
     </div>
 
     <div class="field">
@@ -418,9 +435,74 @@ if (new URLSearchParams(window.location.search).get('removed') === '1') {
   document.getElementById('removedBanner').style.display = 'block';
 }
 
+// ── URL check on blur ──────────────────────────────────────────────────────
+let urlChecked = false;
+let urlOk = false;
+
+function setUrlStatus(state, msg) {
+  const el = document.getElementById('urlStatus');
+  el.style.display = 'flex';
+  el.className = 'url-status ' + state;
+  el.querySelector('.msg').textContent = msg;
+}
+
+document.getElementById('urlInput').addEventListener('blur', async function() {
+  const url = this.value.trim();
+  if (!url) {
+    document.getElementById('urlStatus').style.display = 'none';
+    urlChecked = false;
+    urlOk = false;
+    return;
+  }
+
+  setUrlStatus('checking', 'Checking if we can read this page...');
+  urlChecked = false;
+  urlOk = false;
+
+  try {
+    const res = await fetch('/api/check-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    urlChecked = true;
+    urlOk = data.ok;
+    setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+  } catch(e) {
+    urlChecked = true;
+    urlOk = false;
+    setUrlStatus('fail', 'Could not check this URL. Try again.');
+  }
+});
+
+// ── Form submit ────────────────────────────────────────────────────────────
 document.getElementById('watchForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
+
+  // If URL check hasn't run yet, run it now
+  if (!urlChecked) {
+    setUrlStatus('checking', 'Checking URL...');
+    try {
+      const res = await fetch('/api/check-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: this.url.value })
+      });
+      const data = await res.json();
+      urlChecked = true;
+      urlOk = data.ok;
+      setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+    } catch(e) {
+      urlChecked = true;
+      urlOk = false;
+      setUrlStatus('fail', 'Could not check this URL. Try again.');
+    }
+  }
+
+  if (!urlOk) return;
+
   btn.classList.add('loading');
 
   const data = {
