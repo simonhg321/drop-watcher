@@ -146,6 +146,10 @@ instockornot.club
 
         <p style="color:#d0d0d0;font-size:16px">Hey {safe_name}, you're set up.</p>
 
+        <div style="text-align:center;margin:28px 0">
+            <a href="{my_alerts_url}" style="display:inline-block;background:#e67e22;color:#fff;padding:16px 32px;text-decoration:none;font-size:14px;letter-spacing:2px;">VIEW MY ALERTS</a>
+        </div>
+
         <div style="background:#1c1c1c;padding:16px;margin:20px 0">
             <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:8px">WATCHING</div>
             <div style="margin-top:8px">
@@ -166,10 +170,6 @@ instockornot.club
                 <span style="color:#e67e22">3.</span> Your personal dashboard is the link below — bookmark it.<br>
                 <span style="color:#e67e22">4.</span> Lost the link? Visit <a href="{BASE_URL}/get-my-link.html" style="color:#e67e22">instockornot.club/get-my-link</a> to get it back.
             </div>
-        </div>
-
-        <div style="text-align:center;margin:28px 0">
-            <a href="{my_alerts_url}" style="display:inline-block;background:#e67e22;color:#fff;padding:16px 32px;text-decoration:none;font-size:14px;letter-spacing:2px;">VIEW MY ALERTS</a>
         </div>
 
         <div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;color:#888;font-size:11px;letter-spacing:2px;text-align:center">
@@ -301,10 +301,34 @@ def watch():
     if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
         return jsonify({'error': 'Invalid phone number format.'}), 400
 
+    watchers = load_watchers()
+
+    # Deduplicate: same email + url combo
+    existing = [w for w in watchers if w['email'] == email and w['url'] == url]
+    if existing:
+        log.info(f"Duplicate watcher for {email} / {url} — updating keywords")
+        existing[0]['keywords'] = keywords
+        existing[0]['priority'] = priority
+        if not existing[0].get('active'):
+            if not existing[0].get('verify_token'):
+                existing[0]['verify_token'] = str(uuid.uuid4())
+            send_verification_email(existing[0])
+        save_watchers(watchers)
+        return jsonify({'status': 'updated', 'id': existing[0]['id']}), 200
+
+    # One token per email — reuse existing if this email already has watches
+    email_watches = [w for w in watchers if w.get('email', '').lower() == email]
+    if email_watches:
+        shared_token = email_watches[0]['unsubscribe_token']
+        already_verified = any(w.get('active') for w in email_watches)
+    else:
+        shared_token = str(uuid.uuid4())
+        already_verified = False
+
     entry = {
         'id':                str(uuid.uuid4())[:8],
-        'verify_token':      str(uuid.uuid4()),  # one-time -- nulled after use
-        'unsubscribe_token': str(uuid.uuid4()),  # permanent -- unguessable — unguessable
+        'verify_token':      None if already_verified else str(uuid.uuid4()),
+        'unsubscribe_token': shared_token,
         'url':               url,
         'keywords':          keywords,
         'email':             email,
@@ -312,43 +336,37 @@ def watch():
         'priority':          priority,
         'phone':             phone,
         'sms_approved':      False,
-        'active':            False,  # inactive until email verified
+        'active':            already_verified,  # auto-activate if email already verified
         'created':           datetime.now(timezone.utc).isoformat(),
         'last_alert':        None,
         'alert_count':       0,
     }
 
-    watchers = load_watchers()
-
-    # Deduplicate: same email + url combo
-    existing = [w for w in watchers if w['email'] == entry['email'] and w['url'] == entry['url']]
-    if existing:
-        log.info(f"Duplicate watcher for {entry['email']} / {entry['url']} — updating keywords")
-        existing[0]['keywords'] = entry['keywords']
-        existing[0]['priority'] = entry['priority']
-        if not existing[0].get('active'):
-            # Inactive — issue fresh verify token if missing, then resend
-            if not existing[0].get('verify_token'):
-                existing[0]['verify_token'] = str(uuid.uuid4())
-            send_verification_email(existing[0])
-        save_watchers(watchers)
-        return jsonify({'status': 'updated', 'id': existing[0]['id']}), 200
-
     watchers.append(entry)
     save_watchers(watchers)
-    log.info(f"New watcher: {entry['id']} | {entry['email']} | {entry['url']}")
+    log.info(f"New watcher: {entry['id']} | {entry['email']} | {entry['url']} | reused_token={bool(email_watches)}")
 
-    # Send verification email — non-blocking, failure doesn't break signup
-    send_verification_email(entry)
+    if already_verified:
+        # Email already verified — send welcome email, skip verification
+        send_confirmation_email(entry)
+    else:
+        # First watch for this email — send verification
+        send_verification_email(entry)
 
     # Quick keyword preview — show user what we found right now
     matches = quick_keyword_check(url, keywords)
     resp = {'status': 'created', 'id': entry['id']}
     if matches:
         resp['preview'] = matches
-        resp['preview_msg'] = f"We already see {len(matches)} keyword match{'es' if len(matches) != 1 else ''} on that page. You'll get alerted once you verify your email."
+        if already_verified:
+            resp['preview_msg'] = f"We already see {len(matches)} keyword match{'es' if len(matches) != 1 else ''} on that page. Alert incoming."
+        else:
+            resp['preview_msg'] = f"We already see {len(matches)} keyword match{'es' if len(matches) != 1 else ''} on that page. You'll get alerted once you verify your email."
     else:
-        resp['preview_msg'] = "No matches yet — we'll keep watching and alert you when something hits."
+        if already_verified:
+            resp['preview_msg'] = "No matches yet — you're live, we'll alert you when something hits."
+        else:
+            resp['preview_msg'] = "No matches yet — we'll keep watching and alert you when something hits."
 
     return jsonify(resp), 201
 
@@ -374,7 +392,9 @@ def resend_link():
         log.info(f"resend-link: no active watcher for {email}")
         return jsonify({'status': 'sent'})
 
-    for w in matches:
+    # All watches share same token — just send one email
+    w = matches[0]
+    if True:
         my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
         name          = w.get('name') or 'Collector'
         safe_name     = html_mod.escape(name)
@@ -412,15 +432,15 @@ def resend_link():
 
     return jsonify({"status": "sent"})
 
-@app.route('/api/my-watch/<token>', methods=['DELETE'])
-def stop_watching(token):
+@app.route('/api/my-watch/<watch_id>', methods=['DELETE'])
+def stop_watching(watch_id):
     watchers = load_watchers()
     before   = len(watchers)
-    watchers = [w for w in watchers if w.get('unsubscribe_token') != token]
+    watchers = [w for w in watchers if w.get('id') != watch_id]
     if len(watchers) == before:
         return jsonify({'error': 'not found'}), 404
     save_watchers(watchers)
-    log.info(f"Watcher removed via token {token[:8]}")
+    log.info(f"Watcher removed: {watch_id}")
     return jsonify({'status': 'removed'})
 
 @app.route('/api/my-watch/<token>', methods=['GET'])
@@ -460,6 +480,7 @@ def my_alerts(token):
         domain = re.sub(r'^https?://(www\.)?', '', url).split('/')[0]
         watch_filters.append({'domain': domain, 'keywords': kws, 'url': url,
                               'keywords_raw': w.get('keywords', ''),
+                              'id': w.get('id'),
                               'token': w.get('unsubscribe_token')})
 
     drops = []
@@ -514,55 +535,23 @@ def verify(token):
                     <p style="font-size:18px;margin-top:24px">Already verified.</p>
                     <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
                 </body></html>""", 200
-            w['active'] = True
-            w['verify_token'] = None  # nulled after use — structure kept for audit
+            # Activate ALL watches for this email
+            verified_email = w.get('email', '').lower()
+            for ww in watchers:
+                if ww.get('email', '').lower() == verified_email:
+                    ww['active'] = True
+                    ww['verify_token'] = None
             save_watchers(watchers)
-            log.info(f"Verified: {w['email']}")
-            send_confirmation_email(w)  # welcome email — existing function
+            log.info(f"Verified: {w['email']} — activated all watches for this email")
+            send_confirmation_email(w)  # welcome email
 
-            # Immediate first check — don't make them wait 30 min
+            # Quick preview check — show on verify page only, no alert or drop written
+            # Real alerts come from the AI pipeline (web_watcher → ai_interpreter → per_user_alerter)
             matches = quick_keyword_check(w['url'], w['keywords'])
             match_msg = ''
             if matches:
-                log.info(f"Verify-check: {len(matches)} matches for {w['email']}: {matches}")
-                match_msg = f'<p style="color:#2ecc71;font-size:14px;margin-top:16px">We already found {len(matches)} match{"es" if len(matches) != 1 else ""}: {html_mod.escape(", ".join(matches))}. Alert incoming.</p>'
-
-                # Write drop to drops.jsonl so /api/my-alerts can find it
-                from urllib.parse import urlparse
-                drop_entry = {
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'source': urlparse(w['url']).netloc.replace('www.', ''),
-                    'url': w['url'],
-                    'priority': w.get('priority', 'high'),
-                    'event': 'verify_check',
-                    'matches': matches,
-                    'page_summary': f"Keyword match on signup: {', '.join(matches)}",
-                    'notable_items': [],
-                }
-                drops_log = paths.DROPS_JSONL
-                try:
-                    os.makedirs(os.path.dirname(drops_log), exist_ok=True)
-                    with open(drops_log, 'a') as df:
-                        df.write(json.dumps(drop_entry) + '\n')
-                    log.info(f"Verify-check: wrote drop to drops.jsonl for {w['email']}")
-                except Exception as e:
-                    log.error(f"Verify-check: failed to write drop: {e}")
-
-                # Fire the alert via per_user_alerter logic
-                try:
-                    from per_user_alerter import build_alert_email
-                    from alerter import send_email as _send
-                    subject, alert_html, alert_txt = build_alert_email(w, matches, w['url'])
-                    import alerter as _alerter
-                    original_to = _alerter.ALERT_TO
-                    _alerter.ALERT_TO = w['email']
-                    _send(subject, alert_html, alert_txt)
-                    _alerter.ALERT_TO = original_to
-                    w['last_alert'] = datetime.now(timezone.utc).isoformat()
-                    w['alert_count'] = w.get('alert_count', 0) + 1
-                    save_watchers(watchers)
-                except Exception as e:
-                    log.error(f"Verify-check alert failed: {e}")
+                log.info(f"Verify-check: {len(matches)} potential matches for {w['email']}: {matches}")
+                match_msg = f'<p style="color:#2ecc71;font-size:14px;margin-top:16px">We see potential matches for: {html_mod.escape(", ".join(matches))}. The AI pipeline will confirm and alert you.</p>'
 
             my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
             return f"""<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
@@ -585,11 +574,18 @@ def unsubscribe(token):
     watchers = load_watchers()
     for w in watchers:
         if w.get('unsubscribe_token') == token:
-            if not w.get('active'):
+            email = w.get('email', '').lower()
+            any_active = any(ww.get('active') for ww in watchers if ww.get('email', '').lower() == email)
+            if not any_active:
                 return jsonify({'status': 'already_unsubscribed'}), 200
-            w['active'] = False
+            # Deactivate ALL watches for this email
+            count = 0
+            for ww in watchers:
+                if ww.get('email', '').lower() == email and ww.get('active'):
+                    ww['active'] = False
+                    count += 1
             save_watchers(watchers)
-            log.info(f"Unsubscribed: {w['email']}")
+            log.info(f"Unsubscribed: {email} — deactivated {count} watches")
             # Return a friendly HTML page for one-click unsubscribe
             if request.method == 'GET':
                 return """

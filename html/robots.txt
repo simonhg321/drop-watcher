@@ -6,26 +6,22 @@ User-agent: Googlebot
 Allow: /index.html
 Allow: /watchlist.html
 Allow: /alerts.html
+Allow: /hgr.html
 Allow: /privacy.html
-Allow: /terms.html
 Disallow: /api/
-Disallow: /stats/
 Disallow: /status.html
-Disallow: /watcher_status.html
 Disallow: /my-alerts.html
 Disallow: /get-my-link.html
-Disallow: /all_the_things.html
-Disallow: /test-drop.html
 
 # Bing
 User-agent: Bingbot
 Allow: /index.html
 Allow: /watchlist.html
 Allow: /alerts.html
+Allow: /hgr.html
+Allow: /privacy.html
 Disallow: /api/
-Disallow: /stats/
 Disallow: /status.html
-Disallow: /watcher_status.html
 Disallow: /my-alerts.html
 
 # AI crawlers — no training on our data
@@ -58,12 +54,10 @@ User-agent: *
 Allow: /index.html
 Allow: /watchlist.html
 Allow: /alerts.html
+Allow: /hgr.html
 Allow: /privacy.html
-Allow: /terms.html
 Disallow: /api/
-Disallow: /stats/
 Disallow: /status.html
-Disallow: /watcher_status.html
 Disallow: /my-alerts.html
 Disallow: /get-my-link.html
 

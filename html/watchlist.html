@@ -6,59 +6,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Drop Watcher — Watch Anything</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0a0a0a;
-    --surface: #111111;
-    --border: #222222;
-    --red: #ff2d2d;
-    --orange: #ff6b2b;
-    --text: #e8e8e8;
-    --muted: #555555;
-    --input-bg: #161616;
+    --black: #0a0a0a;
+    --steel: #1c1c1c;
+    --iron: #2a2a2a;
+    --ember: #c0392b;
+    --flame: #e67e22;
+    --ash: #888;
+    --silver: #d0d0d0;
+    --white: #f0f0f0;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Share Tech Mono', monospace;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
 
   /* NAV */
-  nav {
-    border-bottom: 1px solid var(--border);
-    padding: 16px 32px;
-    display: flex;
-    align-items: center;
-    gap: 32px;
-  }
-
-  .logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-  }
-
-  .logo span { color: var(--red); }
-
-  nav a {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    transition: color 0.2s;
-  }
-
-  nav a:hover, nav a.active { color: var(--text); }
+  .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; }
+  .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+  .dw-nav .logo span { color: var(--ember); }
+  .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+  .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
 
   /* HERO */
   .hero {
@@ -69,120 +46,96 @@
   }
 
   .eyebrow {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.15em;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--ember);
     text-transform: uppercase;
-    color: var(--orange);
     margin-bottom: 20px;
   }
 
   h1 {
-    font-family: 'Space Mono', monospace;
-    font-size: clamp(28px, 5vw, 42px);
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -1px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 56px);
+    line-height: 1;
+    letter-spacing: -0.02em;
     margin-bottom: 16px;
   }
 
-  h1 em {
-    font-style: normal;
-    color: var(--red);
-  }
+  h1 em { font-style: normal; color: var(--ember); }
 
   .subtitle {
-    color: var(--muted);
+    font-family: 'Crimson Pro', serif;
+    font-weight: 300;
+    color: var(--ash);
     font-size: 15px;
     line-height: 1.6;
     margin-bottom: 48px;
-    font-weight: 300;
   }
 
   /* FORM */
   .form-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--steel);
+    border: 1px solid var(--iron);
     padding: 32px;
     width: 100%;
     max-width: 640px;
     margin: 0 auto;
   }
 
-  .field {
-    margin-bottom: 24px;
-  }
+  .field { margin-bottom: 24px; }
 
   label {
     display: block;
-    font-family: 'Space Mono', monospace;
     font-size: 11px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--ash);
     margin-bottom: 8px;
   }
 
-  label span {
-    color: var(--red);
-    margin-left: 2px;
-  }
+  label .req { color: var(--ember); margin-left: 2px; }
 
   input, textarea, select {
     width: 100%;
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+    background: var(--black);
+    border: 1px solid var(--iron);
+    color: var(--white);
+    font-family: 'Share Tech Mono', monospace;
     font-size: 14px;
     padding: 12px 14px;
     outline: none;
     transition: border-color 0.2s;
-    -webkit-appearance: none;
   }
 
-  input:focus, textarea:focus, select:focus {
-    border-color: var(--orange);
-  }
-
-  input::placeholder, textarea::placeholder {
-    color: var(--muted);
-  }
-
+  input:focus, textarea:focus, select:focus { border-color: var(--flame); }
+  input::placeholder, textarea::placeholder { color: var(--ash); }
   textarea { resize: vertical; min-height: 80px; }
 
   .hint {
+    font-family: 'Crimson Pro', serif;
     font-size: 12px;
-    color: var(--muted);
+    color: var(--ash);
     margin-top: 6px;
     line-height: 1.4;
   }
 
   /* PRIORITY PILLS */
-  .priority-group {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
+  .priority-group { display: flex; gap: 8px; flex-wrap: wrap; }
   .pill-input { display: none; }
-
   .pill-label {
     padding: 7px 14px;
-    border: 1px solid var(--border);
-    font-family: 'Space Mono', monospace;
+    border: 1px solid var(--iron);
     font-size: 11px;
     letter-spacing: 0.08em;
     cursor: pointer;
     transition: all 0.15s;
-    color: var(--muted);
+    color: var(--ash);
     user-select: none;
   }
-
   .pill-input:checked + .pill-label {
-    border-color: var(--orange);
-    color: var(--orange);
-    background: rgba(255,107,43,0.08);
+    border-color: var(--flame);
+    color: var(--flame);
+    background: rgba(230,126,34,0.08);
   }
 
   /* SUBMIT */
@@ -192,14 +145,14 @@
     gap: 16px;
     margin-top: 32px;
     padding-top: 24px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--iron);
   }
 
   button[type="submit"] {
-    background: var(--red);
+    background: var(--ember);
     color: white;
     border: none;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -209,42 +162,28 @@
     flex-shrink: 0;
   }
 
-  button[type="submit"]:hover { background: #e02222; }
+  button[type="submit"]:hover { background: #a93226; }
 
   .submit-note {
+    font-family: 'Crimson Pro', serif;
     font-size: 12px;
-    color: var(--muted);
+    color: var(--ash);
     line-height: 1.4;
   }
 
   /* SUCCESS STATE */
   .success {
     display: none;
-    background: var(--surface);
+    background: var(--steel);
     border: 1px solid #1a3a1a;
     padding: 32px;
     max-width: 640px;
     margin: 0 auto;
     text-align: center;
   }
-
-  .success .check {
-    font-size: 32px;
-    margin-bottom: 16px;
-  }
-
-  .success h2 {
-    font-family: 'Space Mono', monospace;
-    font-size: 18px;
-    margin-bottom: 8px;
-    color: #4caf50;
-  }
-
-  .success p {
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.6;
-  }
+  .success .check { font-size: 32px; margin-bottom: 16px; }
+  .success h2 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; margin-bottom: 8px; color: #2ecc71; letter-spacing: 0.05em; }
+  .success p { font-family: 'Crimson Pro', serif; color: var(--ash); font-size: 14px; line-height: 1.6; }
 
   /* STATS BAR */
   .stats-bar {
@@ -254,71 +193,52 @@
     display: flex;
     gap: 32px;
   }
-
-  .stat {
-    font-family: 'Space Mono', monospace;
-  }
-
-  .stat-num {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--red);
-  }
-
-  .stat-label {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--ember); }
+  .stat-label { font-size: 11px; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
 
   /* FOOTER */
   footer {
     margin-top: auto;
-    padding: 24px 32px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--iron);
+    padding: 2rem 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
-    color: var(--muted);
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--ash);
+    text-transform: uppercase;
   }
-
-  footer a { color: var(--muted); text-decoration: none; }
-  footer a:hover { color: var(--text); }
+  .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
+  footer a { color: var(--ash); text-decoration: none; }
+  footer a:hover { color: var(--white); }
 
   /* SPINNER */
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner {
     width: 16px; height: 16px;
-    border: 2px solid var(--border);
-    border-top-color: var(--orange);
+    border: 2px solid var(--iron);
+    border-top-color: var(--flame);
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
     display: none;
   }
-
   button.loading .spinner { display: inline-block; }
   button.loading .btn-text { display: none; }
 
-  /* URL CHECK INDICATOR */
-  .url-status {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 8px; font-size: 12px; min-height: 20px;
-  }
-  .url-status .dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  }
-  .url-status.checking { color: var(--muted); }
-  .url-status.checking .dot { background: var(--orange); animation: spin 0.6s linear infinite; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; }
-  .url-status.ok { color: #4caf50; }
-  .url-status.ok .dot { background: #4caf50; }
-  .url-status.fail { color: var(--red); }
-  .url-status.fail .dot { background: var(--red); }
+  /* URL CHECK */
+  .url-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; min-height: 20px; }
+  .url-status .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .url-status.checking { color: var(--ash); }
+  .url-status.checking .dot { background: var(--flame); animation: spin 0.6s linear infinite; width: 12px; height: 12px; border: 2px solid var(--iron); border-top-color: var(--flame); border-radius: 50%; }
+  .url-status.ok { color: #2ecc71; }
+  .url-status.ok .dot { background: #2ecc71; }
+  .url-status.fail { color: var(--ember); }
+  .url-status.fail .dot { background: var(--ember); }
+
   .removed-banner {
     background: #1a0a0a;
-    border: 1px solid var(--red, #c0392b);
+    border: 1px solid var(--ember);
     color: #e0a0a0;
     padding: 16px 24px;
     max-width: 640px;
@@ -331,15 +251,14 @@
 </head>
 <body>
 
-<nav>
+<nav class="dw-nav">
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
-  <a href="/alerts.html">Alerts</a>
-  <a href="/status.html">Status</a>
   <a href="/watchlist.html" class="active">Watch</a>
+  <a href="/get-my-link.html" style="margin-left:auto;background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
 </nav>
 
 <div class="hero">
-  <div class="eyebrow">⚡ instockornot.club</div>
+  <div class="eyebrow">instockornot.club</div>
   <h1>Watch anything.<br>Miss <em>nothing.</em></h1>
   <p class="subtitle">Tell us what you're watching for — a knife drop, a restock, a collab announcement. We'll monitor it and email you the moment something changes.</p>
 </div>
@@ -351,14 +270,14 @@
   <div class="form-card">
 
     <div class="field">
-      <label>URL to watch <span>*</span></label>
+      <label>URL to watch <span class="req">*</span></label>
       <input type="url" name="url" id="urlInput" placeholder="https://example.com/product-page" required>
       <div class="hint">Paste any page URL — a maker's site, a dealer's drop page, a product listing.</div>
       <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
     </div>
 
     <div class="field">
-      <label>What to watch for <span>*</span></label>
+      <label>What to watch for <span class="req">*</span></label>
       <textarea name="keywords" placeholder="Hinderer XM-18, add to cart, CRK collab, steel flame, drop announcement..." required></textarea>
       <div class="hint">Keywords, phrases, or describe what you're looking for. The more specific, the better.</div>
     </div>
@@ -368,23 +287,21 @@
       <div class="priority-group">
         <input type="radio" name="priority" id="p-critical" value="critical" class="pill-input">
         <label for="p-critical" class="pill-label">Critical — email immediately</label>
-
         <input type="radio" name="priority" id="p-high" value="high" class="pill-input" checked>
         <label for="p-high" class="pill-label">High — email immediately</label>
-
         <input type="radio" name="priority" id="p-medium" value="medium" class="pill-input">
         <label for="p-medium" class="pill-label">Medium — daily digest</label>
       </div>
     </div>
 
     <div class="field">
-      <label>Your email <span>*</span></label>
+      <label>Your email <span class="req">*</span></label>
       <input type="email" name="email" placeholder="you@example.com" required>
       <div class="hint">We'll only email you when we detect what you're watching for. No spam.</div>
     </div>
 
     <div class="field">
-      <label>Your name <span style="color:var(--muted);">(optional)</span></label>
+      <label>Your name <span style="color:var(--ash);">(optional)</span></label>
       <input type="text" name="name" placeholder="Handle or first name">
     </div>
 
@@ -404,7 +321,7 @@
   <h2>Check your email.</h2>
   <p>We sent a confirmation to <strong id="confirmedEmail"></strong>. Click the link in that email to activate your alerts — then we'll watch and notify you the moment we detect something.<br><br>
   Average detection time: under 20 minutes.</p>
-  <p id="previewMsg" style="display:none;margin-top:16px;color:#ff6b2b;font-size:14px"></p>
+  <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
 </div>
 
 <div class="stats-bar">
@@ -427,8 +344,9 @@
 </div>
 
 <footer>
-  <span>instockornot.club — built for collectors, not dealers</span>
-  <a href="/privacy.html">Privacy</a> · <a href="https://github.com/simonhg321/drop-watcher">GitHub</a>
+  <span>instockornot.club — Est. 2026</span>
+  <span class="footer-hgr">HGR</span>
+  <span><a href="mailto:info@instockornot.club" style="color:var(--flame);">info@instockornot.club</a></span>
 </footer>
 
 <script>
@@ -455,11 +373,9 @@ document.getElementById('urlInput').addEventListener('blur', async function() {
     urlOk = false;
     return;
   }
-
   setUrlStatus('checking', 'Checking if we can read this page...');
   urlChecked = false;
   urlOk = false;
-
   try {
     const res = await fetch('/api/check-url', {
       method: 'POST',
@@ -482,7 +398,6 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
 
-  // If URL check hasn't run yet, run it now
   if (!urlChecked) {
     setUrlStatus('checking', 'Checking URL...');
     try {
@@ -503,7 +418,6 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   }
 
   if (!urlOk) return;
-
   btn.classList.add('loading');
 
   const data = {
@@ -521,7 +435,6 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-
     if (res.ok) {
       const result = await res.json();
       document.getElementById('watchForm').style.display = 'none';
@@ -541,7 +454,6 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   } catch(err) {
     alert('Could not connect. Try again shortly.');
   }
-
   btn.classList.remove('loading');
 });
 </script>

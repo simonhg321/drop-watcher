@@ -331,3 +331,70 @@ NEVER:
 - Easter egg /hgr page — the build story across sessions
 - Browser sound alert — alerts.html plays a ping on new CRITICAL
 - Redesign index.html — reflect public platform direction without losing the original aesthetic
+
+### Session 12 — 2026-03-13
+- Auth: email verification flow — verify_token, active:False on signup, GET /api/verify/<token>
+- Unsubscribe link styling, personal dashboard, STOP WATCHING, welcome email links
+- Auth: resend-link route, get-my-link.html, footer link, email layout cleanup
+
+### Session 13 — 2026-03-14
+- Server hardening — paths.py central config, code/config/data/logs separated on ironman
+- .zshrc — ir, dw, ship, pulls, logs, wstatus aliases
+- Phase 1 cleanup — webroot junk removed, .bak files deleted, permissions fixed
+- Priority tuning — standard CRK/Hinderer at dealers now MEDIUM, Monkey Edge FRAG + PDW HIGH
+- Multi-watch my-alerts — all watches for same email shown together with per-watch STOP
+- bulk_watch.py — mass-created watches from sources.yaml for simonhg@gmail.com
+- hgr.html — build story easter egg page
+- Gunicorn zombie fix — stopasgroup/killasgroup/graceful-timeout in supervisor conf
+- per_user_alerter added to cron at */10
+- Ops scripts updated to new paths
+
+### Session 14 — 2026-03-15
+
+**What we built:**
+- Shared token model — one email = one token = one link = one dashboard
+  - Signup reuses existing token for same email
+  - Second+ signups auto-activate if email already verified (skip verification)
+  - Verify activates ALL watches for that email
+  - Unsubscribe deactivates ALL watches for that email
+  - STOP individual watch uses watch ID (not token)
+- normalize_tokens.py — one-time migration, unified 56 watches under one token
+- per_user_alerter.py rewritten — reads drops.jsonl instead of re-scraping sites
+  - Zero outbound HTTP requests — matches drops against watcher URL/keywords
+  - Cooldown now per watcher+URL+keyword combo (not per watcher globally)
+  - per_user_sent.json tracks sent alerts with 24h auto-prune
+- trim_drops.py — drops.jsonl retention, keeps 30 days, cron daily at 4am
+- UI unification — all user-facing pages now share index.html design system
+  - Fonts: Bebas Neue / Share Tech Mono / Crimson Pro
+  - Variables: --black, --steel, --iron, --ember, --flame, --ash, --silver, --white
+  - Consistent nav: Watch, My Alerts, GET MY LINK
+  - watchlist.html, my-alerts.html, get-my-link.html, index.html all unified
+- get-my-link.html — moved from stale web/html/ to project root
+- privacy.html — full rewrite with Twilio A2P 10DLC SMS compliance section
+- Alert emails now include "My Alerts Dashboard" button (orange)
+- Cron log paths fixed — all now point to /var/log/drop-watcher/
+- cleanup_ironman.sh — removes dead files (fix_nav.py, watcher_output.py, test scripts, etc.)
+- BUGS.md created — BUG-007 (stale web/ dir), BUG-008 (empty orchestrator.py)
+- support@instockornot.club alias created in Google Workspace
+- index.html language fix — "us/we" → "it" (it's a machine, not a team)
+
+**First real drop caught:**
+- Strider knives dropped and the system detected it — full pipeline worked end-to-end
+- Alert went to simon@instockornot.club — missed it because email too slow
+- Proves SMS is critical for time-sensitive drops
+
+**Known issues:**
+- Gmail sometimes spams verification emails — domain reputation
+- Twilio A2P 10DLC pending carrier vetting — expected approved Monday 2026-03-16
+- web/ directory still exists on ironman (BUG-007) — cleanup script ready but not run yet
+
+**Pending:**
+- Twilio SMS wiring — once A2P approved Monday
+- Playwright headless browser — JS-rendered sites (Blade HQ, KnifeCenter)
+- Instagram layer — waiting on friends' account list
+- UptimeRobot external monitoring
+- Discord webhook for CRITICAL drops
+- Browser sound alert on new CRITICAL
+- UI polish — alerts.html and status.html still use old design system
+- BUG-007: delete web/ directory
+- BUG-008: delete orchestrator.py

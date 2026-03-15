@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Get My Link — Drop Watcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --steel: #1c1c1c;
+    --iron: #2a2a2a;
+    --ember: #c0392b;
+    --flame: #e67e22;
+    --ash: #888;
+    --silver: #d0d0d0;
+    --white: #f0f0f0;
+  }
+
+  body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* NAV */
+  .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; }
+  .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+  .dw-nav .logo span { color: var(--ember); }
+  .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+  .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
+
+  .container { max-width: 520px; margin: 64px auto; padding: 0 24px; }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .sub {
+    font-family: 'Crimson Pro', serif;
+    font-weight: 300;
+    color: var(--ash);
+    font-size: 14px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ash); }
+
+  input[type="email"] {
+    background: var(--black);
+    border: 1px solid var(--iron);
+    color: var(--white);
+    padding: 12px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+  }
+  input[type="email"]:focus { border-color: var(--flame); }
+
+  button {
+    background: var(--ember);
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    width: 100%;
+  }
+  button:hover { background: #a93226; }
+  button:disabled { background: var(--iron); color: var(--ash); cursor: not-allowed; }
+
+  .msg { margin-top: 24px; font-size: 13px; display: none; padding: 12px 16px; }
+  .msg.success { background: #1a3a1a; color: #2ecc71; border: 1px solid #2a4a2a; }
+  .msg.error   { background: #3a1a1a; color: var(--ember); border: 1px solid #4a2a2a; }
+
+  footer {
+    margin-top: auto;
+    border-top: 1px solid var(--iron);
+    padding: 2rem 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--ash);
+    text-transform: uppercase;
+  }
+  .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
+</style>
+</head>
+<body>
+
+<nav class="dw-nav">
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <a href="/watchlist.html">Watch</a>
+  <a href="/get-my-link.html" class="active">Get My Link</a>
+</nav>
+
+<div class="container">
+  <h1>GET MY LINK</h1>
+  <p class="sub">Enter the email you signed up with and we'll send you your personal alerts link.</p>
+  <div class="field">
+    <label>Email address</label>
+    <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+  </div>
+  <button id="submitBtn" onclick="sendLink()">SEND MY LINK</button>
+  <div class="msg" id="msg"></div>
+</div>
+
+<footer>
+  <span>instockornot.club — Est. 2026</span>
+  <span class="footer-hgr">HGR</span>
+  <span>info@instockornot.club</span>
+</footer>
+
+<script>
+async function sendLink() {
+  const email = document.getElementById('emailInput').value.trim();
+  const btn   = document.getElementById('submitBtn');
+  const msg   = document.getElementById('msg');
+  if (!email) {
+    msg.className = 'msg error';
+    msg.textContent = 'Please enter your email address.';
+    msg.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'SENDING...';
+  msg.style.display = 'none';
+  try {
+    await fetch('/api/resend-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    msg.className = 'msg success';
+    msg.textContent = 'Check your inbox — your link is on the way.';
+    msg.style.display = 'block';
+    btn.textContent = 'SENT';
+  } catch (e) {
+    msg.className = 'msg error';
+    msg.textContent = 'Something went wrong. Try again.';
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'SEND MY LINK';
+  }
+}
+document.getElementById('emailInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendLink();
+});
+</script>
+</body>
+</html>

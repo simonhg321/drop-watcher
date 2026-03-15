@@ -5,47 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>My Alerts — Drop Watcher</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   :root {
-    --bg: #0a0a0a;
-    --surface: #111;
-    --border: #1e1e1e;
-    --text: #f0f0f0;
-    --muted: #888;
-    --red: #c0392b;
-    --orange: #e67e22;
+    --black: #0a0a0a;
+    --steel: #1c1c1c;
+    --iron: #2a2a2a;
+    --ember: #c0392b;
+    --flame: #e67e22;
+    --ash: #888;
+    --silver: #d0d0d0;
+    --white: #f0f0f0;
     --green: #2ecc71;
     --yellow: #f1c40f;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: monospace; min-height: 100vh; }
+
+  body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; min-height: 100vh; }
 
   /* NAV */
-  .dw-nav { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--border); }
-  .dw-nav .logo { font-family:"Space Mono",monospace; font-size:18px; font-weight:700; letter-spacing:2px; text-decoration:none; color:var(--text); }
-  .dw-nav .logo span { color:var(--red); }
-  .dw-nav .nav-links { display:flex; gap:24px; }
-  .dw-nav .nav-links a { color:var(--muted); text-decoration:none; font-size:13px; letter-spacing:1px; }
-  .dw-nav .nav-links a:hover { color:var(--text); }
-  .dw-nav .nav-links a.active { color:var(--text); }
+  .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; }
+  .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+  .dw-nav .logo span { color: var(--ember); }
+  .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+  .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
 
   .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
 
   .watcher-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--steel);
+    border: 1px solid var(--iron);
     padding: 20px 24px;
-    margin-bottom: 32px;
+    margin-bottom: 12px;
     display: flex;
     gap: 32px;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
   }
-  .watcher-card .field { display:flex; flex-direction:column; gap:4px; }
-  .watcher-card .label { font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
-  .watcher-card .value { font-size:14px; color:var(--text); }
+  .watcher-card .field { display: flex; flex-direction: column; gap: 4px; }
+  .watcher-card .label { font-size: 10px; color: var(--ash); letter-spacing: 1px; text-transform: uppercase; }
+  .watcher-card .value { font-size: 14px; color: var(--white); }
+
   .badge {
     display: inline-block;
     padding: 2px 10px;
@@ -54,64 +56,68 @@
     text-transform: uppercase;
     font-weight: bold;
   }
-  .badge-active { background: #1a3a1a; color: var(--green); }
-  .badge-inactive { background: #3a1a1a; color: var(--red); }
-  .badge-critical { background:#3a1a1a; color:var(--red); }
-  .badge-high     { background:#3a2a1a; color:var(--orange); }
-  .badge-medium   { background:#2a2a1a; color:var(--yellow); }
-  .badge-low      { background:#1a1a2a; color:#8888ff; }
+  .badge-active   { background: #1a3a1a; color: var(--green); }
+  .badge-inactive { background: #3a1a1a; color: var(--ember); }
+  .badge-critical { background: #3a1a1a; color: var(--ember); }
+  .badge-high     { background: #3a2a1a; color: var(--flame); }
+  .badge-medium   { background: #2a2a1a; color: var(--yellow); }
+  .badge-low      { background: #1a1a2a; color: #8888ff; }
 
-  h2 { font-family:"Space Mono",monospace; font-size:14px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:16px; }
+  h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    color: var(--ash);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
 
-  .drop-list { display:flex; flex-direction:column; gap:12px; }
+  .drop-list { display: flex; flex-direction: column; gap: 12px; }
   .drop-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--border);
+    background: var(--steel);
+    border: 1px solid var(--iron);
+    border-left: 3px solid var(--iron);
     padding: 16px 20px;
   }
-  .drop-card.critical { border-left-color: var(--red); }
-  .drop-card.high     { border-left-color: var(--orange); }
+  .drop-card.critical { border-left-color: var(--ember); }
+  .drop-card.high     { border-left-color: var(--flame); }
   .drop-card.medium   { border-left-color: var(--yellow); }
-  .drop-card.low      { border-left-color: #555; }
+  .drop-card.low      { border-left-color: var(--ash); }
 
-  .drop-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
-  .drop-site { font-family:"Space Mono",monospace; font-size:13px; font-weight:700; }
-  .drop-meta { display:flex; gap:8px; align-items:center; }
-  .drop-time { font-size:11px; color:var(--muted); }
-  .drop-summary { font-size:13px; color:#ccc; line-height:1.5; margin-top:4px; }
-  .drop-url { font-size:11px; color:var(--muted); margin-top:8px; }
-  .drop-url a { color:var(--orange); text-decoration:none; }
-  .drop-url a:hover { text-decoration:underline; }
+  .drop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+  .drop-site { font-size: 13px; font-weight: 700; }
+  .drop-meta { display: flex; gap: 8px; align-items: center; }
+  .drop-time { font-size: 11px; color: var(--ash); }
+  .drop-summary { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--silver); line-height: 1.5; margin-top: 4px; }
+  .drop-url { font-size: 11px; color: var(--ash); margin-top: 8px; }
+  .drop-url a { color: var(--flame); text-decoration: none; }
+  .drop-url a:hover { text-decoration: underline; }
 
-  .empty { color:var(--muted); font-size:14px; padding:32px 0; text-align:center; }
-  .loading { color:var(--muted); font-size:13px; padding:48px 0; text-align:center; }
-  .error { color:var(--red); font-size:13px; padding:32px 0; text-align:center; }
+  .empty { color: var(--ash); font-size: 14px; padding: 32px 0; text-align: center; }
+  .loading { color: var(--ash); font-size: 13px; padding: 48px 0; text-align: center; }
+  .error { color: var(--ember); font-size: 13px; padding: 32px 0; text-align: center; }
+
   .stop-btn {
-    margin-top: 16px;
     background: transparent;
-    border: 1px solid var(--red);
-    color: var(--red);
+    border: 1px solid var(--ember);
+    color: var(--ember);
     padding: 8px 20px;
-    font-family: monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 12px;
     letter-spacing: 1px;
     cursor: pointer;
     text-transform: uppercase;
   }
-  .stop-btn:hover { background: var(--red); color: #fff; }
+  .stop-btn:hover { background: var(--ember); color: #fff; }
 </style>
 </head>
 <body>
 
 <nav class="dw-nav">
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
-  <div class="nav-links">
-    <a href="/alerts.html">Alerts</a>
-    <a href="/status.html">Status</a>
-    <a href="/watchlist.html">Watch</a>
-    <a href="#" class="active">My Alerts</a>
-  </div>
+  <a href="/watchlist.html">Watch</a>
+  <a href="#" class="active">My Alerts</a>
+  <a href="/get-my-link.html" style="margin-left:auto;background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
 </nav>
 
 <div class="container">
@@ -126,14 +132,12 @@
 const params = new URLSearchParams(window.location.search);
 const token  = params.get('token');
 
-// Escape text for safe insertion — prevents XSS from API data
 function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
 }
 
-// Validate URL protocol — only allow http/https in href attributes
 function safeHref(url) {
   try {
     const u = new URL(url);
@@ -160,26 +164,25 @@ if (!token) {
       : '<span class="badge badge-inactive">Pending Verification</span>';
 
     let watchCards = watches.map(w => `
-      <div class="watcher-card" style="justify-content:space-between">
+      <div class="watcher-card">
         <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:center">
           <div class="field"><div class="label">Watching</div><div class="value">${esc(w.url || '')}</div></div>
           <div class="field"><div class="label">Keywords</div><div class="value">${esc(w.keywords_raw || '')}</div></div>
         </div>
-        <button class="stop-btn" data-token="${esc(w.token || '')}" style="margin:0">STOP</button>
+        <button class="stop-btn" data-id="${esc(w.id || '')}" style="margin:0">STOP</button>
       </div>`).join('');
 
     document.getElementById('watcherCard').innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div style="font-size:14px">${esc(watcher.email || '')} ${statusBadge}</div>
-        <div style="font-size:11px;color:var(--muted)">${watches.length} watch${watches.length !== 1 ? 'es' : ''}</div>
+        <div style="font-size:11px;color:var(--ash)">${watches.length} watch${watches.length !== 1 ? 'es' : ''}</div>
       </div>
       ${watchCards}`;
 
-    // Wire up stop buttons
-    document.querySelectorAll('.stop-btn[data-token]').forEach(btn => {
+    document.querySelectorAll('.stop-btn[data-id]').forEach(btn => {
       btn.onclick = () => {
         if (!confirm('Remove this watch?')) return;
-        fetch('/api/my-watch/' + btn.dataset.token, { method: 'DELETE' })
+        fetch('/api/my-watch/' + btn.dataset.id, { method: 'DELETE' })
           .then(r => r.json())
           .then(d => {
             if (d.status === 'removed') location.reload();

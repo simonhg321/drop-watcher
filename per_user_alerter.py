@@ -2,29 +2,32 @@
 """
 per_user_alerter.py — Routes alerts to public watchers based on watchers.json
 
-Runs as a cron job: */30 * * * * python3 /home/shg/drop-watcher/per_user_alerter.py
+Runs as a cron job: */10 * * * * python3 /home/shg/drop-watcher/per_user_alerter.py
 
 For each active watcher:
-  1. Fetches their URL
-  2. Checks if any of their keywords appear in the page content
-  3. If match found AND not recently alerted → sends email
+  1. Reads recent drops from drops.jsonl (written by web_watcher/feed_watcher)
+  2. Matches drops against watcher URL domain + keywords
+  3. If match found AND not recently alerted for that URL+keyword → sends email
+
+Does NOT re-scrape sites — web_watcher already does that.
+Cooldown is per watcher per URL per matched keyword set, not per watcher globally.
+HGR
 """
 
 import fcntl
+import hashlib
 import html as html_mod
 import json
 import os
 import re
 import logging
-import requests
 from datetime import datetime, timezone, timedelta
-from bs4 import BeautifulSoup
 
 import paths
 WATCHERS_FILE = paths.WATCHERS_JSON
-ALERT_COOLDOWN_HOURS = 6  # Don't re-alert same watcher within this window
+COOLDOWN_HOURS = 6
+DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with cron)
 
-# Reuse existing Resend email setup
 from alerter import send_email
 
 logging.basicConfig(
@@ -33,12 +36,11 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club)'
-}
-
-
 LOCK_FILE = WATCHERS_FILE + '.lock'
+
+# Track what we've already alerted per watcher — persists across runs
+SENT_FILE = os.path.join(paths.DATA_DIR, 'per_user_sent.json')
+
 
 def load_watchers():
     if not os.path.exists(WATCHERS_FILE):
@@ -63,64 +65,101 @@ def save_watchers(watchers):
         lock_fd.close()
 
 
-def fetch_page_text(url):
-    from safe_fetch import is_safe_url
-    safe, reason = is_safe_url(url)
-    if not safe:
-        log.warning(f"Blocked fetch for {url}: {reason}")
-        return None
+def load_sent():
+    """Load sent tracking: {cooldown_key: iso_timestamp}"""
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, 'html.parser')
-        # Strip nav/footer/scripts
-        for tag in soup(['nav', 'footer', 'script', 'style', 'header']):
-            tag.decompose()
-        return soup.get_text(separator=' ', strip=True).lower()
-    except Exception as e:
-        log.warning(f"Failed to fetch {url}: {e}")
-        return None
+        with open(SENT_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
-def keywords_match(text, keywords_str):
-    """Returns list of matched keywords"""
-    matches = []
-    # Split on comma or newline, strip whitespace
+def save_sent(sent):
+    os.makedirs(os.path.dirname(SENT_FILE), exist_ok=True)
+    tmp = SENT_FILE + '.tmp'
+    with open(tmp, 'w') as f:
+        json.dump(sent, f, indent=2)
+    os.replace(tmp, SENT_FILE)
+
+
+def prune_sent(sent):
+    """Remove entries older than 24h to keep file small."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    return {k: v for k, v in sent.items() if v > cutoff}
+
+
+def cooldown_key(watcher_id, drop_url, matches):
+    """Unique key per watcher + drop URL + matched keywords."""
+    match_str = ','.join(sorted(matches))
+    raw = f"{watcher_id}|{drop_url}|{match_str}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+
+def load_recent_drops():
+    """Read drops from last DROPS_WINDOW_MINUTES minutes."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=DROPS_WINDOW_MINUTES)).isoformat()
+    drops = []
+    try:
+        with open(paths.DROPS_JSONL) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    d = json.loads(line)
+                except Exception:
+                    continue
+                if (d.get('timestamp') or '') >= cutoff:
+                    drops.append(d)
+    except FileNotFoundError:
+        pass
+    return drops
+
+
+def domain_from_url(url):
+    return re.sub(r'^https?://(www\.)?', '', url.lower()).split('/')[0]
+
+
+def keywords_match(searchable_text, keywords_str):
+    """Returns list of matched keywords."""
     keywords = [k.strip().lower() for k in re.split(r'[,\n]+', keywords_str) if k.strip()]
-    for kw in keywords:
-        if kw in text:
-            matches.append(kw)
-    return matches
+    return [kw for kw in keywords if kw in searchable_text]
 
 
-def recently_alerted(watcher, hours=ALERT_COOLDOWN_HOURS):
-    last = watcher.get('last_alert')
-    if not last:
-        return False
-    last_dt = datetime.fromisoformat(last)
-    return datetime.now(timezone.utc) - last_dt < timedelta(hours=hours)
-
-
-def build_alert_email(watcher, matches, url):
+def build_alert_email(watcher, matches, drop):
     name = watcher.get('name') or 'Watcher'
-    subject = f"[DROP WATCHER] Match found — {url[:60]}"
+    url = drop.get('url', '')
+    subject = f"[DROP WATCHER] Match found — {drop.get('source', url[:40])}"
 
-    # Escape user input for HTML context
     safe_name    = html_mod.escape(name)
     safe_url     = html_mod.escape(url)
     safe_matches = [html_mod.escape(m) for m in matches]
     unsub_token  = watcher['unsubscribe_token']
+    summary      = html_mod.escape(drop.get('page_summary', ''))
+    notable      = drop.get('notable_items', [])
+    safe_notable = [html_mod.escape(n) for n in notable[:5]]
+    priority     = html_mod.escape(drop.get('priority', 'medium'))
+
+    notable_html = ''
+    if safe_notable:
+        items = ''.join(f'<li style="color:#e8e8e8;margin:4px 0">{n}</li>' for n in safe_notable)
+        notable_html = f'''
+      <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
+        <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Notable items</div>
+        <ul style="margin:0;padding-left:20px">{items}</ul>
+      </div>'''
 
     email_html = f"""
     <div style="font-family: monospace; background: #0a0a0a; color: #e8e8e8; padding: 24px; max-width: 600px;">
       <h2 style="color: #ff2d2d; margin: 0 0 16px;">⚡ DROP WATCHER</h2>
       <p style="color: #aaa; margin: 0 0 20px; font-size: 13px;">instockornot.club</p>
 
-      <p>Hey {safe_name} — we found a match on the page you're watching.</p>
+      <p>Hey {safe_name} — we found a match on a page you're watching.</p>
 
       <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
-        <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Page</div>
-        <a href="{safe_url}" style="color: #ff6b2b;">{safe_url}</a>
+        <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Source</div>
+        <a href="{safe_url}" style="color: #ff6b2b;">{html_mod.escape(drop.get('source', ''))}</a>
+        <div style="color:#888;font-size:12px;margin-top:8px">{summary}</div>
       </div>
 
       <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
@@ -128,8 +167,14 @@ def build_alert_email(watcher, matches, url):
         <div style="color: #e8e8e8;">{'  ·  '.join(safe_matches)}</div>
       </div>
 
+      {notable_html}
+
       <p style="margin: 20px 0 0;">
         <a href="{safe_url}" style="background: #ff2d2d; color: white; padding: 12px 24px; text-decoration: none; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">View Page Now →</a>
+      </p>
+
+      <p style="margin: 16px 0 0;">
+        <a href="https://instockornot.club/my-alerts.html?token={unsub_token}" style="background: #e67e22; color: white; padding: 10px 20px; text-decoration: none; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;">My Alerts Dashboard</a>
       </p>
 
       <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
@@ -139,59 +184,118 @@ def build_alert_email(watcher, matches, url):
     </div>
     """
 
-    text = f"DROP WATCHER — Match found\n\nPage: {url}\nMatched: {', '.join(matches)}\n\nView: {url}\n\nUnsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
+    text = (
+        f"DROP WATCHER — Match found\n\n"
+        f"Source: {drop.get('source', '')}\n"
+        f"Page: {url}\n"
+        f"Matched: {', '.join(matches)}\n"
+        f"Summary: {drop.get('page_summary', '')}\n\n"
+        f"View: {url}\n\n"
+        f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
+        f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
+    )
 
     return subject, email_html, text
 
 
 def run():
     watchers = load_watchers()
-    active = [w for w in watchers if w.get('active', True)]
-    log.info(f"Checking {len(active)} active watchers")
+    active = [w for w in watchers if w.get('active')]
+    log.info(f"Checking {len(active)} active watchers against recent drops")
 
+    if not active:
+        log.info("No active watchers. Done.")
+        return
+
+    drops = load_recent_drops()
+    log.info(f"Found {len(drops)} drops in last {DROPS_WINDOW_MINUTES} minutes")
+
+    if not drops:
+        log.info("No recent drops. Done.")
+        return
+
+    sent = load_sent()
+    sent = prune_sent(sent)
     changed = False
+    sent_changed = False
+    now = datetime.now(timezone.utc)
+    cooldown_cutoff = (now - timedelta(hours=COOLDOWN_HOURS)).isoformat()
+
+    # Group watchers by email to avoid duplicate emails
+    email_alerts = {}  # email -> list of (watcher, matches, drop)
 
     for watcher in active:
-        wid  = watcher['id']
-        url  = watcher['url']
-        kws  = watcher['keywords']
+        wid   = watcher['id']
+        w_url = watcher.get('url', '').lower()
+        w_domain = domain_from_url(w_url)
+        kws   = watcher.get('keywords', '')
         email = watcher['email']
 
-        if recently_alerted(watcher):
-            log.info(f"[{wid}] Skipping — alerted recently")
-            continue
+        for drop in drops:
+            drop_url    = (drop.get('url') or '').lower()
+            drop_domain = domain_from_url(drop_url)
 
-        text = fetch_page_text(url)
-        if not text:
-            continue
+            # Domain must match
+            if not w_domain or w_domain != drop_domain:
+                continue
 
-        matches = keywords_match(text, kws)
-        if not matches:
-            log.info(f"[{wid}] No match for {email} on {url}")
-            continue
+            # Build searchable text from drop
+            summary  = (drop.get('page_summary') or '').lower()
+            notable  = ' '.join(drop.get('notable_items') or []).lower()
+            searchable = f"{summary} {notable}"
 
-        log.info(f"[{wid}] MATCH for {email}: {matches}")
+            matches = keywords_match(searchable, kws)
+            if not matches:
+                continue
 
-        subject, html, txt = build_alert_email(watcher, matches, url)
+            # Check per-URL-per-keyword cooldown
+            ck = cooldown_key(wid, drop_url, matches)
+            last_sent = sent.get(ck, '')
+            if last_sent > cooldown_cutoff:
+                log.info(f"[{wid}] Cooldown active for {drop_domain} / {matches}")
+                continue
 
-        # Send to this watcher's email only
-        # Temporarily override ALERT_TO for this send
-        import alerter as _alerter
-        original_to = _alerter.ALERT_TO
-        _alerter.ALERT_TO = email
-        result = send_email(subject, html, txt)
-        _alerter.ALERT_TO = original_to
+            log.info(f"[{wid}] MATCH for {email}: {matches} on {drop_domain}")
 
-        if result:
-            watcher['last_alert']  = datetime.now(timezone.utc).isoformat()
-            watcher['alert_count'] = watcher.get('alert_count', 0) + 1
-            changed = True
-            log.info(f"[{wid}] Alert sent to {email}")
-        else:
-            log.error(f"[{wid}] Failed to send to {email}")
+            if email not in email_alerts:
+                email_alerts[email] = []
+            email_alerts[email].append((watcher, matches, drop, ck))
+
+    # Send one email per user per drop (not per watch)
+    for email, alerts in email_alerts.items():
+        # Take the first match — if multiple watches match same drop, send once
+        seen_drops = set()
+        for watcher, matches, drop, ck in alerts:
+            drop_key = drop.get('url', '') + '|' + drop.get('timestamp', '')
+            if drop_key in seen_drops:
+                continue
+            seen_drops.add(drop_key)
+
+            subject, html, txt = build_alert_email(watcher, matches, drop)
+
+            import alerter as _alerter
+            original_to = _alerter.ALERT_TO
+            _alerter.ALERT_TO = email
+            result = send_email(subject, html, txt)
+            _alerter.ALERT_TO = original_to
+
+            if result:
+                # Mark cooldown for ALL watchers that matched this drop
+                for w2, m2, d2, ck2 in alerts:
+                    if d2.get('url') == drop.get('url'):
+                        sent[ck2] = now.isoformat()
+                        sent_changed = True
+                watcher['last_alert'] = now.isoformat()
+                watcher['alert_count'] = watcher.get('alert_count', 0) + 1
+                changed = True
+                log.info(f"Alert sent to {email} for {drop.get('source', '')}")
+            else:
+                log.error(f"Failed to send to {email}")
 
     if changed:
         save_watchers(watchers)
+    if sent_changed:
+        save_sent(sent)
 
     log.info("Done.")
 
