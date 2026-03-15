@@ -38,6 +38,8 @@ echo "=== WATCHER STATUS ===" && sudo supervisorctl status
 - [x] Messerteam.de Arno Bernard page added to sources.yaml — 2026-03-07
 - [x] Rike Knife disabled in sources.yaml — 2026-03-07
 - [ ] Frontend priority override UI (manual CRITICAL/MEDIUM toggle on alerts.html)
+- [ ] Playwright headless browser layer — JS-rendered sites (Blade HQ, KnifeCenter, etc). ~200MB Chromium, flag `js: true` in sources.yaml, fetch_with_browser() alongside requests.get(). Full session of work.
+- [ ] Priority tuning — ai_interpreter.py calling standard production CRK/Hinderer "high" when it should be "medium". Tune priority rules so only special variants (damascus, collabs, limited editions) get HIGH. Standard Sebenzas, XM-24s = MEDIUM.
 
 ---
 

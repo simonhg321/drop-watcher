@@ -106,12 +106,16 @@ After applying the override above, use these rules:
 - Any Mick Strider Custom Knife (MSC) available for purchase is always CRITICAL — these are extremely rare
 - IMPORTANT: "Read more" buttons mean the item is NOT directly purchasable. Only "Add to cart" or "Buy now" buttons mean an item is truly in stock and available. Do not mark items as in_stock if they only show "Read more".
 - Any drop announcement or DROP banner on McNees Knives is always HIGH priority
+- Monkey Edge FRAG patterns or Monkey Edge Exclusives are always HIGH priority
+- Prometheus Design Werx (PDW) folders/knives in their collections are always HIGH priority
 - Damascus on any CRK is always CRITICAL
 - CRK x Wilson Combat collab is CRITICAL — all other CRK drops/specials are HIGH, not CRITICAL
-- CRK x Wilson Combat collab is CRITICAL — all other CRK drops/specials are HIGH, not CRITICAL
-- Wood, brass, copper, walnut handles on Hinderer are always HIGH (not CRITICAL)
+- Standard production Chris Reeve Sebenzas (plain titanium, wood inlays, bog oak, macassar ebony, box elder) at dealers are MEDIUM — these are regular restocks, not special drops. Only Damascus CRK, Wilson Combat collab, or genuinely rare/limited CRK variants are HIGH or CRITICAL.
+- Standard production Hinderer XM-18, XM-24, Firetac in regular G-10/titanium at dealers are MEDIUM — these are common restocks. Only wood/walnut/brass/copper handles, DLT exclusives, or Steel Flame collabs are HIGH or CRITICAL.
+- Standard production Heretic, Pro-Tech, WE Knife, Civivi, Kizer at dealers are MEDIUM unless a specific rare collab or limited run is mentioned.
 - Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority — this OVERRIDES the notable_item HIGH rule. Do not set these to high or critical unless damascus or mammoth inlay is explicitly mentioned.
 - Demko AD20.5 is a common production knife — always MEDIUM priority unless a rare sprint/collab variant is explicitly mentioned
+- GENERAL RULE: Dealer "new arrivals" pages showing standard production knives from any maker = MEDIUM. Dealers restock constantly. Only flag HIGH if there is a genuinely special variant, limited edition, or collab.
 WEBPAGE CONTENT (truncated to 3000 chars):
 {page_content}
 
