@@ -307,6 +307,11 @@ websites:
     poll_interval: 20
     enabled: true
 
+  - name: Prometheus Design Werx
+    url: https://prometheusdesignwerx.com/collections/folders
+    poll_interval: 20
+    enabled: true
+
   # ── Boss Watchlist ─────────────────────────────────────────────────────────
 
   - name: Ubiquiti UVC-G6-180 Camera

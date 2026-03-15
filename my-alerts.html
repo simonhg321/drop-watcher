@@ -154,35 +154,39 @@ if (!token) {
       return;
     }
 
-    const pri = esc((watcher.priority || 'high').toLowerCase());
+    const watches = alertData.watches || [];
     const statusBadge = watcher.active
       ? '<span class="badge badge-active">Active</span>'
       : '<span class="badge badge-inactive">Pending Verification</span>';
-    const priorityBadge = `<span class="badge badge-${pri}">${pri}</span>`;
+
+    let watchCards = watches.map(w => `
+      <div class="watcher-card" style="justify-content:space-between">
+        <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:center">
+          <div class="field"><div class="label">Watching</div><div class="value">${esc(w.url || '')}</div></div>
+          <div class="field"><div class="label">Keywords</div><div class="value">${esc(w.keywords_raw || '')}</div></div>
+        </div>
+        <button class="stop-btn" data-token="${esc(w.token || '')}" style="margin:0">STOP</button>
+      </div>`).join('');
 
     document.getElementById('watcherCard').innerHTML = `
-      <div class="watcher-card">
-        <div class="field"><div class="label">Email</div><div class="value">${esc(watcher.email || '')}</div></div>
-        <div class="field"><div class="label">Watching</div><div class="value">${esc(watcher.url || '')}</div></div>
-        <div class="field"><div class="label">Keywords</div><div class="value">${esc(watcher.keywords || '')}</div></div>
-        <div class="field"><div class="label">Priority</div><div class="value">${priorityBadge}</div></div>
-        <div class="field"><div class="label">Status</div><div class="value">${statusBadge}</div></div>
-      </div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:14px">${esc(watcher.email || '')} ${statusBadge}</div>
+        <div style="font-size:11px;color:var(--muted)">${watches.length} watch${watches.length !== 1 ? 'es' : ''}</div>
+      </div>
+      ${watchCards}`;
 
-    // Stop watching button
-    const stopBtn = document.createElement('button');
-    stopBtn.className = 'stop-btn';
-    stopBtn.textContent = 'STOP WATCHING';
-    stopBtn.onclick = () => {
-      if (!confirm('Remove this watcher? You will need to sign up again to restart alerts.')) return;
-      fetch('/api/my-watch/' + token, { method: 'DELETE' })
-        .then(r => r.json())
-        .then(d => {
-          if (d.status === 'removed') window.location.href = '/watchlist.html?removed=1';
-          else alert('Error: ' + JSON.stringify(d));
-        });
-    };
-    document.getElementById('watcherCard').appendChild(stopBtn);
+    // Wire up stop buttons
+    document.querySelectorAll('.stop-btn[data-token]').forEach(btn => {
+      btn.onclick = () => {
+        if (!confirm('Remove this watch?')) return;
+        fetch('/api/my-watch/' + btn.dataset.token, { method: 'DELETE' })
+          .then(r => r.json())
+          .then(d => {
+            if (d.status === 'removed') location.reload();
+            else alert('Error: ' + JSON.stringify(d));
+          });
+      };
+    });
 
     const drops = alertData.drops || [];
     const section = document.getElementById('dropsSection');
