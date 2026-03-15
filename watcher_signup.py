@@ -448,10 +448,19 @@ def my_alerts(token):
     if not watcher:
         return jsonify({'error': 'not found'}), 404
 
-    # Split on commas (not spaces) so multi-word keywords like "in stock" stay intact
-    keywords = [k.strip().lower() for k in watcher.get('keywords', '').split(',') if k.strip()]
-    watch_url  = watcher.get('url', '').lower()
-    watch_domain = re.sub(r'^https?://(www\.)?', '', watch_url).split('/')[0]
+    # Find ALL watches for this email
+    email = watcher.get('email', '').lower()
+    my_watches = [w for w in watchers if w.get('email', '').lower() == email and w.get('active')]
+
+    # Build list of (domain, keywords) pairs across all watches
+    watch_filters = []
+    for w in my_watches:
+        kws = [k.strip().lower() for k in w.get('keywords', '').split(',') if k.strip()]
+        url = w.get('url', '').lower()
+        domain = re.sub(r'^https?://(www\.)?', '', url).split('/')[0]
+        watch_filters.append({'domain': domain, 'keywords': kws, 'url': url,
+                              'keywords_raw': w.get('keywords', ''),
+                              'token': w.get('unsubscribe_token')})
 
     drops = []
     from datetime import timedelta
@@ -467,7 +476,6 @@ def my_alerts(token):
                     d = json.loads(line)
                 except Exception:
                     continue
-                # Skip drops older than 3 days
                 if (d.get('timestamp') or '') < cutoff:
                     continue
                 drop_url    = (d.get('url') or '').lower()
@@ -476,19 +484,23 @@ def my_alerts(token):
                 notable     = ' '.join(d.get('notable_items') or []).lower()
                 searchable  = f"{summary} {notable}"
 
-                # Must match the watched domain
-                if not watch_domain or watch_domain != drop_domain:
-                    continue
-                # Then check if any keyword appears in the drop content
-                if keywords and not any(k in searchable for k in keywords):
-                    continue
-                drops.append(d)
+                # Match against ANY of the user's watches
+                for wf in watch_filters:
+                    if not wf['domain'] or wf['domain'] != drop_domain:
+                        continue
+                    if wf['keywords'] and not any(k in searchable for k in wf['keywords']):
+                        continue
+                    drops.append(d)
+                    break  # don't double-add
     except FileNotFoundError:
         pass
 
-    # newest first, cap at 50
     drops.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-    return jsonify({'watcher': watcher.get('email'), 'drops': drops[:50]})
+    return jsonify({
+        'watcher': watcher.get('email'),
+        'watches': watch_filters,
+        'drops': drops[:50]
+    })
 
 @app.route('/api/verify/<token>', methods=['GET'])
 @limiter.limit("10 per minute")

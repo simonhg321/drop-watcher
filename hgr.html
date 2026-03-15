@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>HGR — How Drop Watcher Got Built</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0a0a0a;
+      --steel: #1c1c1c;
+      --iron: #2a2a2a;
+      --ember: #c0392b;
+      --flame: #e67e22;
+      --ash: #888;
+      --silver: #d0d0d0;
+      --white: #f0f0f0;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--black);
+      color: var(--white);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--iron);
+    }
+    nav a.logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      text-decoration: none;
+      color: var(--white);
+    }
+    nav a.logo span { color: var(--ember); }
+    nav a.back {
+      color: var(--ash);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+    }
+    nav a.back:hover { color: var(--white); }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 2rem 6rem;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      letter-spacing: 4px;
+      margin-bottom: 0.5rem;
+    }
+    h1 span { color: var(--ember); }
+
+    .subtitle {
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--ash);
+      margin-bottom: 3rem;
+    }
+
+    .intro {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: var(--silver);
+      margin-bottom: 3rem;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--iron);
+    }
+
+    .day {
+      position: relative;
+      margin-bottom: 2.5rem;
+    }
+    .day::before {
+      content: '';
+      position: absolute;
+      left: -2rem;
+      top: 0.35rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--ember);
+      border: 2px solid var(--black);
+    }
+
+    .day-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 2px;
+      color: var(--flame);
+      margin-bottom: 0.3rem;
+    }
+
+    .day-date {
+      font-size: 0.7rem;
+      color: var(--ash);
+      letter-spacing: 1px;
+      margin-bottom: 0.8rem;
+    }
+
+    .day-body {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--silver);
+    }
+
+    .day-body strong {
+      color: var(--white);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    .day-files {
+      margin-top: 0.6rem;
+      font-size: 0.75rem;
+      color: var(--ash);
+      letter-spacing: 0.5px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin: 3rem 0;
+    }
+    .stat {
+      background: var(--steel);
+      border: 1px solid var(--iron);
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .stat .num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      color: var(--ember);
+    }
+    .stat .label {
+      font-size: 0.65rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--ash);
+      margin-top: 0.3rem;
+    }
+
+    .how-section {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--iron);
+    }
+    .how-section h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 3px;
+      margin-bottom: 1.5rem;
+    }
+
+    .convo {
+      margin-bottom: 1.5rem;
+    }
+    .convo .human {
+      background: var(--steel);
+      border-left: 3px solid var(--flame);
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+      color: var(--white);
+    }
+    .convo .ai {
+      background: var(--steel);
+      border-left: 3px solid var(--ember);
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      color: var(--silver);
+    }
+    .convo .speaker {
+      font-size: 0.65rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--ash);
+      margin-bottom: 0.3rem;
+    }
+
+    .stack-list {
+      list-style: none;
+      margin: 1rem 0;
+    }
+    .stack-list li {
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--iron);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stack-list li span.tech { color: var(--white); }
+    .stack-list li span.role { color: var(--ash); font-size: 0.75rem; }
+
+    footer {
+      text-align: center;
+      padding: 3rem 0;
+      border-top: 1px solid var(--iron);
+      margin-top: 3rem;
+    }
+    footer .hgr {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--ember);
+      letter-spacing: 4px;
+    }
+    footer .sub {
+      font-size: 0.7rem;
+      color: var(--ash);
+      margin-top: 0.5rem;
+      letter-spacing: 1px;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 2.2rem; }
+      .container { padding: 2rem 1.2rem 4rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <a href="/" class="back">BACK TO HOME</a>
+</nav>
+
+<div class="container">
+
+  <h1>THE <span>BUILD</span></h1>
+  <p class="subtitle">How one guy and an AI built a drop-watching platform in 9 days.</p>
+
+  <p class="intro">
+    It started because I couldn't find a Steel Flame clip. If you know, you know &mdash;
+    they drop without warning, sell out in minutes, and by the time someone posts about it
+    on Reddit, it's gone. So I sat down with Claude and said: "I want to know the second
+    something drops." Nine days later we had a platform that watches any page on the web
+    for anything you're looking for. This is how it happened.
+  </p>
+
+  <div class="stats-grid">
+    <div class="stat">
+      <div class="num">12</div>
+      <div class="label">Sessions</div>
+    </div>
+    <div class="stat">
+      <div class="num">9</div>
+      <div class="label">Days</div>
+    </div>
+    <div class="stat">
+      <div class="num">15</div>
+      <div class="label">Python Files</div>
+    </div>
+    <div class="stat">
+      <div class="num">1</div>
+      <div class="label">Developer</div>
+    </div>
+  </div>
+
+  <!-- ── TIMELINE ────────────────────────────────────────────────────── -->
+  <div class="timeline">
+
+    <div class="day">
+      <div class="day-label">DAY 1</div>
+      <div class="day-date">MARCH 6, 2026</div>
+      <div class="day-body">
+        The first conversation. I described what I wanted: watch knife dealer websites,
+        use AI to understand what's on the page, and alert me when something real drops.
+        By the end of the night we had a working scraper, an AI interpreter powered by
+        Claude Haiku, a priority rules engine, and a live alerts page. Reddit RSS was
+        wired in. The thing was alive.
+      </div>
+      <div class="day-files">web_watcher.py, ai_interpreter.py, generate_alerts.py, feed_watcher.py, sources.yaml, makers.yaml</div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">DAY 2</div>
+      <div class="day-date">MARCH 7, 2026</div>
+      <div class="day-body">
+        Bug day. The alerts page had 115 stacked entries for the same drop. Priority rules
+        were too aggressive &mdash; everything was CRITICAL. We squashed four bugs, rewrote
+        the dedup logic, tightened priority rules so only the real grails trigger CRITICAL,
+        and got the page down to 25 clean alerts. Created the dev journal. Built the morning
+        briefer &mdash; 7am daily email with overnight activity. Set up automated backups.
+        Five sessions in one day.
+      </div>
+      <div class="day-files">generate_alerts.py rewritten, morning_briefer.py, backup_drop_watcher.sh, JOURNAL.md</div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">DAY 3</div>
+      <div class="day-date">MARCH 8, 2026</div>
+      <div class="day-body">
+        The platform pivot. What started as a personal tool became something anyone could use.
+        Built the public signup page, a Flask API for watch registration, per-user keyword
+        matching, and email alerts. Set up Twilio for SMS. Named the server
+        <strong>ironman</strong>. The first user could now enter a URL and keywords and get
+        emailed when their thing showed up.
+      </div>
+      <div class="day-files">watcher_signup.py, per_user_alerter.py, watchlist.html, sms_alerter.py</div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">DAY 4</div>
+      <div class="day-date">MARCH 9, 2026</div>
+      <div class="day-body">
+        Shut everything down clean before a Montana trip. Commented out every cron job,
+        stopped both supervisord services, silenced friend alerts. Left a restart checklist
+        in the journal. Sometimes the best engineering is knowing when to turn it off.
+      </div>
+      <div class="day-files">crontab, supervisord</div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">DAYS 5&ndash;7</div>
+      <div class="day-date">MARCH 10&ndash;12 &mdash; MONTANA</div>
+      <div class="day-body">
+        Off the grid. Ironman slept.
+      </div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">DAY 8</div>
+      <div class="day-date">MARCH 13, 2026</div>
+      <div class="day-body">
+        Back and running. Completed Twilio A2P 10DLC registration for SMS. Rewrote the
+        alerter to drop legacy boss/friends BCC and wire in SMS for CRITICAL. Built the
+        personal dashboard &mdash; magic link auth, matched drops view, stop watching.
+        Fixed keyword matching that was too broad. Rewrote the README to reflect what this
+        had become: a platform.
+      </div>
+      <div class="day-files">alerter.py, my-alerts.html, get-my-link.html, README.md</div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">DAY 9</div>
+      <div class="day-date">MARCH 14, 2026</div>
+      <div class="day-body">
+        Security and hardening day. Full XSS audit across every Python file and every HTML
+        page. CORS locked down. Rate limiting on every API route. Input validation, file
+        locking, SSRF protection. Built a self-healing watchdog that checks services every
+        2 minutes and auto-restarts them before alerting. Set up DMARC. Redesigned the
+        landing page. Rewrote all user-facing emails. Then the big one: separated code,
+        config, data, and logs into proper Linux directories with tight permissions.
+        Built <strong>paths.py</strong> &mdash; one file that every script imports so
+        paths are never hardcoded again.
+      </div>
+      <div class="day-files">paths.py, watchdog.py, safe_fetch.py, bin/migrate_dirs.sh, index.html</div>
+    </div>
+
+  </div>
+
+  <!-- ── HOW WE WORK ─────────────────────────────────────────────────── -->
+  <div class="how-section">
+    <h2>HOW WE WORK</h2>
+
+    <p class="intro" style="margin-bottom:1.5rem">
+      Every session starts the same way. I paste the server state into Claude and say
+      "continuing Drop Watcher dev." Claude reads the journal, sees what's running, and
+      picks up exactly where we left off. I describe what I want in plain English. Claude
+      writes the code. I ship it to ironman with one command. We test. We iterate.
+    </p>
+
+    <div class="convo">
+      <div class="human">
+        <div class="speaker">HGR</div>
+        its great &mdash; lets make some sre stuff to watch ironman and alert when gunnie corn dies
+      </div>
+      <div class="ai">
+        <div class="speaker">CLAUDE</div>
+        A self-healing watchdog. Checks gunicorn, web_watcher, apache, disk.
+        Tries to fix it first. Only emails you if the fix fails.
+      </div>
+    </div>
+
+    <div class="convo">
+      <div class="human">
+        <div class="speaker">HGR</div>
+        bleh don't want an email &mdash; can't it heal itself?
+      </div>
+      <div class="ai">
+        <div class="speaker">CLAUDE</div>
+        That's exactly what it does. Check &rarr; heal &rarr; re-check &rarr; only alert if heal fails.
+      </div>
+    </div>
+
+    <div class="convo">
+      <div class="human">
+        <div class="speaker">HGR</div>
+        tadow
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── THE STACK ────────────────────────────────────────────────────── -->
+  <div class="how-section">
+    <h2>THE STACK</h2>
+
+    <ul class="stack-list">
+      <li><span class="tech">Python 3</span> <span class="role">everything</span></li>
+      <li><span class="tech">Claude Haiku</span> <span class="role">page analysis</span></li>
+      <li><span class="tech">Claude Opus</span> <span class="role">pair programmer</span></li>
+      <li><span class="tech">Flask + Gunicorn</span> <span class="role">api</span></li>
+      <li><span class="tech">Apache 2</span> <span class="role">reverse proxy + tls</span></li>
+      <li><span class="tech">Supervisord</span> <span class="role">process management</span></li>
+      <li><span class="tech">Resend</span> <span class="role">transactional email</span></li>
+      <li><span class="tech">Twilio</span> <span class="role">sms alerts</span></li>
+      <li><span class="tech">BeautifulSoup</span> <span class="role">html parsing</span></li>
+      <li><span class="tech">Linode</span> <span class="role">ironman lives here</span></li>
+      <li><span class="tech">Cloudflare</span> <span class="role">dns + cdn</span></li>
+      <li><span class="tech">JSONL flat files</span> <span class="role">no database needed</span></li>
+    </ul>
+  </div>
+
+  <!-- ── FOOTER ───────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="hgr">HGR</div>
+    <div class="sub">BUILT IN OAKLAND, CA &mdash; MARCH 2026</div>
+    <div class="sub" style="margin-top:0.8rem">instockornot.club</div>
+  </footer>
+
+</div>
+
+</body>
+</html>
