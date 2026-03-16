@@ -66,6 +66,6 @@ ELv2 — see [LICENSE](LICENSE). Free for personal and community use. Commercial
 
 ---
 
-*Built session by session with Claude (Anthropic) as co-pilot — architecture, debugging, and the occasional argument about the right way to do things.*
+*Built around 11 sessions with Claude (Anthropic) as co-pilot — architecture, debugging. Claude did half. I did the half that mattered.*
 
 **HGR**
