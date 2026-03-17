@@ -398,3 +398,64 @@ NEVER:
 - UI polish — alerts.html and status.html still use old design system
 - BUG-007: delete web/ directory
 - BUG-008: delete orchestrator.py
+
+---
+
+### Session 15 — 2026-03-16
+
+**v1.0 release day.**
+
+**Shipped:**
+- v1.0 tagged (bafb90b), pushed to GitHub with SSH
+- Announced on Reddit and FB Underground knife community
+- Jonathan McNees called — approves of Drop Watcher, spreading word at Texas knife show
+
+**Project restructure:**
+- html/ — all HTML, favicon, robots.txt, sitemap.xml
+- conf/ — supervisor config (was in bin/)
+- bin/ — ops scripts (check_users.sh, nuke_watchers.sh moved here)
+- Dead files nuked: orchestrator.py, watcher_status.html, web/, test files, .cleanup.sh
+- BUG-007 and BUG-008 resolved
+- sync_ironman.sh — one-command deploy after ship
+- ship alias updated for new structure, push() function added
+
+**Infrastructure:**
+- Gunicorn bumped to 5 workers (2 cores × 2 + 1)
+- GoAccess stats regenerating hourly (cron)
+- Git SSH to GitHub configured
+- /etc/hosts: ironman alias on mac
+- DMARC report reviewed — 166 emails, 100% PASS on SPF+DKIM
+
+**New code:**
+- watcher_io.py — shared watchers.json I/O with file locking (extracted from 3 files)
+- discord_logger.py — posts all drops to Discord webhook channel, dedup, cron ready
+- cleanup_stale.py — nukes unverified watches older than 48h (cron daily 4:05am)
+- watcher_status.html — admin dashboard, IP-locked, shows watchers/stats/system health
+- /api/watchers expanded — total, active, pending, unique emails, per-watcher detail
+- 21 watch cap per email
+
+**UI:**
+- index.html rewritten — kept dark aesthetic, friendly copy (three steps, promises, use cases)
+- Green START WATCHING button in hero and nav
+- Confirmation email — VIEW MY ALERTS moved to top
+- Verify-check no longer writes false drops to drops.jsonl
+- my-alerts.html — matched drops moved above watches
+- robots.txt and sitemap.xml cleaned (dead pages removed, hgr.html added)
+
+**Docs:**
+- HANDOFF.md — full project map
+- handoff-sms.md — Twilio wiring handoff
+- README.md — "Claude did half. I did the half that mattered."
+
+**Milestone:** McNees endorsement. First maker approval.
+
+**Known issues:**
+- Twilio A2P 10DLC still pending
+- Gmail spam on verification emails (DMARC clean, reputation building)
+
+**Pending:**
+- Twilio SMS wiring — handoff-sms.md ready
+- Discord logger — deployed, awaiting first real drop
+- Phase 2: dashboard pagination, keyword tooltips, email template extraction, SQLite
+- Playwright headless browser — JS-rendered sites
+- alerts.html still old design (status.html deleted)

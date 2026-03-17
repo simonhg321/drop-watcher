@@ -449,7 +449,8 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
         pm.style.display = 'block';
       }
     } else {
-      alert('Something went wrong. Try again or email info@instockornot.club');
+      const err = await res.json().catch(() => null);
+      alert(err && err.error ? err.error : 'Something went wrong. Try again or email info@instockornot.club');
     }
   } catch(err) {
     alert('Could not connect. Try again shortly.');
