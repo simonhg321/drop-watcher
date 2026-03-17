@@ -22,3 +22,9 @@ html/stats/
 
 # OS
 .DS_Store
+
+# Local dev
+.claude/
+.zshrc
+*.save
+Screenshot*.png
