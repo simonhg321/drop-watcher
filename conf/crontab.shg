@@ -1,0 +1,34 @@
+# ── Drop Watcher crontab (shg) ────────────────────────────────────────────────
+# Deployed: 2026-03-17
+# All jobs use DW_ env vars so paths.py resolves to production directories.
+# HGR
+
+DW_DATA_DIR=/var/lib/drop-watcher
+DW_LOG_DIR=/var/log/drop-watcher
+DW_CONFIG_DIR=/etc/drop-watcher
+DW_ENV_FILE=/etc/drop-watcher/.env
+
+# ── Every 2 min ──────────────────────────────────────────────────────────────
+*/2 * * * * python3 /home/shg/drop-watcher/generate_alerts.py >> /var/log/drop-watcher/generate_alerts.log 2>&1
+*/2 * * * * python3 /home/shg/drop-watcher/watchdog.py >> /var/log/drop-watcher/watchdog.log 2>&1
+
+# ── Every 10 min ─────────────────────────────────────────────────────────────
+*/10 * * * * python3 /home/shg/drop-watcher/per_user_alerter.py >> /var/log/drop-watcher/per_user_alerter.log 2>&1
+*/10 * * * * python3 /home/shg/drop-watcher/discord_logger.py >> /var/log/drop-watcher/discord.log 2>&1
+
+# ── Every 15 min ─────────────────────────────────────────────────────────────
+*/15 * * * * python3 /home/shg/drop-watcher/agents/feed_watcher.py >> /var/log/drop-watcher/feed_watcher.log 2>&1
+
+# ── Every 30 min ─────────────────────────────────────────────────────────────
+*/30 * * * * python3 /home/shg/drop-watcher/bin/cleanup_stale.py >> /var/log/drop-watcher/cleanup_stale.log 2>&1
+
+# ── Hourly ───────────────────────────────────────────────────────────────────
+0 * * * * python3 /home/shg/drop-watcher/preflight.py >> /var/log/drop-watcher/preflight.log 2>&1
+0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/index.html --log-format=COMBINED 2>/dev/null
+
+# ── Daily ────────────────────────────────────────────────────────────────────
+0 4 * * * python3 /home/shg/drop-watcher/bin/trim_drops.py >> /var/log/drop-watcher/trim_drops.log 2>&1
+0 7 * * * cd /home/shg/drop-watcher && python3 morning_briefer.py >> /var/log/drop-watcher/morning_briefer.log 2>&1
+
+# ── Weekly ───────────────────────────────────────────────────────────────────
+0 3 * * 0 /home/shg/backup_drop_watcher.sh >> /home/shg/backups/backup.log 2>&1
