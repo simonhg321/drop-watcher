@@ -158,16 +158,9 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--ember);
+      background: #2ecc71;
       margin-right: 0.5rem;
-      animation: blink 2s ease-in-out infinite;
     }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.2; }
-    }
-
 
     .section {
       padding: 5rem 2rem;
@@ -290,21 +283,6 @@
       background: linear-gradient(90deg, transparent, var(--iron), transparent);
       margin: 0;
     }
-
-    .scroll-hint {
-      text-align: center;
-      font-size: 0.6rem;
-      letter-spacing: 0.4em;
-      color: var(--iron);
-      text-transform: uppercase;
-      animation: fadeIn 1s ease 2s forwards, nudge 2s ease-in-out 3s infinite;
-      opacity: 0;
-    }
-
-    @keyframes nudge {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(5px); }
-    }
   </style>
   <style>
     .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; }
@@ -319,7 +297,8 @@
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
   <a href="/" class="active">Home</a>
   <a href="/watchlist.html">Watch</a>
-  <a href="/get-my-link.html" style="margin-left:auto;background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
+  <a href="/watchlist.html" style="margin-left:auto;background:#27ae60;color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">START WATCHING</a>
+  <a href="/get-my-link.html" style="background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
 </nav>
 
 
@@ -328,18 +307,18 @@
     <div class="flame-line"></div>
 
     <div class="hero-center">
-      <p class="eyebrow">System Online — Watching the drop</p>
+      <p class="eyebrow">Never miss a drop</p>
       <h1 class="main-title">
         DROP
         <span>WATCHER</span>
       </h1>
-      <p class="tagline">Born hunting Steel Flame and mid-tech knife drops. Now it watches any page for anything you're after.</p>
-      <a href="/watchlist.html" style="display:inline-block;background:var(--ember);color:var(--white);padding:0.8rem 2.4rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;animation:fadeInUp 1s ease 0.8s forwards;opacity:0;margin-top:0.5rem;margin-bottom:3rem;">Start Watching</a>
+      <p class="tagline">Tell it what you're looking for. It watches the page around the clock and alerts you the moment it shows up.</p>
+      <a href="/watchlist.html" style="display:inline-block;background:#27ae60;color:var(--white);padding:0.8rem 2.4rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;animation:fadeInUp 1s ease 0.8s forwards;opacity:0;margin-top:0.5rem;margin-bottom:3rem;">Start Watching</a>
      </div>
 
     <div class="status-bar" style="justify-content:center;gap:2rem;">
-      <span><span class="status-dot"></span>Daemon Active</span>
-      <span>simonhg321 / drop-watcher</span>
+      <span><span class="status-dot"></span>Watching</span>
+      <span>Free — No account needed</span>
       <span>Est. 2026</span>
     </div>
   </section>
@@ -347,69 +326,100 @@
 
   <div class="divider"></div>
 
-  <!-- MISSION -->
+  <!-- WHAT IT DOES -->
   <section class="section">
-    <p class="section-label">01 — Mission</p>
-    <h2 class="section-title">Score cool gear.<br>Be a good citizen.</h2>
+    <p class="section-label">01 — What it does</p>
+    <h2 class="section-title">You tell it what to watch.<br>It tells you when it's there.</h2>
     <p style="font-family: 'Crimson Pro', serif; font-size: 1.15rem; color: var(--ash); max-width: 620px; line-height: 1.8; font-weight: 300;">
-      Drop Watcher was born to track Steel Flame jewelry and mid-tech knife drops — the kind of gear that sells out in seconds. Now it's open to everyone. Give it a URL and your keywords, and it watches the page around the clock. When your keywords show up, you get an alert. Simple. It watches quietly, never hammering sites, never bothering anyone.
+      Paste any URL and the keywords you care about. Drop Watcher checks the page every 30 minutes. The moment your keywords appear — a restock, a new listing, a limited drop — you get an email. Built for knife and EDC collectors who were tired of missing drops that sell out in minutes. Now it's open to everyone watching for anything.
     </p>
   </section>
 
   <div class="divider"></div>
 
-  <!-- AGENTS -->
+  <!-- HOW IT WORKS -->
   <section class="section">
-    <p class="section-label">02 — Agents</p>
-    <h2 class="section-title">Always On.<br>Never Sleeping.</h2>
+    <p class="section-label">02 — How it works</p>
+    <h2 class="section-title">Three steps.<br>That's it.</h2>
 
     <div class="agents-grid">
       <div class="agent-card">
-        <p class="agent-number">AGENT / 01</p>
-        <h3 class="agent-name">Web Watcher</h3>
-        <p class="agent-desc">Polls your watched URLs on polite randomized intervals. Detects page changes, new listings, and restocks — anything that matches your keywords.</p>
+        <p class="agent-number">STEP / 01</p>
+        <h3 class="agent-name">Paste a URL</h3>
+        <p class="agent-desc">Any webpage — a knife dealer, a sneaker store, a maker's shop page. If it's on the web, Drop Watcher can read it.</p>
       </div>
       <div class="agent-card">
-        <p class="agent-number">AGENT / 02</p>
-        <h3 class="agent-name">Feed Watcher</h3>
-        <p class="agent-desc">Consumes RSS feeds from Instagram, Facebook, and YouTube — watching for drop announcements and keyword matches across social channels.</p>
+        <p class="agent-number">STEP / 02</p>
+        <h3 class="agent-name">Add your keywords</h3>
+        <p class="agent-desc">The words you're hunting for. "Damascus", "skeleton key", "restock" — whatever matters to you. Separate them with commas.</p>
       </div>
       <div class="agent-card">
-        <p class="agent-number">AGENT / 03</p>
-        <h3 class="agent-name">Per-User Alerter</h3>
-        <p class="agent-desc">Your personal pipeline. Fetches your URL, checks your keywords, and fires an email the moment something matches. No noise — just signal.</p>
+        <p class="agent-number">STEP / 03</p>
+        <h3 class="agent-name">Get alerted</h3>
+        <p class="agent-desc">When your keywords show up on the page, you get an email right away. No app to install, no account to create. Just alerts that matter.</p>
       </div>
       <div class="agent-card">
-        <p class="agent-number">AGENT / 04</p>
-        <h3 class="agent-name">Watchdog</h3>
-        <p class="agent-desc">Self-healing monitor. Checks every service every two minutes. If something dies, it restarts it automatically. You sleep — the watchdog doesn't.</p>
+        <p class="agent-number">BONUS</p>
+        <h3 class="agent-name">AI-powered</h3>
+        <p class="agent-desc">An AI reads each page and understands the difference between a routine restock and a genuinely rare drop. It flags what matters most.</p>
       </div>
     </div>
   </section>
 
   <div class="divider"></div>
 
-  <!-- PRINCIPLES -->
+  <!-- PROMISES -->
   <section class="section">
-    <p class="section-label">03 — Principles</p>
-    <h2 class="section-title">The Code.</h2>
+    <p class="section-label">03 — Promises</p>
+    <h2 class="section-title">What we're about.</h2>
 
     <div class="principles">
       <div class="principle">
         <h3 class="principle-title">You Decide</h3>
-        <p class="principle-text">The system watches and alerts. Every purchase decision belongs to the human. No automation crosses that line.</p>
+        <p class="principle-text">Drop Watcher watches and alerts. Every purchase decision is yours. It never buys, bids, or acts on your behalf.</p>
       </div>
       <div class="principle">
-        <h3 class="principle-title">Polite by Design</h3>
-        <p class="principle-text">Randomized intervals. One request at a time per domain. Robots.txt respected. Small makers protected.</p>
+        <h3 class="principle-title">Respectful</h3>
+        <p class="principle-text">It checks pages gently — never hammering sites or causing problems for makers and dealers. Small businesses are protected.</p>
       </div>
       <div class="principle">
-        <h3 class="principle-title">Your Data, Your Business</h3>
-        <p class="principle-text">We don't sell, share, or analyze what you watch. Your URL, your keywords, your alerts — that's between you and the page.</p>
+        <h3 class="principle-title">Private</h3>
+        <p class="principle-text">Your data stays yours. No selling, no sharing, no tracking. What you watch is nobody's business but yours.</p>
       </div>
       <div class="principle">
-        <h3 class="principle-title">URL + Keywords</h3>
-        <p class="principle-text">No account. No app. Give us a URL and the words you're looking for. Verify your email. That's it — you're watching.</p>
+        <h3 class="principle-title">Simple</h3>
+        <p class="principle-text">No account. No app. No fees. Paste a URL, add your keywords, verify your email. That's it — you're watching.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- BUILT FOR -->
+  <section class="section">
+    <p class="section-label">04 — Built for collectors</p>
+    <h2 class="section-title">Works for anything on the web.</h2>
+
+    <div class="stack-list">
+      <div class="stack-item">
+        <span class="stack-key">Knives & EDC</span>
+        <span class="stack-val">Strider, Hinderer, CRK, Steel Flame, mid-techs</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Sneakers</span>
+        <span class="stack-val">Limited releases, restocks, SNKRS drops</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Makers & Artists</span>
+        <span class="stack-val">Small-batch ceramics, jewelry, leather goods</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Gear & Tech</span>
+        <span class="stack-val">Camera restocks, GPU drops, limited runs</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Anything else</span>
+        <span class="stack-val">If it's on a webpage, Drop Watcher can watch it</span>
       </div>
     </div>
   </section>
@@ -418,7 +428,7 @@
 
   <!-- STACK -->
   <section class="section">
-    <p class="section-label">04 — Stack</p>
+    <p class="section-label">05 — Stack</p>
     <h2 class="section-title">Built Right.</h2>
 
     <div class="stack-list">

@@ -1,0 +1,7 @@
+# Protect watcher_status.html — HGR only
+<Files "watcher_status.html">
+  Order Deny,Allow
+  Deny from all
+  Allow from 71.197.159.99
+  Allow from 172.232.190.61
+</Files>
