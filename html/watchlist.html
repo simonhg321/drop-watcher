@@ -354,93 +354,33 @@ if (new URLSearchParams(window.location.search).get('removed') === '1') {
   document.getElementById('removedBanner').style.display = 'block';
 }
 
-// ── URL check on blur ──────────────────────────────────────────────────────
-let urlChecked = false;
-let urlOk = false;
-
-function setUrlStatus(state, msg) {
-  const el = document.getElementById('urlStatus');
-  el.style.display = 'flex';
-  el.className = 'url-status ' + state;
-  el.querySelector('.msg').textContent = msg;
-}
-
-document.getElementById('urlInput').addEventListener('blur', async function() {
-  const url = this.value.trim();
-  if (!url) {
-    document.getElementById('urlStatus').style.display = 'none';
-    urlChecked = false;
-    urlOk = false;
-    return;
-  }
-  setUrlStatus('checking', 'Checking if we can read this page...');
-  urlChecked = false;
-  urlOk = false;
-  try {
-    const res = await fetch('/api/check-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-    const data = await res.json();
-    urlChecked = true;
-    urlOk = data.ok;
-    setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
-  } catch(e) {
-    urlChecked = true;
-    urlOk = false;
-    setUrlStatus('fail', 'Could not check this URL. Try again.');
-  }
-});
-
-// ── Form submit ────────────────────────────────────────────────────────────
+// ── Form submit (stripped down) ─────────────────────────────────────────────
 document.getElementById('watchForm').addEventListener('submit', async function(e) {
   e.preventDefault();
+  const form = this;
   const btn = document.getElementById('submitBtn');
-
-  if (!urlChecked) {
-    setUrlStatus('checking', 'Checking URL...');
-    try {
-      const res = await fetch('/api/check-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: this.url.value })
-      });
-      const data = await res.json();
-      urlChecked = true;
-      urlOk = data.ok;
-      setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
-    } catch(e) {
-      urlChecked = true;
-      urlOk = false;
-      setUrlStatus('fail', 'Could not check this URL. Try again.');
-    }
-  }
-
-  if (!urlOk) return;
   btn.classList.add('loading');
 
-  const data = {
-    url: this.url.value,
-    keywords: this.keywords.value,
-    priority: this.priority.value,
-    email: this.email.value,
-    name: this.name.value,
-    created: new Date().toISOString()
+  const payload = {
+    url: form.querySelector('[name="url"]').value,
+    keywords: form.querySelector('[name="keywords"]').value,
+    priority: form.querySelector('[name="priority"]:checked').value,
+    email: form.querySelector('[name="email"]').value,
+    name: form.querySelector('[name="name"]').value
   };
 
   try {
     const res = await fetch('/api/watch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
+    const result = await res.json();
     if (res.ok) {
-      const result = await res.json();
       document.getElementById('watchForm').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
       document.querySelector('.stats-bar').style.display = 'none';
-      document.getElementById('confirmedEmail').textContent = data.email;
+      document.getElementById('confirmedEmail').textContent = payload.email;
       document.getElementById('successMsg').style.display = 'block';
       document.getElementById('successMsg').style.padding = '80px 32px';
       if (result.preview_msg) {
@@ -449,8 +389,7 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
         pm.style.display = 'block';
       }
     } else {
-      const err = await res.json().catch(() => null);
-      alert(err && err.error ? err.error : 'Something went wrong. Try again or email info@instockornot.club');
+      alert(result.error || 'Something went wrong. Try again or email info@instockornot.club');
     }
   } catch(err) {
     alert('Could not connect. Try again shortly.');

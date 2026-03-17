@@ -766,14 +766,38 @@ def check_url():
     return jsonify({'ok': True, 'msg': "We can read this page. You're good to go."})
 
 
+ADMIN_IPS = {'127.0.0.1', '::1', '71.197.159.99'}
+
 @app.route('/api/watchers', methods=['GET'])
 def list_watchers():
-    """Admin endpoint — localhost only."""
-    if request.remote_addr not in ('127.0.0.1', '::1'):
+    """Admin endpoint — localhost + HGR home IP."""
+    if request.remote_addr not in ADMIN_IPS:
         return jsonify({'error': 'forbidden'}), 403
     watchers = load_watchers()
-    active = [w for w in watchers if w.get('active')]
-    return jsonify({'count': len(active), 'watchers': active}), 200
+    active   = [w for w in watchers if w.get('active')]
+    pending  = [w for w in watchers if not w.get('active')]
+    emails   = list(set(w.get('email', '').lower() for w in watchers))
+
+    return jsonify({
+        'total': len(watchers),
+        'active_count': len(active),
+        'pending_count': len(pending),
+        'unique_emails': len(emails),
+        'watchers': [{
+            'id': w.get('id'),
+            'email': w.get('email'),
+            'name': w.get('name'),
+            'url': w.get('url'),
+            'keywords': w.get('keywords'),
+            'priority': w.get('priority'),
+            'active': w.get('active'),
+            'phone': bool(w.get('phone')),
+            'sms_approved': w.get('sms_approved'),
+            'created': w.get('created'),
+            'last_alert': w.get('last_alert'),
+            'alert_count': w.get('alert_count', 0),
+        } for w in watchers]
+    }), 200
 
 
 if __name__ == '__main__':
