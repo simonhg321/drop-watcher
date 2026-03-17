@@ -288,7 +288,7 @@ def generate_alerts_page():
 
   <footer>
     <span>instockornot.club — simonhg321/drop-watcher</span>
-    <span class="hgr">HGR</span>
+    <span class="hgr" data-nosnippet>HGR</span>
   </footer>
 <script>
 function filterAlerts(priority) {{
