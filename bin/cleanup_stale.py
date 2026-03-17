@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
 """
-cleanup_stale.py — Remove pending (unverified) watches older than 48 hours.
+cleanup_stale.py — Remove pending (unverified) watches older than 2 hours.
 Catches typo'd emails, bots, and people who never clicked verify.
-Run via cron daily at 4am alongside trim_drops.py.
+Run via cron every 30 min: */30 * * * *
+NOTE: 2h is aggressive — if we scale and email delivery slows, bump this up.
 HGR
 """
 
@@ -15,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from watcher_io import load_watchers, save_watchers
 
-STALE_HOURS = 48
+STALE_HOURS = 2
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [cleanup_stale] %(message)s')
 log = logging.getLogger(__name__)
