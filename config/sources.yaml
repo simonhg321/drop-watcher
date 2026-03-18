@@ -314,12 +314,12 @@ websites:
 
   # ── Boss Watchlist ─────────────────────────────────────────────────────────
 
-  - name: Ubiquiti UVC-G6-180 Camera
-    url: https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180
+  - name: Ubiquiti UVC-G6-180-W Camera (White)
+    url: https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w
     poll_interval: 15
     enabled: true
     site_type: product
-    notes: Boss wants white version - watch for Coming Soon to change to Add to Cart
+    notes: Boss wants WHITE version — alert when Coming Soon changes to Add to Cart
 
 # ── RSS / Social Feeds ────────────────────────────────────────────────────────
 feeds:
