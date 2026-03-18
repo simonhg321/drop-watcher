@@ -328,7 +328,7 @@ async function loadWatchers() {
         '<td>' + statusBadge(w.active) + '</td>' +
         '<td>' + (w.email || '') + '</td>' +
         '<td>' + (w.name || '—') + '</td>' +
-        '<td class="url-cell" title="' + (w.url || '') + '">' + domain + '</td>' +
+        '<td class="url-cell" title="' + (w.url || '') + '"><a href="' + (w.url || '') + '" target="_blank">' + domain + '</a></td>' +
         '<td class="kw-cell" title="' + (w.keywords || '') + '">' + (w.keywords || '') + '</td>' +
         '<td>' + priorityBadge(w.priority) + '</td>' +
         '<td>' + (w.alert_count || 0) + '</td>' +
