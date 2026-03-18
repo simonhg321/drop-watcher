@@ -28,3 +28,4 @@ html/stats/
 .zshrc
 *.save
 Screenshot*.png
+.ZZZ/
