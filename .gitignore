@@ -24,6 +24,7 @@ html/stats/
 .DS_Store
 
 # Local dev
+dev/
 .claude/
 .zshrc
 *.save

@@ -1,5 +1,5 @@
 # ── Drop Watcher crontab (shg) ────────────────────────────────────────────────
-# Deployed: 2026-03-17
+# Deployed: 2026-03-19
 # All jobs use DW_ env vars so paths.py resolves to production directories.
 # HGR
 
@@ -15,6 +15,7 @@ DW_ENV_FILE=/etc/drop-watcher/.env
 # ── Every 10 min ─────────────────────────────────────────────────────────────
 */10 * * * * python3 /home/shg/drop-watcher/per_user_alerter.py >> /var/log/drop-watcher/per_user_alerter.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/discord_logger.py >> /var/log/drop-watcher/discord.log 2>&1
+*/10 * * * * python3 /home/shg/drop-watcher/generate_traffic.py >> /var/log/drop-watcher/generate_traffic.log 2>&1
 
 # ── Every 15 min ─────────────────────────────────────────────────────────────
 */15 * * * * python3 /home/shg/drop-watcher/agents/feed_watcher.py >> /var/log/drop-watcher/feed_watcher.log 2>&1
@@ -25,6 +26,7 @@ DW_ENV_FILE=/etc/drop-watcher/.env
 # ── Hourly ───────────────────────────────────────────────────────────────────
 0 * * * * python3 /home/shg/drop-watcher/preflight.py >> /var/log/drop-watcher/preflight.log 2>&1
 0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/index.html --log-format=COMBINED 2>/dev/null
+0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/data.json --log-format=COMBINED 2>/dev/null
 
 # ── Daily ────────────────────────────────────────────────────────────────────
 0 4 * * * python3 /home/shg/drop-watcher/bin/trim_drops.py >> /var/log/drop-watcher/trim_drops.log 2>&1
