@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMS Opt-In — Drop Watcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #161616;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #888;
+      --accent: #f5a623;
+      --green: #4caf82;
+      --red: #e05a5a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wordmark {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    /* reviewer notice banner */
+    .reviewer-notice {
+      background: #1a1600;
+      border-bottom: 1px solid #3a2e00;
+      padding: 12px 40px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: #c8a94a;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 56px 40px 96px;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 64px;
+      align-items: start;
+    }
+
+    /* Left column — explanation */
+    .explainer h1 {
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .explainer .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .flow-steps {
+      margin-bottom: 40px;
+    }
+
+    .flow-steps h2 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 18px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent);
+      background: rgba(245, 166, 35, 0.1);
+      border: 1px solid rgba(245, 166, 35, 0.25);
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 14px;
+      color: #c8c8c8;
+      line-height: 1.6;
+    }
+
+    .step-text strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .disclosures {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      padding: 20px 24px;
+    }
+
+    .disclosures h2 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 16px;
+    }
+
+    .disclosure-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .disclosure-row:last-child { margin-bottom: 0; }
+
+    .d-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 100px;
+      padding-top: 1px;
+    }
+
+    .d-value { color: #c8c8c8; }
+
+    /* Right column — the actual form demo */
+    .form-demo {
+      position: sticky;
+      top: 32px;
+    }
+
+    .form-demo-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+    }
+
+    .form-card h3 {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .form-card .form-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    .field label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .field input[type="text"],
+    .field input[type="email"],
+    .field input[type="tel"],
+    .field input[type="url"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .field input:focus {
+      border-color: var(--accent);
+    }
+
+    .field input::placeholder { color: #444; }
+
+    .field-optional {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 6px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* SMS consent block — the critical CTA element */
+    .sms-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .sms-block-header {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .sms-phone-field {
+      margin-bottom: 14px;
+    }
+
+    .sms-phone-field label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .sms-phone-field input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .sms-phone-field input:focus { border-color: var(--accent); }
+    .sms-phone-field input::placeholder { color: #444; }
+
+    /* The consent checkbox row */
+    .consent-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .consent-checkbox-wrap {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .consent-checkbox-wrap input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .checkbox-visual {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #555;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, background 0.2s;
+      pointer-events: none;
+    }
+
+    .consent-checkbox-wrap input:checked ~ .checkbox-visual {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checkmark {
+      display: none;
+      width: 10px;
+      height: 10px;
+    }
+
+    .consent-checkbox-wrap input:checked ~ .checkbox-visual .checkmark {
+      display: block;
+    }
+
+    /* The actual consent language — highlighted as the CTA */
+    .consent-text {
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+
+    .consent-text a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(245,166,35,0.3);
+    }
+
+    /* CTA callout — points at the consent text for reviewers */
+    .cta-callout {
+      border: 1px dashed rgba(245, 166, 35, 0.4);
+      padding: 8px 12px;
+      margin-top: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: rgba(245, 166, 35, 0.7);
+      letter-spacing: 0.06em;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0f0f0f;
+      border: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 14px;
+      cursor: default;
+      opacity: 0.5;
+      margin-top: 4px;
+    }
+
+    .submit-note {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 40px;
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+    }
+
+    footer a {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--accent); }
+
+    @media (max-width: 800px) {
+      .container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 40px 20px 64px;
+      }
+      .form-demo { position: static; }
+      header { padding: 16px 20px; }
+      .reviewer-notice { padding: 12px 20px; }
+      footer { padding: 20px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="wordmark" href="https://instockornot.club">Drop Watcher</a>
+  </header>
+
+  <div class="reviewer-notice">
+    This page documents the SMS opt-in consent flow for A2P 10DLC campaign verification — instockornot.club
+  </div>
+
+  <div class="container">
+
+    <!-- Left: explanation for reviewers -->
+    <div class="explainer">
+      <h1>SMS Opt-In Consent Flow</h1>
+      <p class="sub">This page documents how Drop Watcher collects SMS consent from users. The signup form is personalized per-user after account creation; this page demonstrates the exact consent flow and language presented at the point of collection.</p>
+
+      <div class="flow-steps">
+        <h2>How consent is collected</h2>
+
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-text">User visits <strong>instockornot.club</strong> and fills out the watchlist signup form with their name, email, and the URL + keywords they want to monitor.</div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-text">User <strong>optionally</strong> enters their phone number in the SMS field. No phone number is required to use the service — email alerts are available without SMS.</div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-text">User checks an <strong>explicit, unchecked-by-default SMS consent checkbox</strong>. The checkbox is required to enable SMS. The form does not enroll a user in SMS without this checkbox being actively checked.</div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-text">The <strong>consent disclosure language</strong> (shown in the form demo →) is displayed directly below the phone number field and checkbox at the point of collection, before the form is submitted.</div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-text">On form submission, the backend stores <code>sms_approved: true</code> only when the consent checkbox was checked. No SMS is ever sent to a user without this flag set.</div>
+        </div>
+      </div>
+
+      <div class="disclosures">
+        <h2>Required disclosures — all present at point of collection</h2>
+
+        <div class="disclosure-row">
+          <div class="d-label">Brand</div>
+          <div class="d-value">Drop Watcher (instockornot.club)</div>
+        </div>
+        <div class="disclosure-row">
+          <div class="d-label">Frequency</div>
+          <div class="d-value">Message frequency varies</div>
+        </div>
+        <div class="disclosure-row">
+          <div class="d-label">Rates</div>
+          <div class="d-value">Msg &amp; data rates may apply</div>
+        </div>
+        <div class="disclosure-row">
+          <div class="d-label">Opt-out</div>
+          <div class="d-value">Reply STOP to unsubscribe</div>
+        </div>
+        <div class="disclosure-row">
+          <div class="d-label">Help</div>
+          <div class="d-value">Reply HELP for help</div>
+        </div>
+        <div class="disclosure-row">
+          <div class="d-label">Privacy</div>
+          <div class="d-value"><a href="/privacy.html" style="color:var(--green);border-bottom:1px solid rgba(76,175,130,0.3)">instockornot.club/privacy.html</a></div>
+        </div>
+        <div class="disclosure-row">
+          <div class="d-label">Terms</div>
+          <div class="d-value"><a href="/terms.html" style="color:var(--green);border-bottom:1px solid rgba(76,175,130,0.3)">instockornot.club/terms.html</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: the actual form demo -->
+    <div class="form-demo">
+      <div class="form-demo-label">Live consent form demonstration</div>
+      <div class="form-card">
+        <h3>Create a Drop Watch</h3>
+        <p class="form-sub">Get alerted the moment your item drops.</p>
+
+        <div class="field">
+          <label>Name <span class="field-optional">(optional)</span></label>
+          <input type="text" placeholder="Your name" disabled />
+        </div>
+
+        <div class="field">
+          <label>Email</label>
+          <input type="email" placeholder="you@example.com" disabled />
+        </div>
+
+        <div class="field">
+          <label>Watch URL</label>
+          <input type="url" placeholder="https://southernedgeknives.com/collections/strider" disabled />
+        </div>
+
+        <div class="field">
+          <label>Keywords</label>
+          <input type="text" placeholder="Strider, SNG, SMF" disabled />
+        </div>
+
+        <!-- SMS consent block — the CTA -->
+        <div class="sms-block">
+          <div class="sms-block-header">SMS Alerts <span class="field-optional" style="text-transform:none;letter-spacing:0">(optional)</span></div>
+
+          <div class="sms-phone-field">
+            <label>Phone Number</label>
+            <input type="tel" placeholder="+1 (555) 000-0000" disabled />
+          </div>
+
+          <div class="consent-row">
+            <div class="consent-checkbox-wrap">
+              <input type="checkbox" disabled />
+              <div class="checkbox-visual">
+                <svg class="checkmark" viewBox="0 0 10 10" fill="none">
+                  <path d="M1.5 5L4 7.5L8.5 2.5" stroke="#0f0f0f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <!-- THE CONSENT LANGUAGE — displayed at point of collection -->
+            <div class="consent-text">
+              By providing your phone number, you consent to receive SMS alerts from <strong>Drop Watcher</strong> (instockornot.club) about knife and EDC gear availability. Message frequency varies. Msg &amp; data rates may apply. Reply <strong>STOP</strong> to unsubscribe, <strong>HELP</strong> for help. See <a href="/privacy.html">Privacy Policy</a> and <a href="/terms.html">SMS Terms</a>.
+            </div>
+          </div>
+
+          <div class="cta-callout">
+            ↑ consent language displayed at point of collection, directly below phone field
+          </div>
+        </div>
+
+        <button class="submit-btn" disabled>Create Watch</button>
+        <div class="submit-note">demo only — form is not active on this page</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <a href="https://instockornot.club">Home</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">SMS Terms</a>
+    <a href="mailto:support@instockornot.club">Support</a>
+  </footer>
+
+</body>
+</html>
