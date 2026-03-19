@@ -257,8 +257,10 @@ def generate_alerts_page():
   <p class="subtitle">LIVE ALERTS — LAST 48 HOURS — AUTO REFRESHES EVERY 30 SECONDS</p>
   <div class="flame-line"></div>
   <nav class="nav">
+    <a href="/watcher_status.html">DASHBOARD</a>
     <a href="/alerts.html" class="active">ALERTS</a>
     <a href="/status.html">STATUS</a>
+    <a href="/stats/">STATS</a>
     <a href="/index.html">HOME</a>
   </nav>
   <div class="stats">

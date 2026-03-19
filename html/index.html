@@ -254,14 +254,15 @@
     footer {
       border-top: 1px solid var(--iron);
       padding: 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       font-size: 0.65rem;
       letter-spacing: 0.3em;
       color: var(--ash);
       text-transform: uppercase;
     }
+    .footer-top { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .footer-top a { color: var(--ash); text-decoration: none; }
+    .footer-top a:hover { color: var(--flame); }
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; }
 
     .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
 
@@ -482,9 +483,16 @@
 
   <!-- FOOTER -->
   <footer>
-    <span>instockornot.club — Est. 2026</span>
-    <span class="footer-hgr">HGR</span>
-    <span><a href="mailto:info@instockornot.club" style="color:var(--flame);text-decoration:none;">info@instockornot.club</a></span>
+    <div class="footer-top">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">SMS Terms</a>
+      <a href="/hgr.html">The Story</a>
+      <a href="mailto:info@instockornot.club">info@instockornot.club</a>
+    </div>
+    <div class="footer-bottom">
+      <span>instockornot.club — Est. 2026</span>
+      <span class="footer-hgr" title="HGR — Derrick Obatake, Steel Flame">HGR</span>
+    </div>
   </footer>
 
 </body>
