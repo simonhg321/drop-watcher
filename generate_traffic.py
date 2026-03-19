@@ -453,41 +453,48 @@ def generate_traffic_page():
     .nav a.active {{ color: var(--flame); border-bottom: 1px solid var(--flame); }}
 
     /* Stats grid */
-    .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }}
-    .stat-card {{ background: var(--black); padding: 1.2rem; text-align: center; }}
-    .stat-label {{ font-size: 0.6rem; letter-spacing: 0.2em; color: var(--ash); margin-bottom: 0.3rem; }}
-    .stat-value {{ font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--white); }}
-    .stat-sub {{ font-size: 0.6rem; color: var(--ash); margin-top: 0.2rem; }}
+    .stats-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }}
+    .stat-card {{ background: var(--black); padding: 1.2rem 0.5rem; text-align: center; }}
+    .stat-label {{ font-size: 0.55rem; letter-spacing: 0.15em; color: var(--ash); margin-bottom: 0.3rem; }}
+    .stat-value {{ font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.4rem, 5vw, 2rem); color: var(--white); }}
+    .stat-sub {{ font-size: 0.55rem; color: var(--ash); margin-top: 0.2rem; }}
 
     /* Section heads */
     .section-head {{ font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.1em; color: var(--ash); margin: 2rem 0 1rem; }}
 
     /* Bar chart */
-    .bar-chart {{ display: flex; align-items: flex-end; gap: 4px; height: 120px; border-bottom: 1px solid var(--iron); padding-bottom: 4px; margin-bottom: 2rem; }}
+    .bar-chart {{ display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--iron); padding-bottom: 4px; margin-bottom: 2rem; overflow: hidden; }}
     .bar-chart-hourly {{ height: 80px; }}
-    .bar-col {{ display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }}
+    .bar-col {{ display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; height: 100%; justify-content: flex-end; }}
     .bar-col-sm {{ min-width: 0; }}
     .bar {{ background: linear-gradient(to top, var(--ember), var(--flame)); width: 100%; min-height: 2px; transition: height 0.3s; }}
     .bar-sm {{ width: 80%; }}
-    .bar-value {{ font-size: 0.6rem; color: var(--silver); margin-bottom: 4px; }}
-    .bar-label {{ font-size: 0.55rem; color: var(--ash); margin-top: 6px; }}
+    .bar-value {{ font-size: 0.55rem; color: var(--silver); margin-bottom: 4px; white-space: nowrap; }}
+    .bar-label {{ font-size: 0.5rem; color: var(--ash); margin-top: 4px; white-space: nowrap; }}
 
     /* Panels grid */
-    .panels {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }}
-    .panel {{ border: 1px solid var(--iron); }}
+    .panels {{ display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem; }}
+    .panel {{ border: 1px solid var(--iron); overflow-x: auto; }}
     .panel-title {{ font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.1em; color: var(--ember); padding: 0.75rem 1rem; background: var(--steel); border-bottom: 1px solid var(--iron); }}
     .panel-body {{ padding: 0; }}
     .panel-empty {{ padding: 1.5rem; color: var(--ash); font-size: 0.75rem; text-align: center; }}
 
     /* Data tables */
     .data-table {{ width: 100%; border-collapse: collapse; font-size: 0.7rem; }}
-    .data-table th {{ text-align: left; padding: 0.5rem 1rem; color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; border-bottom: 1px solid var(--iron); }}
-    .data-table td {{ padding: 0.4rem 1rem; border-bottom: 1px solid rgba(42,42,42,0.5); color: var(--silver); }}
+    .data-table th {{ text-align: left; padding: 0.5rem 0.75rem; color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; border-bottom: 1px solid var(--iron); white-space: nowrap; }}
+    .data-table td {{ padding: 0.4rem 0.75rem; border-bottom: 1px solid rgba(42,42,42,0.5); color: var(--silver); }}
     .data-table tr:last-child td {{ border-bottom: none; }}
     .data-table tr:hover td {{ background: var(--steel); }}
-    .num-cell {{ text-align: right; font-variant-numeric: tabular-nums; }}
-    .path-cell {{ max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+    .num-cell {{ text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }}
+    .path-cell {{ max-width: 55vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
     .status-dot {{ display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }}
+
+    /* Desktop: side-by-side panels */
+    @media (min-width: 700px) {{
+      .stats-grid {{ grid-template-columns: repeat(6, 1fr); }}
+      .panels {{ grid-template-columns: repeat(2, 1fr); }}
+      .path-cell {{ max-width: 280px; }}
+    }}
 
     /* Footer */
     .source-line {{ color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; margin-top: 0.5rem; }}
