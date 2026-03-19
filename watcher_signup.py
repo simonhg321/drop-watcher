@@ -335,7 +335,7 @@ def watch():
         'name':              name,
         'priority':          priority,
         'phone':             phone,
-        'sms_approved':      False,
+        'sms_approved':      bool(phone and data.get('sms_consent')),
         'active':            already_verified,  # auto-activate if email already verified
         'created':           datetime.now(timezone.utc).isoformat(),
         'last_alert':        None,

@@ -307,6 +307,19 @@
       <input type="text" name="name" placeholder="Handle or first name">
     </div>
 
+    <div class="field">
+      <label>Phone number <span style="color:var(--ash);">(optional — for SMS alerts)</span></label>
+      <input type="tel" name="phone" placeholder="+1 (555) 123-4567">
+      <div class="hint">Get a text for CRITICAL drops. US numbers only. Msg & data rates apply.</div>
+    </div>
+
+    <div class="field" id="smsConsentField" style="display:none;">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;color:var(--silver);">
+        <input type="checkbox" name="sms_consent" style="width:auto;margin-top:2px;flex-shrink:0;accent-color:var(--ember);">
+        I agree to receive SMS alerts from Drop Watcher. Msg frequency varies. Reply STOP to cancel. <a href="/terms.html" style="color:var(--flame);">SMS Terms</a>
+      </label>
+    </div>
+
     <div class="submit-row">
       <button type="submit" id="submitBtn">
         <span class="btn-text">Start Watching</span>
@@ -363,6 +376,11 @@ if (new URLSearchParams(window.location.search).get('removed') === '1') {
   document.getElementById('removedBanner').style.display = 'block';
 }
 
+// ── Show SMS consent when phone entered ─────────────────────────────────────
+document.querySelector('[name="phone"]').addEventListener('input', function() {
+  document.getElementById('smsConsentField').style.display = this.value.trim() ? 'block' : 'none';
+});
+
 // ── Form submit (stripped down) ─────────────────────────────────────────────
 document.getElementById('watchForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -375,7 +393,9 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
     keywords: form.querySelector('[name="keywords"]').value,
     priority: form.querySelector('[name="priority"]:checked').value,
     email: form.querySelector('[name="email"]').value,
-    name: form.querySelector('[name="name"]').value
+    name: form.querySelector('[name="name"]').value,
+    phone: form.querySelector('[name="phone"]').value,
+    sms_consent: form.querySelector('[name="sms_consent"]').checked
   };
 
   try {
