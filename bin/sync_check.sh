@@ -98,5 +98,5 @@ ssh shg@instockornot.club "sudo supervisorctl status 2>/dev/null"
 echo ""
 
 echo "════════════════════════════════════════════"
-echo "  Done. You're the sysadmin."
+echo "  Done. You're the sysadm."
 echo "════════════════════════════════════════════"
