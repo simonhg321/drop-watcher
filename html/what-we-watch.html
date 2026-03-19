@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>What We Watch — Drop Watcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+      --green: #2ecc71; --yellow: #f1c40f;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; min-height: 100vh; }
+
+    /* NAV */
+    .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+    .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo span { color: var(--ember); }
+    .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
+    .dw-nav .cta { background: var(--ember); color: var(--white); padding: 8px 20px; font-size: 11px; letter-spacing: 0.15em; }
+    .dw-nav .cta:hover { background: #a93226; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 6vw, 3.5rem); letter-spacing: 0.05em; }
+    h1 span { color: var(--ember); }
+    .subtitle { color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-top: 4px; text-transform: uppercase; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1.5rem 0 2.5rem; }
+
+    .intro { font-family: 'Crimson Pro', serif; font-size: 1.1rem; color: var(--silver); line-height: 1.8; max-width: 700px; margin-bottom: 3rem; }
+
+    /* STATS BAR */
+    .stats-bar { display: flex; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap; }
+    .stat-box { border: 1px solid var(--iron); padding: 16px 24px; min-width: 120px; }
+    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--ember); }
+    .stat-label { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--ash); text-transform: uppercase; margin-top: 2px; }
+
+    /* SECTION HEADERS */
+    .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 0.1em; color: var(--white); margin: 3rem 0 1rem; }
+    .section-sub { font-size: 0.7rem; color: var(--ash); letter-spacing: 0.2em; margin-bottom: 1.5rem; text-transform: uppercase; }
+
+    /* SOURCE GRID */
+    .source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }
+    .source-card { background: var(--steel); padding: 14px 18px; display: flex; align-items: center; gap: 12px; }
+    .source-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .source-dot.active { background: var(--green); }
+    .source-dot.blocked { background: var(--ember); }
+    .source-dot.feed { background: var(--flame); }
+    .source-name { font-size: 0.8rem; color: var(--silver); }
+    .source-type { font-size: 0.55rem; color: var(--ash); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
+
+    /* MAKER LIST */
+    .maker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+    .maker-card { background: var(--steel); border: 1px solid var(--iron); padding: 16px 20px; }
+    .maker-card.tier-1 { border-left: 3px solid var(--ember); }
+    .maker-card.tier-2 { border-left: 3px solid var(--flame); }
+    .maker-card.tier-3 { border-left: 3px solid var(--ash); }
+    .maker-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.05em; }
+    .maker-tier { font-size: 0.55rem; color: var(--ash); letter-spacing: 0.2em; text-transform: uppercase; margin-top: 2px; }
+    .maker-models { font-size: 0.7rem; color: var(--ash); margin-top: 8px; line-height: 1.6; }
+    .maker-models .hot { color: var(--flame); }
+
+    /* KEYWORD CLOUD */
+    .kw-section { margin-bottom: 2rem; }
+    .kw-bucket { margin-bottom: 1.5rem; }
+    .kw-bucket-name { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--ember); text-transform: uppercase; margin-bottom: 8px; }
+    .kw-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .kw-tag { background: var(--steel); border: 1px solid var(--iron); padding: 4px 12px; font-size: 0.7rem; color: var(--silver); }
+    .kw-tag:hover { border-color: var(--flame); color: var(--white); }
+
+    /* CTA */
+    .cta-block { text-align: center; padding: 48px 24px; border: 1px solid var(--iron); margin: 3rem 0; }
+    .cta-block h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .cta-block p { font-family: 'Crimson Pro', serif; color: var(--ash); font-size: 1rem; margin-bottom: 24px; }
+    .cta-btn { display: inline-block; background: var(--ember); color: var(--white); padding: 16px 40px; text-decoration: none; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; }
+    .cta-btn:hover { background: #a93226; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--iron);
+      padding: 2rem 32px;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--ash);
+      text-transform: uppercase;
+    }
+    .footer-top { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .footer-top a { color: var(--ash); text-decoration: none; }
+    .footer-top a:hover { color: var(--flame); }
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
+  </style>
+</head>
+<body>
+
+<nav class="dw-nav">
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <a href="/index.html">Home</a>
+  <a href="/what-we-watch.html" class="active">What We Watch</a>
+  <a href="/watchlist.html" class="cta">Set a Watch</a>
+</nav>
+
+<div class="container">
+
+  <h1>WHAT WE <span>WATCH</span></h1>
+  <p class="subtitle">Sources, Makers, and the Keywords That Matter</p>
+  <div class="flame-line"></div>
+
+  <p class="intro">
+    Drop Watcher monitors 45+ sources across knife dealers, maker-direct sites, pre-owned markets, and Reddit communities. Every page is checked every 10–30 minutes. When something changes, our AI pipeline decides if it matters — and if it does, you hear about it immediately.
+  </p>
+
+  <div class="stats-bar">
+    <div class="stat-box">
+      <div class="stat-num">45+</div>
+      <div class="stat-label">Sources Monitored</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">40+</div>
+      <div class="stat-label">Makers Tracked</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">140+</div>
+      <div class="stat-label">Keywords</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">&lt;20m</div>
+      <div class="stat-label">Detection Time</div>
+    </div>
+  </div>
+
+  <!-- ── SOURCES ──────────────────────────────────────────────────────────── -->
+  <h2 class="section-head">SOURCES</h2>
+  <p class="section-sub">Dealers, Maker Sites, Pre-Owned Markets, and Feeds</p>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--ash);margin-bottom:12px;text-transform:uppercase">Established Dealers</h3>
+  <div class="source-grid">
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">KnifeJoy</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Knife Center</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">DLT Trading</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">DLT Trading — Hinderer</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">DLT Trading — CRK</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">DLT Trading — New Arrivals</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Lamnia</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Nordic Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Tactical Elements</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">eKnives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Monkey Edge</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Nashville Tactical Lounge</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Steel Addiction</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Northwest Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Arizona Custom Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Thunderbird Gear</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Knife Art</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Knives Ship Free</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">African Sporting Creations</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Southern Edges</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">SMKW</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Exclusive Folders</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Original Goat</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Tools For Gents</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Rivers Edge Cutlery</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Hog House Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Urban EDC Supply</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Blade Binge</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Miguron Knives</div></div></div>
+  </div>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--ash);margin-bottom:12px;text-transform:uppercase">Pre-Owned &amp; Secondary Market</h3>
+  <div class="source-grid">
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Recon 1 — Pre-Owned</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">eKnives — Pre-Owned</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Knife Purveyor</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Luv Them Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Rivers Edge — Consignment</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">EDC Lifestyle — Pre-Owned</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Knife Market</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Cutting Edge</div></div></div>
+  </div>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--ash);margin-bottom:12px;text-transform:uppercase">Maker Direct</h3>
+  <div class="source-grid">
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Steel Flame</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Strider Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Mick Strider Custom</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Spyderco</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Chris Reeve Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Curtiss Custom</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Arno Bernard Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Demko Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">McNees Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Tactile Knife Co</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Oz Machine Company</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Kunwu Knives</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Vero Engineering</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Maxace Knife</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Rike Knife</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Flytanium</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Prometheus Design Werx</div></div></div>
+    <div class="source-card"><span class="source-dot active"></span><div><div class="source-name">Poikilo Blade</div></div></div>
+  </div>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--ash);margin-bottom:12px;text-transform:uppercase">Reddit &amp; Social Feeds</h3>
+  <div class="source-grid">
+    <div class="source-card"><span class="source-dot feed"></span><div><div class="source-name">r/bladesinstock</div><div class="source-type">RSS Feed</div></div></div>
+    <div class="source-card"><span class="source-dot feed"></span><div><div class="source-name">r/knife_swap</div><div class="source-type">RSS Feed</div></div></div>
+    <div class="source-card"><span class="source-dot feed"></span><div><div class="source-name">r/EDCexchange</div><div class="source-type">RSS Feed</div></div></div>
+  </div>
+
+  <!-- ── MAKERS ──────────────────────────────────────────────────────────── -->
+  <h2 class="section-head">MAKERS</h2>
+  <p class="section-sub">40+ Makers Across Three Tiers — We Know What Matters</p>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--ember);margin-bottom:16px;text-transform:uppercase">Tier 1 — Always Watching</h3>
+  <div class="maker-grid">
+    <div class="maker-card tier-1">
+      <div class="maker-name">Hinderer Knives</div>
+      <div class="maker-models"><span class="hot">XM-18</span> · <span class="hot">XM-24</span> · Half Track · Eklipse · Jurassic · Fatty · Working Finish · Battle Bronze · Steel Flame Collabs</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Chris Reeve Knives</div>
+      <div class="maker-models"><span class="hot">Damascus</span> · <span class="hot">Yarborough</span> · Ti-Lock · Sebenza 31 · Umnumzaan · Inkosi · Mnandi · Impinda · Annual · Unique</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Steel Flame</div>
+      <div class="maker-models"><span class="hot">Vigilant</span> · <span class="hot">Warrior</span> · Killbox · Crusader · Hannya · MOLLE Clips · Beads · Pendants · Collabs</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Strider Knives</div>
+      <div class="maker-models"><span class="hot">SMF</span> · SNG · PT · AR · Damascus · Steel Flame Collabs · Custom</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Mick Strider Custom</div>
+      <div class="maker-models"><span class="hot">All models</span> — everything from MSC is signal</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">McNees Knives</div>
+      <div class="maker-models"><span class="hot">MAC2 Skeletonized</span> · Hand Grind · MAC2 · MAC2.5 · Dixon</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Starlingear</div>
+      <div class="maker-models"><span class="hot">All models</span> — everything is collectible</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Monkey Edge</div>
+      <div class="maker-models"><span class="hot">FRAG</span> · CRK · Zaan · Custom</div>
+    </div>
+    <div class="maker-card tier-1">
+      <div class="maker-name">Arno Bernard Knives</div>
+      <div class="maker-models"><span class="hot">Damascus</span> · Damasteel · Turaco · Rinkhals · Imamba · Orca</div>
+    </div>
+  </div>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--flame);margin-bottom:16px;text-transform:uppercase">Tier 2 — Active Monitoring</h3>
+  <div class="maker-grid">
+    <div class="maker-card tier-2"><div class="maker-name">Demko Knives</div><div class="maker-models">AD20.5 · AD20 · Custom</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Medford Knife &amp; Tool</div><div class="maker-models">Praetorian · Full lineup</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Spyderco</div><div class="maker-models">Sprint Runs · PM2 · Native</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Microtech</div><div class="maker-models">Ultratech · Combat Troodon · Scarab</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Heretic Knives</div><div class="maker-models">Cleric · Manticore · Wraith</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Protech Knives</div><div class="maker-models">Godfather · Magic</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Chaves Knives</div><div class="maker-models">Redencion · Ultramar</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Rockstead</div><div class="maker-models">Full lineup</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Shirogorov</div><div class="maker-models">Hati · Neon · F95</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Todd Begg Knives</div><div class="maker-models">Steelcraft · Field Marshall</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Curtiss Custom</div><div class="maker-models">Full lineup</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Sharp By Design</div><div class="maker-models">Micro Praxis · Full lineup</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Prometheus Design Werx</div><div class="maker-models">Folders · EDC gear</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Tactile Knife Co</div><div class="maker-models">Gent · Rockwall</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Oz Machine Company</div><div class="maker-models">Roosevelt · Roosevelt XL · Rosie</div></div>
+    <div class="maker-card tier-2"><div class="maker-name">Frag Knives</div><div class="maker-models">Full lineup</div></div>
+  </div>
+
+  <h3 style="font-size:0.65rem;letter-spacing:0.2em;color:var(--ash);margin-bottom:16px;text-transform:uppercase">Tier 3 — Custom &amp; Boutique</h3>
+  <div class="maker-grid">
+    <div class="maker-card tier-3"><div class="maker-name">Sergey Rogovets</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Pena Knives</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Neeve Knives</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Lynch Northwest</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Bryan Winters</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Kirby Lambert</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Dmitry Sinkevich</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Todd Rexford</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Scott Cook Custom</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Shark Knife Co</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Skiagusta</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">William Harsey</div></div>
+    <div class="maker-card tier-3"><div class="maker-name">Derning Knives</div></div>
+  </div>
+
+  <!-- ── KEYWORDS ────────────────────────────────────────────────────────── -->
+  <h2 class="section-head">KEYWORDS</h2>
+  <p class="section-sub">What Triggers an Alert — The Taxonomy Behind the AI</p>
+
+  <div class="kw-section">
+    <div class="kw-bucket">
+      <div class="kw-bucket-name">Drop Language</div>
+      <div class="kw-tags">
+        <span class="kw-tag">drop</span>
+        <span class="kw-tag">available now</span>
+        <span class="kw-tag">in stock</span>
+        <span class="kw-tag">restock</span>
+        <span class="kw-tag">just dropped</span>
+        <span class="kw-tag">new release</span>
+        <span class="kw-tag">limited run</span>
+        <span class="kw-tag">sold out</span>
+        <span class="kw-tag">pre-order</span>
+        <span class="kw-tag">waitlist</span>
+      </div>
+    </div>
+
+    <div class="kw-bucket">
+      <div class="kw-bucket-name">Blade Steels</div>
+      <div class="kw-tags">
+        <span class="kw-tag">MagnaCut</span>
+        <span class="kw-tag">Damascus</span>
+        <span class="kw-tag">S35VN</span>
+        <span class="kw-tag">M390</span>
+        <span class="kw-tag">20CV</span>
+        <span class="kw-tag">CPM-3V</span>
+        <span class="kw-tag">CruWear</span>
+        <span class="kw-tag">Maxamet</span>
+      </div>
+    </div>
+
+    <div class="kw-bucket">
+      <div class="kw-bucket-name">Materials</div>
+      <div class="kw-tags">
+        <span class="kw-tag">titanium</span>
+        <span class="kw-tag">carbon fiber</span>
+        <span class="kw-tag">micarta</span>
+        <span class="kw-tag">bronze anodized</span>
+        <span class="kw-tag">zircuti</span>
+        <span class="kw-tag">timascus</span>
+        <span class="kw-tag">copper</span>
+        <span class="kw-tag">brass</span>
+      </div>
+    </div>
+
+    <div class="kw-bucket">
+      <div class="kw-bucket-name">Knife Types</div>
+      <div class="kw-tags">
+        <span class="kw-tag">framelock</span>
+        <span class="kw-tag">flipper</span>
+        <span class="kw-tag">folder</span>
+        <span class="kw-tag">mid-tech</span>
+        <span class="kw-tag">custom</span>
+      </div>
+    </div>
+
+    <div class="kw-bucket">
+      <div class="kw-bucket-name">Collaborations</div>
+      <div class="kw-tags">
+        <span class="kw-tag">collab</span>
+        <span class="kw-tag">collaboration</span>
+        <span class="kw-tag">Hinderer x Steel Flame</span>
+        <span class="kw-tag">Strider x Steel Flame</span>
+        <span class="kw-tag">Wilson Combat x CRK</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA ─────────────────────────────────────────────────────────────── -->
+  <div class="cta-block">
+    <h2>WATCHING SOMETHING <span style="color:var(--ember)">SPECIFIC?</span></h2>
+    <p>Give us any URL and any keywords. We'll check it every 30 minutes and email you the moment something hits.</p>
+    <a href="/watchlist.html" class="cta-btn">Set a Watch</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-top">
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html">SMS Terms</a>
+    <a href="/hgr.html">The Story</a>
+    <a href="mailto:info@instockornot.club">info@instockornot.club</a>
+  </div>
+  <div class="footer-bottom">
+    <span>instockornot.club — Est. 2026</span>
+    <span class="footer-hgr" title="HGR — Derrick Obatake, Steel Flame">HGR</span>
+  </div>
+</footer>
+
+</body>
+</html>
