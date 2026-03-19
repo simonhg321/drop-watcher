@@ -459,3 +459,5 @@ NEVER:
 - Phase 2: dashboard pagination, keyword tooltips, email template extraction, SQLite
 - Playwright headless browser — JS-rendered sites
 - alerts.html still old design (status.html deleted)
+- DMARC: set up dmarcian free tier or build parser into morning briefer. Currently at p=quarantine, 100% pass. Consider moving to p=reject once confident.
+- Nav cleanup across all admin pages (traffic.html link)
