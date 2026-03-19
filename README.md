@@ -18,7 +18,7 @@ You enter what you're watching for. The system watches. You get alerted. You dec
 - Monitors maker and dealer sites for inventory changes and drop announcements
 - Scores alerts by priority — CRITICAL for rare collabs and customs, HIGH for specials, MEDIUM for production runs
 - Sends email and SMS alerts to registered watchers when something worth caring about surfaces
-- Runs a live public alert feed at [instockornot.club/alerts.html](https://instockornot.club/alerts.html)
+- Runs a live public alert feed at [instockornot.club](https://instockornot.club/)
 
 ---
 
