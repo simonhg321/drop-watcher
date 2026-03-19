@@ -67,3 +67,5 @@ PREFLIGHT_JSONL    = os.path.join(LOG_DIR, 'preflight.jsonl')
 # ── Output HTML ─────────────────────────────────────────────────────────────
 ALERTS_HTML = os.path.join(WWW_DIR, 'alerts.html')
 STATUS_HTML = os.path.join(WWW_DIR, 'status.html')
+TRAFFIC_HTML = os.path.join(WWW_DIR, 'traffic.html')
+GOACCESS_JSON = os.path.join(WWW_DIR, 'stats', 'data.json')
