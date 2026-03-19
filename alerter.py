@@ -386,20 +386,21 @@ if __name__ == '__main__':
         log.info("Sending test email via Resend...")
         test_alert = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
-            'priority': 'high',
-            'source': 'Test Site',
-            'url': 'https://instockornot.club',
-            'notable_items': ['CRK Damascus Sebenza 31 — 1 in stock', 'Hinderer XM-18 Steel Flame — 1 in stock'],
-            'page_summary': 'Test alert from Drop Watcher system.',
+            'priority': 'critical',
+            'source': 'Mick Strider Custom Knives',
+            'url': 'https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/',
+            'notable_items': ['MSC Strider Sword — TEST ITEM'],
+            'page_summary': 'TEST ALERT — verifying email delivery pipeline.',
             'drop_announcement': {
                 'detected': True,
-                'maker': 'Steel Flame',
-                'description': 'New pendant drop',
-                'timing': 'Friday at noon',
+                'maker': 'Mick Strider',
+                'description': 'Strider Sword drop',
+                'timing': 'Imminent',
                 'confidence': 'high'
             }
         }
         subject, body_html, body_text = format_immediate_email(test_alert)
+        subject = '[TEST] ' + subject
         success = send_email(subject, body_html, body_text)
         print("✓ Test email sent via Resend!" if success else "✗ Test email failed — check logs")
     else:
