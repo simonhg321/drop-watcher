@@ -40,6 +40,7 @@ Apache (instockornot.club)
 | `safe_fetch.py` | SSRF protection — blocks private IPs, metadata endpoints. Used by signup URL checker. |
 | `watchdog.py` | Self-healing. Checks gunicorn + web_watcher every 2 min, restarts if dead. |
 | `generate_alerts.py` | Builds the alerts.html page from drops.jsonl. One entry per source per day. |
+| `generate_traffic.py` | Cron every 10 min — Cloudflare GraphQL + GoAccess + watcher stats → /traffic.html. |
 | `morning_briefer.py` | AI-generated overnight summary, emailed at 7am. |
 | `preflight.py` | Health checks before agents start. Non-blocking diagnostics. |
 | `orchestrator.py` | **DEAD FILE** (BUG-008). Empty. Delete it. |
@@ -63,9 +64,10 @@ All in `html/`, deployed to `/var/www/html/` on ironman.
 | `my-alerts.html` | Personal dashboard. Shows watches + matched drops. Token-based. |
 | `get-my-link.html` | "Lost your link?" — enter email, get dashboard link resent. |
 | `privacy.html` | Privacy policy + SMS terms (Twilio A2P 10DLC compliant). |
-| `hgr.html` | About page — how Drop Watcher got built. |
+| `hgr.html` | About page — how Drop Watcher got built. Speakers: Simon/Claude. HGR footer has Steel Flame hover credit. |
 | `alerts.html` | Public alerts feed. **Old design — not yet unified.** |
 | `status.html` | System status page. **Old design — not yet unified.** |
+| `sms-optin.html` | Twilio A2P 10DLC consent page — SMS opt-in flow for campaign review. |
 
 ## Config
 

@@ -461,3 +461,24 @@ NEVER:
 - alerts.html still old design (status.html deleted)
 - DMARC: set up dmarcian free tier or build parser into morning briefer. Currently at p=quarantine, 100% pass. Consider moving to p=reject once confident.
 - Nav cleanup across all admin pages (traffic.html link)
+
+### Session 16 — 2026-03-19
+
+**What we did:**
+- MSC poll interval cranked to 5 min — Strider sword incoming
+- Test email updated — `alerter.py test` now sends CRITICAL MSC sword test with `[TEST]` subject tag
+- Email pipeline confirmed working to simonhg@gmail.com (was going to info@instockornot.club)
+- hgr.html rewritten — new origin story intro, italic Crimson Pro, Spokane footer, Steel Flame hover credit on HGR, speakers changed to Simon/Claude
+- SEO: meta descriptions added to all 4 public pages (index, watchlist, alerts, privacy)
+- SEO: Open Graph + Twitter Card tags added to all 4 public pages
+- robots.txt already blocking admin pages from last session
+- Posted in r/KnifeDeals
+
+**Pending:**
+- Deploy index.html to ironman (SEO tags ready in git, held back for review)
+- Apache Basic Auth on admin pages (traffic.html, watcher_status.html, status.html, /stats/)
+- OG image — need 1200x630 PNG version of favicon for proper social previews (SVG fallback for now)
+- Gmail notification setup — get lock screen alerts working for drops
+- Twilio A2P 10DLC still pending approval
+- DMARC handling
+- Nav cleanup across admin pages
