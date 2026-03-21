@@ -126,13 +126,25 @@ def run():
         log.info("No drops.jsonl found")
         return
 
-    from drop_io import load_recent_drops
     cutoff = (datetime.now(timezone.utc) - timedelta(minutes=WINDOW_MINUTES)).isoformat()
+    drops = []
+    with open(DROPS_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                d = json.loads(line)
+                if (d.get('timestamp') or '') >= cutoff:
+                    drops.append(d)
+            except Exception:
+                continue
+
     sent = load_sent()
     sent = prune_sent(sent)
     posted = 0
 
-    for drop in load_recent_drops(cutoff):
+    for drop in drops:
         did = drop_id(drop)
         if did in sent:
             continue
