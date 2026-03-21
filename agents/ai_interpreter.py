@@ -88,11 +88,6 @@ MAKERS WE CARE ABOUT:
 
 {priority_intel}
 
-nano +87 /home/shg/drop-watcher/agents/ai_interpreter.py
-```
-
-Replace the entire PRIORITY RULES block (lines 87-100) with this:
-```
 PRIORITY RULES:
 
 OVERRIDE RULE — applies before anything else:
