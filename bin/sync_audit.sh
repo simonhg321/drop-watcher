@@ -121,6 +121,7 @@ for f in \
   alerts.html \
   sms-optin.html \
   what-we-watch.html \
+  terms.html \
   robots.txt \
 ; do
   compare "html/$f" "$REMOTE_WEB/$f" "html/$f"
@@ -146,7 +147,6 @@ GHOSTS=$(ssh "$HOST" "ls \
   ~/drop-watcher/web/ \
   /var/www/html/watcher_status.html \
   /var/www/html/all_the_things.html \
-  /var/www/html/terms.html \
   /var/www/html/watcher_signup.py \
   /var/www/html/watchlist.html-bak \
   /var/www/html/sitemap.xml \

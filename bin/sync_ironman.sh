@@ -38,7 +38,6 @@ echo "  done"
 echo ""
 echo "=== 3. Remove dead files from /var/www/html/ ==="
 rm -f /var/www/html/all_the_things.html
-rm -f /var/www/html/terms.html
 rm -f /var/www/html/watcher_status.html
 rm -f /var/www/html/watcher_signup.py
 rm -f /var/www/html/watchlist.html-bak
