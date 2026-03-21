@@ -498,9 +498,15 @@ NEVER:
 
 **Local ahead of origin by 7 commits** — need to push.
 
+**Deploy to ironman next session:**
+- paths.py → ~/drop-watcher/paths.py
+- html/index.html → /var/www/html/ (SEO tags, held back for review)
+- html/watchlist.html → /var/www/html/ (SEO tags)
+- html/privacy.html → /var/www/html/ (SEO tags)
+
 **Backlog (priority order):**
 1. HIGH: Bomb Scare audio alert — capture clip, wire into alerts.html for CRITICAL drops
-2. Deploy index.html SEO tags to ironman
+2. Deploy 4 files to ironman (see above)
 3. Stats dir consolidation — move admin pages under /stats/, one .htaccess
 4. HGR → SHG scrub — incremental as we touch files
 5. 21-day watch expiry — needs architecture design
