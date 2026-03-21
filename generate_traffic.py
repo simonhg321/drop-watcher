@@ -16,8 +16,13 @@ import httpx
 from dotenv import load_dotenv
 
 import paths
+from collections import defaultdict
 
 load_dotenv(paths.ENV_FILE, override=True)
+
+# Haiku pricing per 1M tokens
+INPUT_COST_PER_M  = 0.80
+OUTPUT_COST_PER_M = 4.00
 
 # ── Cloudflare config ────────────────────────────────────────────────────────
 CF_API_TOKEN = os.environ.get('CF_API_TOKEN')
@@ -239,6 +244,62 @@ def load_watcher_stats():
     return stats
 
 
+# ── API usage stats ─────────────────────────────────────────────────────────
+
+def load_api_usage():
+    """Load api_usage.jsonl and return summary dict."""
+    result = {
+        'total_calls': 0, 'total_in': 0, 'total_out': 0, 'total_cost': 0.0,
+        'calls_24h': 0, 'in_24h': 0, 'out_24h': 0, 'cost_24h': 0.0,
+        'by_caller': defaultdict(lambda: {'calls': 0, 'in': 0, 'out': 0}),
+        'by_day': defaultdict(lambda: {'calls': 0, 'in': 0, 'out': 0}),
+    }
+    if not os.path.exists(paths.API_USAGE_JSONL):
+        return result
+
+    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
+    try:
+        with open(paths.API_USAGE_JSONL) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                    inp = e.get('input_tokens', 0)
+                    out = e.get('output_tokens', 0)
+                    cost = (inp / 1_000_000 * INPUT_COST_PER_M) + (out / 1_000_000 * OUTPUT_COST_PER_M)
+
+                    result['total_calls'] += 1
+                    result['total_in'] += inp
+                    result['total_out'] += out
+                    result['total_cost'] += cost
+
+                    ts = e.get('ts', '')
+                    if ts >= cutoff_24h:
+                        result['calls_24h'] += 1
+                        result['in_24h'] += inp
+                        result['out_24h'] += out
+                        result['cost_24h'] += cost
+
+                    caller = e.get('caller', 'unknown')
+                    result['by_caller'][caller]['calls'] += 1
+                    result['by_caller'][caller]['in'] += inp
+                    result['by_caller'][caller]['out'] += out
+
+                    day = ts[:10]
+                    result['by_day'][day]['calls'] += 1
+                    result['by_day'][day]['in'] += inp
+                    result['by_day'][day]['out'] += out
+                except Exception:
+                    continue
+    except FileNotFoundError:
+        pass
+
+    return result
+
+
 # ── Formatting helpers ───────────────────────────────────────────────────────
 
 def fmt_bytes(b):
@@ -275,6 +336,7 @@ def generate_traffic_page():
     ga_visitors = parse_goaccess_visitors(ga_data)
 
     watcher_stats = load_watcher_stats()
+    api_usage = load_api_usage()
 
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
@@ -414,6 +476,80 @@ def generate_traffic_page():
           <tbody>{rows}</tbody>
         </table>"""
 
+    # ── API usage section ───────────────────────────────────────────────────
+    api_usage_html = ''
+    if api_usage['total_calls'] > 0:
+        # Caller breakdown table
+        caller_rows = ''
+        for caller, d in sorted(api_usage['by_caller'].items()):
+            cost = (d['in'] / 1_000_000 * INPUT_COST_PER_M) + (d['out'] / 1_000_000 * OUTPUT_COST_PER_M)
+            caller_rows += (
+                f'<tr><td>{html_mod.escape(caller)}</td>'
+                f'<td class="num-cell">{d["calls"]}</td>'
+                f'<td class="num-cell">{d["in"]:,}</td>'
+                f'<td class="num-cell">{d["out"]:,}</td>'
+                f'<td class="num-cell">${cost:.4f}</td></tr>'
+            )
+
+        # Daily breakdown table (last 7 days)
+        day_rows = ''
+        for day in sorted(api_usage['by_day'].keys())[-7:]:
+            d = api_usage['by_day'][day]
+            cost = (d['in'] / 1_000_000 * INPUT_COST_PER_M) + (d['out'] / 1_000_000 * OUTPUT_COST_PER_M)
+            day_rows += (
+                f'<tr><td>{day}</td>'
+                f'<td class="num-cell">{d["calls"]}</td>'
+                f'<td class="num-cell">{d["in"]:,}</td>'
+                f'<td class="num-cell">{d["out"]:,}</td>'
+                f'<td class="num-cell">${cost:.4f}</td></tr>'
+            )
+
+        api_usage_html = f"""
+    <div class="section-head">API TOKEN USAGE</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-label">CALLS (24H)</div>
+        <div class="stat-value">{api_usage['calls_24h']}</div>
+        <div class="stat-sub">{api_usage['total_calls']} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">INPUT TOKENS (24H)</div>
+        <div class="stat-value">{fmt_num(api_usage['in_24h'])}</div>
+        <div class="stat-sub">{fmt_num(api_usage['total_in'])} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">OUTPUT TOKENS (24H)</div>
+        <div class="stat-value">{fmt_num(api_usage['out_24h'])}</div>
+        <div class="stat-sub">{fmt_num(api_usage['total_out'])} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">EST. COST (24H)</div>
+        <div class="stat-value" style="color:var(--flame)">${api_usage['cost_24h']:.4f}</div>
+        <div class="stat-sub">${api_usage['total_cost']:.4f} total</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">BY CALLER</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>CALLER</th><th>CALLS</th><th>IN</th><th>OUT</th><th>COST</th></tr></thead>
+            <tbody>{caller_rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">DAILY (LAST 7 DAYS)</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>DAY</th><th>CALLS</th><th>IN</th><th>OUT</th><th>COST</th></tr></thead>
+            <tbody>{day_rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>"""
+
     # ── Data source indicator ────────────────────────────────────────────────
     sources = []
     if cf_data:
@@ -543,6 +679,8 @@ def generate_traffic_page():
       <div class="panel-body">{status_html}</div>
     </div>
   </div>
+
+  {api_usage_html}
 
   <p class="source-line">Sources: {source_str} — Updated: {now_str}</p>
   <p class="source-line"><a href="/stats/" style="color:var(--flame);text-decoration:none">Full GoAccess server stats →</a></p>
