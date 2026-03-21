@@ -194,6 +194,19 @@
   .success h2 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; margin-bottom: 8px; color: #2ecc71; letter-spacing: 0.05em; }
   .success p { font-family: 'Crimson Pro', serif; color: var(--ash); font-size: 14px; line-height: 1.6; }
 
+  /* ONBOARDING STEPS */
+  .onboarding-steps { margin-top: 24px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto; }
+  .onboarding-step { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--iron); }
+  .onboarding-step:last-child { border-bottom: none; }
+  .step-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+  .step-text { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--ash); line-height: 1.5; }
+  .step-text.active { color: var(--white); }
+  .step-text.done { color: #2ecc71; }
+  .step-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--iron); border-top-color: var(--flame); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .dashboard-btn { display: inline-block; margin-top: 20px; background: var(--ember); color: var(--white); padding: 12px 28px; text-decoration: none; font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 0.1em; transition: background 0.2s; }
+  .dashboard-btn:hover { background: var(--flame); }
+
   /* STATS BAR */
   .stats-bar {
     margin: 48px auto 0;
@@ -341,11 +354,25 @@
 </form>
 
 <div class="success" id="successMsg">
-  <div class="check">✓</div>
-  <h2>Check your email.</h2>
-  <p>We sent a confirmation to <strong id="confirmedEmail"></strong>. Click the link in that email to activate your alerts — then we'll watch and notify you the moment we detect something.<br><br>
-  Average detection time: under 20 minutes.</p>
+  <div class="check" id="successIcon">✓</div>
+  <h2 id="successTitle">Setting up your watch...</h2>
+  <p id="successSubtitle">We sent a verification link to <strong id="confirmedEmail"></strong>.</p>
+  <div class="onboarding-steps" id="onboardingSteps">
+    <div class="onboarding-step" id="step1">
+      <div class="step-icon" id="step1Icon"><span class="step-spinner"></span></div>
+      <div class="step-text active" id="step1Text">Check your email for the verification link</div>
+    </div>
+    <div class="onboarding-step" id="step2">
+      <div class="step-icon" id="step2Icon" style="color:var(--ash)">2</div>
+      <div class="step-text" id="step2Text">Click the link to activate your alerts</div>
+    </div>
+    <div class="onboarding-step" id="step3">
+      <div class="step-icon" id="step3Icon" style="color:var(--ash)">3</div>
+      <div class="step-text" id="step3Text">Bookmark your personal dashboard</div>
+    </div>
+  </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
+  <div id="dashboardLink" style="display:none"></div>
 </div>
 
 <div class="stats-bar">
@@ -486,6 +513,8 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
         pm.textContent = result.preview_msg;
         pm.style.display = 'block';
       }
+      // Connect to onboarding SSE for real-time status
+      startOnboarding(result.id);
     } else {
       alert(result.error || 'Something went wrong. Try again or email info@instockornot.club');
     }
@@ -494,6 +523,69 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   }
   btn.classList.remove('loading');
 });
+
+function startOnboarding(watchId) {
+  if (!window.EventSource) return; // SSE not supported, static fallback is fine
+
+  const source = new EventSource('/api/onboarding/' + watchId);
+
+  source.onmessage = function(e) {
+    let data;
+    try { data = JSON.parse(e.data); } catch { return; }
+
+    if (data.status === 'pending' && data.step === 2) {
+      // Nudge — still waiting
+      document.getElementById('step1Text').textContent = 'Check your inbox or spam folder — still waiting';
+      document.getElementById('step1Text').className = 'step-text active';
+    }
+
+    if (data.status === 'verified') {
+      // Step 1 done
+      document.getElementById('step1Icon').innerHTML = '✓';
+      document.getElementById('step1Icon').style.color = '#2ecc71';
+      document.getElementById('step1Text').textContent = 'Email verified';
+      document.getElementById('step1Text').className = 'step-text done';
+
+      // Step 2 done
+      document.getElementById('step2Icon').innerHTML = '✓';
+      document.getElementById('step2Icon').style.color = '#2ecc71';
+      document.getElementById('step2Text').textContent = 'Alerts activated — you\'re live!';
+      document.getElementById('step2Text').className = 'step-text done';
+
+      // Step 3 — show dashboard link
+      document.getElementById('step3Icon').innerHTML = '→';
+      document.getElementById('step3Icon').style.color = '#2ecc71';
+      document.getElementById('step3Text').textContent = 'Bookmark your dashboard';
+      document.getElementById('step3Text').className = 'step-text active';
+
+      // Update header
+      document.getElementById('successIcon').textContent = '✓';
+      document.getElementById('successTitle').textContent = 'You\'re live!';
+      document.getElementById('successTitle').style.color = '#2ecc71';
+      document.getElementById('successSubtitle').textContent = 'We\'re watching your page. You\'ll get an email the moment your keywords appear.';
+
+      // Show dashboard button
+      if (data.dashboard_url) {
+        const dl = document.getElementById('dashboardLink');
+        dl.innerHTML = '<a href="' + data.dashboard_url + '" class="dashboard-btn">VIEW MY DASHBOARD</a>';
+        dl.style.display = 'block';
+      }
+
+      source.close();
+    }
+
+    if (data.status === 'timeout' || data.status === 'error') {
+      // Fallback to static message
+      document.getElementById('step1Text').textContent = data.message || 'Check your email to verify.';
+      source.close();
+    }
+  };
+
+  source.onerror = function() {
+    // SSE connection failed — no big deal, static UI still works
+    source.close();
+  };
+}
 </script>
 
 </body>
