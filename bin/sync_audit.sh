@@ -84,6 +84,10 @@ for f in \
   compare "$f" "$REMOTE_CODE/$f" "$f"
 done
 
+echo ""
+echo -e "${BOLD}── GO SERVICES → ~/drop-watcher/onboarding/ ──${RESET}"
+compare "onboarding/onboarding-sse" "$REMOTE_CODE/onboarding/onboarding-sse" "onboarding/onboarding-sse"
+
 # ── 2. Config → ~/drop-watcher/config/ AND /etc/drop-watcher/ ────────────────
 echo ""
 echo -e "${BOLD}── CONFIG → ~/drop-watcher/config/ ──${RESET}"

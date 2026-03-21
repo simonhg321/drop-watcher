@@ -86,14 +86,23 @@ sudo chmod 640 /etc/drop-watcher/*.yaml
 echo "  done"
 
 echo ""
-echo "=== 9. Update supervisor conf and reload ==="
+echo "=== 9. Ensure Go service binary is executable ==="
+if [ -f ~/drop-watcher/onboarding/onboarding-sse ]; then
+  chmod +x ~/drop-watcher/onboarding/onboarding-sse
+  echo "  done"
+else
+  echo "  SKIP — binary not present (scp from Mac)"
+fi
+
+echo ""
+echo "=== 10. Update supervisor conf and reload ==="
 sudo cp ~/drop-watcher/conf/drop-watcher.conf /etc/supervisor/conf.d/drop-watcher.conf
 sudo supervisorctl reread
 sudo supervisorctl update
 echo "  done"
 
 echo ""
-echo "=== 10. Verify ==="
+echo "=== 11. Verify ==="
 echo "--- supervisorctl ---"
 sudo supervisorctl status
 echo ""
