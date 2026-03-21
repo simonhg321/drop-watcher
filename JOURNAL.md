@@ -482,3 +482,28 @@ NEVER:
 - Twilio A2P 10DLC still pending approval
 - DMARC handling
 - Nav cleanup across admin pages
+
+### Session 17 — 2026-03-20
+
+**What we did:**
+- Investigated watch expiry — active watches currently live forever, only pending watches age out (2h)
+- Decided 21-day max watch lifetime needs proper architecture (expiry notices, re-subscribe flow) — parked for later
+- Saved future project ideas: architecture review for efficiency/scale, friend recommendation platform
+
+**Unstaged changes in git (from session 16, not committed):**
+- paths.py — added SECURITY_HTML path
+- conf/crontab.shg — added generate_security.py to every-10-min block
+- html/robots.txt — added Disallow for security.html
+- generate_security.py — new file, kept out of git for now (deployed direct to ironman)
+
+**Local ahead of origin by 7 commits** — need to push.
+
+**Backlog (priority order):**
+1. HIGH: Bomb Scare audio alert — capture clip, wire into alerts.html for CRITICAL drops
+2. Deploy index.html SEO tags to ironman
+3. Stats dir consolidation — move admin pages under /stats/, one .htaccess
+4. HGR → SHG scrub — incremental as we touch files
+5. 21-day watch expiry — needs architecture design
+6. Full human/AI architecture review — long-term, or when a collaborator joins
+7. OG image (1200x630 PNG)
+8. DMARC, nav cleanup, Twilio A2P

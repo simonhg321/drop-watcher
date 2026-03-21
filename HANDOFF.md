@@ -106,6 +106,13 @@ All in `config/`, deployed to `/etc/drop-watcher/` on ironman.
 | `per_user_sent.json` | `/var/lib/drop-watcher/` | Cooldown tracker for per-user alerts. Auto-prunes 24h. |
 | `.env` | `/etc/drop-watcher/` | Secrets (Resend key, Twilio creds, Claude key). |
 
+## Admin / monitoring tools
+
+| File | What it does |
+|------|-------------|
+| `generate_security.py` | Parses Apache logs → /security.html. Rate abusers, scanners, bad UAs, top IPs. NOT in git — deployed direct to ironman. |
+| `generate_traffic.py` | Cloudflare GraphQL + GoAccess + watcher stats → /traffic.html. Cron */10. |
+
 ## Dead files to clean up
 
 | File | Status |
