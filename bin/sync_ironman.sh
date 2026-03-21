@@ -42,7 +42,6 @@ rm -f /var/www/html/terms.html
 rm -f /var/www/html/watcher_status.html
 rm -f /var/www/html/watcher_signup.py
 rm -f /var/www/html/watchlist.html-bak
-rm -f /var/www/html/what-we-watch.html
 rm -f /var/www/html/sitemap.xml
 echo "  done"
 

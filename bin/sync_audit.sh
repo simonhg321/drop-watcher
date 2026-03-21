@@ -120,6 +120,7 @@ for f in \
   hgr.html \
   alerts.html \
   sms-optin.html \
+  what-we-watch.html \
   robots.txt \
 ; do
   compare "html/$f" "$REMOTE_WEB/$f" "html/$f"
@@ -148,7 +149,6 @@ GHOSTS=$(ssh "$HOST" "ls \
   /var/www/html/terms.html \
   /var/www/html/watcher_signup.py \
   /var/www/html/watchlist.html-bak \
-  /var/www/html/what-we-watch.html \
   /var/www/html/sitemap.xml \
   2>/dev/null")
 
