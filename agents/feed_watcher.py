@@ -116,10 +116,7 @@ def mark_seen(key, seen):
 
 # ── Alert writer (mirrors web_watcher) ───────────────────────────────────────
 def write_alert(settings, alert):
-    log_path = os.path.join(
-        settings['logging']['log_dir'],
-        settings['logging']['log_file']
-    )
+    log_path = paths.DROPS_JSONL
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, 'a') as f:
         f.write(json.dumps(alert) + '\n')

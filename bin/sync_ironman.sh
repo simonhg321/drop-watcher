@@ -40,10 +40,15 @@ echo "=== 3. Remove dead files from /var/www/html/ ==="
 rm -f /var/www/html/all_the_things.html
 rm -f /var/www/html/terms.html
 rm -f /var/www/html/watcher_status.html
+rm -f /var/www/html/watcher_signup.py
+rm -f /var/www/html/watchlist.html-bak
+rm -f /var/www/html/what-we-watch.html
+rm -f /var/www/html/sitemap.xml
 echo "  done"
 
 echo ""
 echo "=== 4. Remove stale dirs from ~/drop-watcher/ ==="
+rm -f ~/drop-watcher/gunicorn.ctl
 rm -rf ~/drop-watcher/logs/
 rm -rf ~/drop-watcher/data/
 rm -rf ~/drop-watcher/__pycache__/
@@ -73,14 +78,24 @@ echo "  (real .env is in /etc/drop-watcher/)"
 echo "  done"
 
 echo ""
-echo "=== 8. Update supervisor conf and reload ==="
+echo "=== 8. Sync config to /etc/drop-watcher/ ==="
+sudo cp ~/drop-watcher/config/sources.yaml /etc/drop-watcher/sources.yaml
+sudo cp ~/drop-watcher/config/makers.yaml /etc/drop-watcher/makers.yaml
+sudo cp ~/drop-watcher/config/cool_list.yaml /etc/drop-watcher/cool_list.yaml
+sudo cp ~/drop-watcher/config/settings.yaml /etc/drop-watcher/settings.yaml
+sudo chown shg:shg /etc/drop-watcher/*.yaml
+sudo chmod 640 /etc/drop-watcher/*.yaml
+echo "  done"
+
+echo ""
+echo "=== 9. Update supervisor conf and reload ==="
 sudo cp ~/drop-watcher/conf/drop-watcher.conf /etc/supervisor/conf.d/drop-watcher.conf
 sudo supervisorctl reread
 sudo supervisorctl update
 echo "  done"
 
 echo ""
-echo "=== 9. Verify ==="
+echo "=== 10. Verify ==="
 echo "--- supervisorctl ---"
 sudo supervisorctl status
 echo ""
