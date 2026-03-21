@@ -2,4 +2,11 @@ requests
 beautifulsoup4
 feedparser
 pyyaml
-schedule
+python-dotenv
+anthropic
+httpx
+flask
+flask-cors
+flask-limiter
+gunicorn
+twilio
