@@ -20,11 +20,17 @@ venv/
 # Go binaries
 onboarding/onboarding-sse
 
-# Generated reports
-html/stats/
+# Generated reports (GoAccess output in stats/)
+html/stats/index.html
+html/stats/data.json
+html/stats/*.css
 
 # OS
 .DS_Store
+
+# Internal docs (server paths, IPs, architecture — not for public repo)
+JOURNAL.md
+HANDOFF.md
 
 # Local dev
 dev/
