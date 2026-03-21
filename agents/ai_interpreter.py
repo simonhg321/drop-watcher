@@ -30,6 +30,24 @@ client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
 
 MODEL = 'claude-haiku-4-5-20251001'
 
+# ── Token usage logging ────────────────────────────────────────────────────
+def log_api_usage(caller, site_name, message):
+    """Append one line to api_usage.jsonl after every Anthropic call."""
+    try:
+        entry = {
+            'ts': datetime.now(timezone.utc).isoformat(),
+            'caller': caller,
+            'site': site_name,
+            'model': MODEL,
+            'input_tokens': message.usage.input_tokens,
+            'output_tokens': message.usage.output_tokens,
+        }
+        os.makedirs(os.path.dirname(paths.API_USAGE_JSONL), exist_ok=True)
+        with open(paths.API_USAGE_JSONL, 'a') as f:
+            f.write(json.dumps(entry) + '\n')
+    except Exception as e:
+        log.warning(f"Could not log API usage: {e}")
+
 # ── Load makers config ────────────────────────────────────────────────────────
 def load_makers_config():
     makers_path = paths.MAKERS_YAML
@@ -201,6 +219,7 @@ def analyze_page(site_name, url, page_text, makers_list):
             messages=[{"role": "user", "content": prompt}]
         )
 
+        log_api_usage('analyze_page', site_name, message)
         raw = message.content[0].text.strip()
 
         if raw.startswith('```'):
@@ -214,7 +233,7 @@ def analyze_page(site_name, url, page_text, makers_list):
         result['url'] = url
         result['model'] = MODEL
 
-        log.info(f"{site_name} — AI analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')}")
+        log.info(f"{site_name} — AI analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
         return result
 
     except json.JSONDecodeError as e:
@@ -241,6 +260,7 @@ def analyze_drop_announcement(site_name, content, makers_list):
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}]
         )
+        log_api_usage('analyze_drop', site_name, message)
         raw = message.content[0].text.strip()
         if raw.startswith('```'):
             raw = raw.split('```')[1]
@@ -268,6 +288,7 @@ def generate_morning_briefing(alerts, sites_checked):
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}]
         )
+        log_api_usage('morning_briefing', 'n/a', message)
         return message.content[0].text.strip()
     except Exception as e:
         log.error(f"Morning briefing generation failed: {e}")

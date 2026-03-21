@@ -70,3 +70,6 @@ STATUS_HTML = os.path.join(WWW_DIR, 'status.html')
 TRAFFIC_HTML = os.path.join(WWW_DIR, 'traffic.html')
 GOACCESS_JSON = os.path.join(WWW_DIR, 'stats', 'data.json')
 SECURITY_HTML = os.path.join(WWW_DIR, 'security.html')
+
+# ── API usage tracking ─────────────────────────────────────────────────────
+API_USAGE_JSONL = os.path.join(LOG_DIR, 'api_usage.jsonl')
