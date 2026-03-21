@@ -513,3 +513,59 @@ NEVER:
 6. Full human/AI architecture review — long-term, or when a collaborator joins
 7. OG image (1200x630 PNG)
 8. DMARC, nav cleanup, Twilio A2P
+
+### Session 18 — 2026-03-20
+
+**Codebase audit + full sync session. Read every file, found 8 issues, fixed the critical ones.**
+
+**Code fixes:**
+- ai_interpreter.py — removed corrupted `nano` command and markdown fencing that leaked into Claude prompt (wasting tokens on every page analysis)
+- agents/web_watcher.py + feed_watcher.py — write_alert now uses paths.DROPS_JSONL instead of hardcoded settings.yaml path
+- discord_logger.py — removed broken `from drop_io import load_recent_drops` (module only exists on v2 branch), inlined drop loading
+- requirements.txt — updated from 5 packages to 12, all actual third-party dependencies listed
+
+**Sync tooling:**
+- bin/sync_audit.sh — 3-way Mac/GitHub/ironman sync audit via md5 checksums (Python, agents, config, HTML, bin, supervisor, ghost files, services)
+- bin/sync_ironman.sh — added step 8 (config sync to /etc/drop-watcher/ with proper ownership/permissions), added ghost file cleanup for webroot
+- Config drift resolved — merged ironman's live cool_list.yaml boss keywords with repo, aligned sources.yaml (MSC 5min, PDW added)
+
+**Infrastructure:**
+- watchlist.html — fixed blur check (changed type="url" to type="text", browser validation was blocking blur event)
+- Achieved 50/50 sync audit — all files match across Mac/GitHub/ironman
+
+**Monitoring:**
+- Identified discord_logger as actively broken (importing from v2-only module), fixed it
+- Identified monitoring gaps: cron failure detection, log rotation, security alerting, SSL cert monitoring
+
+### Session 19 — 2026-03-20
+
+**Token tracking + traffic dashboard + what-we-watch billboard.**
+
+**API token usage tracking:**
+- paths.py — added API_USAGE_JSONL (logs/api_usage.jsonl)
+- ai_interpreter.py — new log_api_usage() function logs {ts, caller, site, model, input_tokens, output_tokens} after every Haiku call
+- Wired into all 3 API call sites: analyze_page(), analyze_drop_announcement(), generate_morning_briefing()
+- Log lines now include token counts: "Tokens: 1842in/312out"
+- bin/token_report.py — CLI: `python3 bin/token_report.py [days|all]`, shows totals, by-caller, by-day, est. cost
+
+**Traffic dashboard (generate_traffic.py):**
+- Added API TOKEN USAGE section to traffic.html — 4 stat cards (calls, input tokens, output tokens, est. cost) for 24h + totals
+- By-caller breakdown table (analyze_page vs analyze_drop vs morning_briefing)
+- Daily breakdown table (last 7 days)
+- Uses Haiku pricing: $0.80/M input, $4.00/M output
+
+**what-we-watch.html rebuilt:**
+- Was accidentally in ghost file cleanup from session 18 — deleted from ironman
+- Full rebuild from sources.yaml + makers.yaml — Tier 1/2/3 makers, collaborations, dealers, secondary market, maker direct, RSS feeds
+- Matching site dark aesthetic (Bebas Neue / Share Tech Mono / ember/flame palette)
+- Removed from ghost lists in sync_ironman.sh and sync_audit.sh, added to HTML audit checklist
+- CTA button links to watchlist signup
+
+**Commits:**
+- aa0e571 — Add API token usage tracking — log every Haiku call, CLI report
+- 4f39c40 — Add API token usage section to traffic dashboard
+- 6a0bf19 — Restore what-we-watch.html — full billboard of makers, dealers, feeds
+
+**Pending:**
+- Token usage will populate after next watcher cycle
+- Backlog unchanged from session 17

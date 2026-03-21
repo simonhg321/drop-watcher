@@ -40,10 +40,11 @@ Apache (instockornot.club)
 | `safe_fetch.py` | SSRF protection — blocks private IPs, metadata endpoints. Used by signup URL checker. |
 | `watchdog.py` | Self-healing. Checks gunicorn + web_watcher every 2 min, restarts if dead. |
 | `generate_alerts.py` | Builds the alerts.html page from drops.jsonl. One entry per source per day. |
-| `generate_traffic.py` | Cron every 10 min — Cloudflare GraphQL + GoAccess + watcher stats → /traffic.html. |
+| `generate_traffic.py` | Cron every 10 min — Cloudflare GraphQL + GoAccess + watcher stats + API token usage → /traffic.html. |
+| `discord_logger.py` | Posts all drops to Discord webhook channel, dedup via discord_sent.json, cron ready. |
 | `morning_briefer.py` | AI-generated overnight summary, emailed at 7am. |
 | `preflight.py` | Health checks before agents start. Non-blocking diagnostics. |
-| `orchestrator.py` | **DEAD FILE** (BUG-008). Empty. Delete it. |
+| `watcher_io.py` | Shared watcher data I/O with file locking. Currently unused — watcher_signup.py and per_user_alerter.py have their own copies. |
 
 ## Agents — the watchers
 
@@ -66,6 +67,7 @@ All in `html/`, deployed to `/var/www/html/` on ironman.
 | `privacy.html` | Privacy policy + SMS terms (Twilio A2P 10DLC compliant). |
 | `hgr.html` | About page — how Drop Watcher got built. Speakers: Simon/Claude. HGR footer has Steel Flame hover credit. |
 | `alerts.html` | Public alerts feed. **Old design — not yet unified.** |
+| `what-we-watch.html` | Billboard — all makers (tiered), dealers, secondary market, maker direct, RSS feeds. Static page built from sources.yaml + makers.yaml. |
 | `status.html` | System status page. **Old design — not yet unified.** |
 | `sms-optin.html` | Twilio A2P 10DLC consent page — SMS opt-in flow for campaign review. |
 
@@ -102,8 +104,10 @@ All in `config/`, deployed to `/etc/drop-watcher/` on ironman.
 | File | Where | What |
 |------|-------|------|
 | `watchers.json` | `/var/lib/drop-watcher/` | All watcher signups. PII. File-locked. |
-| `drops.jsonl` | `/var/lib/drop-watcher/` | Every drop detected. Single source of truth. |
+| `drops.jsonl` | `/var/log/drop-watcher/` | Every drop detected. Single source of truth. |
+| `api_usage.jsonl` | `/var/log/drop-watcher/` | API token usage log — every Haiku call with input/output token counts. |
 | `per_user_sent.json` | `/var/lib/drop-watcher/` | Cooldown tracker for per-user alerts. Auto-prunes 24h. |
+| `discord_sent.json` | `/var/lib/drop-watcher/` | Discord dedup tracker. Auto-prunes 48h. |
 | `.env` | `/etc/drop-watcher/` | Secrets (Resend key, Twilio creds, Claude key). |
 
 ## Admin / monitoring tools
@@ -113,18 +117,13 @@ All in `config/`, deployed to `/etc/drop-watcher/` on ironman.
 | `generate_security.py` | Parses Apache logs → /security.html. Rate abusers, scanners, bad UAs, top IPs. NOT in git — deployed direct to ironman. |
 | `generate_traffic.py` | Cloudflare GraphQL + GoAccess + watcher stats → /traffic.html. Cron */10. |
 
-## Dead files to clean up
+## Admin / monitoring tools (continued)
 
-| File | Status |
-|------|--------|
-| `orchestrator.py` | Empty file. BUG-008. In cleanup script. |
-| `watcher_status.html` | Old status page. In cleanup script. |
-| `web/` | Stale old directory. BUG-007. In cleanup script. |
-| `test-escape.py`, `test-xss-cmd.sh`, `test-xss.json` | Old security tests. Can delete. |
-| `nuke_watchers.sh` | Dangerous. Probably shouldn't exist. |
-| `sessions`, `sessions.save` | Session files. Local only. |
-| `.zshrc` | Your zshrc somehow ended up in the repo. |
-| `.cleanup.sh` | Old cleanup script. |
+| File | What it does |
+|------|-------------|
+| `bin/token_report.py` | CLI tool — `python3 bin/token_report.py [days\|all]` — shows API token usage by caller, by day, with estimated cost. |
+| `bin/sync_audit.sh` | 3-way Mac/GitHub/ironman sync audit — md5 checksums on Python, agents, config, HTML, bin, supervisor, ghost files, services. Needs `DW_SSH_HOST` env var. |
+| `bin/sync_ironman.sh` | Run on ironman after `ship` — deploys html, config, supervisor; cleans ghost files. |
 
 ## Key architecture decisions
 
