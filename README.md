@@ -52,9 +52,13 @@ cron
 ## Stack
 
 - Python 3 / Ubuntu 22.04 (Linode)
+- Go (onboarding SSE microservice)
 - Apache + SSL (Let's Encrypt)
+- Cloudflare (CDN, analytics, DDoS)
+- Claude Haiku (AI page analysis, drop detection)
 - Resend (email delivery)
 - Twilio A2P 10DLC (SMS)
+- Discord webhook (drop notifications)
 - supervisord + cron
 - GitHub: simonhg321/drop-watcher
 
@@ -66,6 +70,6 @@ ELv2 — see [LICENSE](LICENSE). Free for personal and community use. Commercial
 
 ---
 
-*Built around 11 sessions with Claude (Anthropic) as co-pilot — architecture, debugging. Claude did half. I did the half that mattered.*
+*Built across 20 sessions with Claude (Anthropic) as co-pilot — architecture, debugging, and the occasional argument about git stashes. Claude did half. I did the half that mattered.*
 
-**HGR**
+**SGH**
