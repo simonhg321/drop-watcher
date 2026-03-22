@@ -262,18 +262,113 @@
 
     footer {
       border-top: 1px solid var(--iron);
-      padding: 2rem;
+      padding: 3rem 2rem 2rem;
       font-size: 0.65rem;
       letter-spacing: 0.3em;
       color: var(--ash);
       text-transform: uppercase;
+      position: relative;
     }
-    .footer-top { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
-    .footer-top a { color: var(--ash); text-decoration: none; }
-    .footer-top a:hover { color: var(--flame); }
-    .footer-bottom { display: flex; justify-content: space-between; align-items: center; }
 
-    .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
+    footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--ember) 30%, var(--flame) 50%, var(--ember) 70%, transparent 100%);
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto auto auto;
+      gap: 2rem;
+    }
+
+    .footer-social {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2.5rem;
+    }
+
+    .footer-social a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--ash);
+      text-decoration: none;
+      transition: color 0.25s ease;
+    }
+
+    .footer-social a:hover { color: var(--flame); }
+    .footer-social a:hover svg { stroke: var(--flame); }
+    .footer-social a:hover svg.filled { fill: var(--flame); stroke: none; }
+
+    .footer-social svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--ash);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.25s ease;
+    }
+
+    .footer-social svg.filled {
+      fill: var(--ash);
+      stroke: none;
+      transition: fill 0.25s ease;
+    }
+
+    .footer-social .social-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.4em;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .footer-top {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--iron);
+      border-bottom: 1px solid var(--iron);
+      padding: 1.5rem 0;
+    }
+
+    .footer-top a {
+      color: var(--ash);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-top a:hover { color: var(--flame); }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-hgr {
+      color: var(--ember);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.3em;
+    }
+
+    @media (max-width: 600px) {
+      .footer-bottom { justify-content: center; text-align: center; }
+      .footer-social { gap: 2rem; }
+    }
 
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
@@ -493,15 +588,55 @@
 
   <!-- FOOTER -->
   <footer>
-    <div class="footer-top">
-      <a href="/privacy.html">Privacy</a>
-      <a href="/terms.html">SMS Terms</a>
-      <a href="/hgr.html">The Story</a>
-      <a href="mailto:info@instockornot.club">info@instockornot.club</a>
-    </div>
-    <div class="footer-bottom">
-      <span>instockornot.club — Est. 2026</span>
-      <span class="footer-hgr" title="HGR — Derrick Obatake, Steel Flame">HGR</span>
+    <div class="footer-inner">
+
+      <!-- Social icons -->
+      <div class="footer-social">
+
+        <!-- Instagram -->
+        <a href="https://www.instagram.com/dropwatcher321/" target="_blank" rel="noopener" aria-label="Drop Watcher on Instagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <circle cx="12" cy="12" r="4"/>
+            <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+          </svg>
+          <span class="social-label">Instagram</span>
+        </a>
+
+        <!-- Facebook -->
+        <a href="https://facebook.com" target="_blank" rel="noopener" aria-label="Drop Watcher on Facebook">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+          <span class="social-label">Facebook</span>
+        </a>
+
+        <!-- LinkedIn -->
+        <a href="https://linkedin.com" target="_blank" rel="noopener" aria-label="Drop Watcher on LinkedIn">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+            <rect x="2" y="9" width="4" height="12"/>
+            <circle cx="4" cy="4" r="2"/>
+          </svg>
+          <span class="social-label">LinkedIn</span>
+        </a>
+
+      </div>
+
+      <!-- Nav links -->
+      <div class="footer-top">
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">SMS Terms</a>
+        <a href="/hgr.html">The Story</a>
+        <a href="mailto:hello@instockornot.club">hello@instockornot.club</a>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="footer-bottom">
+        <span>instockornot.club &mdash; Est. 2026</span>
+        <span class="footer-hgr">H &nbsp; G &nbsp; S</span>
+      </div>
+
     </div>
   </footer>
 
