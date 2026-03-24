@@ -644,12 +644,12 @@ def generate_traffic_page():
   <div class="flame-line"></div>
 
   <nav class="nav">
-    <a href="/watcher_status.html">DASHBOARD</a>
+    <a href="/stats/dashboard.html">DASHBOARD</a>
     <a href="/alerts.html">ALERTS</a>
-    <a href="/status.html">STATUS</a>
-    <a href="/traffic.html" class="active">TRAFFIC</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/stats/traffic.html" class="active">TRAFFIC</a>
     <a href="/stats/">STATS</a>
-    <a href="/index.html">HOME</a>
+    <a href="/">HOME</a>
   </nav>
 
   {cards_html}

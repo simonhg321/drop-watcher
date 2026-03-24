@@ -60,6 +60,7 @@ for f in \
   alerter.py \
   discord_logger.py \
   generate_alerts.py \
+  generate_security.py \
   generate_traffic.py \
   morning_briefer.py \
   paths.py \
@@ -127,6 +128,23 @@ for f in \
   what-we-watch.html \
   terms.html \
   robots.txt \
+; do
+  compare "html/$f" "$REMOTE_WEB/$f" "html/$f"
+done
+
+echo ""
+echo -e "${BOLD}── ADMIN HTML → /var/www/html/stats/ ──${RESET}"
+for f in \
+  stats/dashboard.html \
+  stats/.htaccess \
+; do
+  compare "html/$f" "$REMOTE_WEB/$f" "html/$f"
+done
+
+echo ""
+echo -e "${BOLD}── AUDIO → /var/www/html/audio/ ──${RESET}"
+for f in \
+  audio/dropwatcher.mp3 \
 ; do
   compare "html/$f" "$REMOTE_WEB/$f" "html/$f"
 done

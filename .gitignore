@@ -25,6 +25,9 @@ html/stats/index.html
 html/stats/data.json
 html/stats/*.css
 
+# Crawl control
+html/robots.txt
+
 # OS
 .DS_Store
 

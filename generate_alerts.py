@@ -145,10 +145,10 @@ def render_alert_card(alert):
     drop = alert.get('drop_announcement', {})
     drop_html = ''
     if drop and drop.get('detected'):
-        maker  = html_mod.escape(drop.get('maker', ''))
-        desc   = html_mod.escape(drop.get('description', ''))
-        timing = html_mod.escape(drop.get('timing', ''))
-        conf   = html_mod.escape(drop.get('confidence', ''))
+        maker  = html_mod.escape(drop.get('maker') or '')
+        desc   = html_mod.escape(drop.get('description') or '')
+        timing = html_mod.escape(drop.get('timing') or '')
+        conf   = html_mod.escape(drop.get('confidence') or '')
         drop_html = f"""
         <div class="drop-announcement">
             🔥 DROP ANNOUNCEMENT — {maker}: {desc}
@@ -257,11 +257,11 @@ def generate_alerts_page():
   <p class="subtitle">LIVE ALERTS — LAST 48 HOURS — AUTO REFRESHES EVERY 30 SECONDS</p>
   <div class="flame-line"></div>
   <nav class="nav">
-    <a href="/watcher_status.html">DASHBOARD</a>
     <a href="/alerts.html" class="active">ALERTS</a>
-    <a href="/status.html">STATUS</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/stats/traffic.html">TRAFFIC</a>
     <a href="/stats/">STATS</a>
-    <a href="/index.html">HOME</a>
+    <a href="/">HOME</a>
   </nav>
   <div class="stats">
     <div class="stat" onclick="filterAlerts('all')">

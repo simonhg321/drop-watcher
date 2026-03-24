@@ -615,9 +615,12 @@ def write_html_status():
   <div class="flame-line"></div>
 
   <nav class="nav">
+    <a href="/stats/dashboard.html">DASHBOARD</a>
     <a href="/alerts.html">ALERTS</a>
-    <a href="/status.html" class="active">STATUS</a>
-    <a href="/index.html">HOME</a>
+    <a href="/stats/status.html" class="active">STATUS</a>
+    <a href="/stats/traffic.html">TRAFFIC</a>
+    <a href="/stats/">STATS</a>
+    <a href="/">HOME</a>
   </nav>
 
   <!-- RUNS_START -->

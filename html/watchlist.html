@@ -360,7 +360,7 @@
   <div class="onboarding-steps" id="onboardingSteps">
     <div class="onboarding-step" id="step1">
       <div class="step-icon" id="step1Icon"><span class="step-spinner"></span></div>
-      <div class="step-text active" id="step1Text">Check your email for the verification link</div>
+      <div class="step-text active" id="step1Text">Check your email for the verification link — check spam too, we're new</div>
     </div>
     <div class="onboarding-step" id="step2">
       <div class="step-icon" id="step2Icon" style="color:var(--ash)">2</div>
@@ -370,6 +370,15 @@
       <div class="step-icon" id="step3Icon" style="color:var(--ash)">3</div>
       <div class="step-text" id="step3Text">Bookmark your personal dashboard</div>
     </div>
+  </div>
+  <div id="smsVerifyBlock" style="display:none;margin-top:24px;background:var(--coal);border:1px solid var(--ash);padding:20px;text-align:center">
+    <p style="color:var(--silver);font-size:14px;margin-bottom:12px">We texted a 6-digit code to your phone. Enter it below:</p>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <input type="text" id="smsCode" maxlength="6" pattern="[0-9]{6}" placeholder="000000" inputmode="numeric"
+             style="width:120px;text-align:center;font-size:20px;letter-spacing:6px;background:var(--black);border:1px solid var(--ash);color:var(--silver);padding:10px;font-family:monospace">
+      <button id="smsVerifyBtn" style="background:var(--ember);color:#fff;border:none;padding:10px 20px;font-family:monospace;font-size:12px;letter-spacing:2px;cursor:pointer">VERIFY</button>
+    </div>
+    <p id="smsVerifyStatus" style="margin-top:8px;font-size:13px"></p>
   </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
   <div id="dashboardLink" style="display:none"></div>
@@ -515,6 +524,36 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       }
       // Connect to onboarding SSE for real-time status
       startOnboarding(result.id);
+
+      // SMS phone verification
+      if (result.sms_pending) {
+        document.getElementById('smsVerifyBlock').style.display = 'block';
+        const watchId = result.id;
+        document.getElementById('smsVerifyBtn').addEventListener('click', async function() {
+          const code = document.getElementById('smsCode').value.trim();
+          if (code.length !== 6) return;
+          const statusEl = document.getElementById('smsVerifyStatus');
+          try {
+            const r = await fetch('/api/verify-phone', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: watchId, code: code })
+            });
+            const d = await r.json();
+            if (r.ok) {
+              statusEl.textContent = 'Phone verified — SMS alerts active.';
+              statusEl.style.color = '#2ecc71';
+              document.getElementById('smsVerifyBlock').querySelector('div').style.display = 'none';
+            } else {
+              statusEl.textContent = d.error || 'Invalid code. Try again.';
+              statusEl.style.color = '#e05a5a';
+            }
+          } catch {
+            statusEl.textContent = 'Could not verify. Try again.';
+            statusEl.style.color = '#e05a5a';
+          }
+        });
+      }
     } else {
       alert(result.error || 'Something went wrong. Try again or email info@instockornot.club');
     }
@@ -533,9 +572,8 @@ function startOnboarding(watchId) {
     let data;
     try { data = JSON.parse(e.data); } catch { return; }
 
-    if (data.status === 'pending' && data.step === 2) {
-      // Nudge — still waiting
-      document.getElementById('step1Text').textContent = 'Check your inbox or spam folder — still waiting';
+    if (data.status === 'pending') {
+      document.getElementById('step1Text').textContent = data.message;
       document.getElementById('step1Text').className = 'step-text active';
     }
 

@@ -88,7 +88,7 @@ func handleOnboarding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send initial pending status
-	sendSSE(w, sseEvent{Status: "pending", Message: "Watch created — check your email for the verification link.", Step: 1})
+	sendSSE(w, sseEvent{Status: "pending", Message: "Watch created — check your email for the verification link. Check spam too — we're new.", Step: 1})
 
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()

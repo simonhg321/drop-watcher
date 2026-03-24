@@ -65,11 +65,11 @@ WATCHDOG_STATE     = os.path.join(DATA_DIR, 'watchdog_state.json')
 PREFLIGHT_JSONL    = os.path.join(LOG_DIR, 'preflight.jsonl')
 
 # ── Output HTML ─────────────────────────────────────────────────────────────
-ALERTS_HTML = os.path.join(WWW_DIR, 'alerts.html')
-STATUS_HTML = os.path.join(WWW_DIR, 'status.html')
-TRAFFIC_HTML = os.path.join(WWW_DIR, 'traffic.html')
+ALERTS_HTML   = os.path.join(WWW_DIR, 'alerts.html')           # public
+STATUS_HTML   = os.path.join(WWW_DIR, 'stats', 'status.html')  # admin
+TRAFFIC_HTML  = os.path.join(WWW_DIR, 'stats', 'traffic.html') # admin
 GOACCESS_JSON = os.path.join(WWW_DIR, 'stats', 'data.json')
-SECURITY_HTML = os.path.join(WWW_DIR, 'security.html')
+SECURITY_HTML = os.path.join(WWW_DIR, 'stats', 'security.html') # admin
 
 # ── API usage tracking ─────────────────────────────────────────────────────
 API_USAGE_JSONL = os.path.join(LOG_DIR, 'api_usage.jsonl')

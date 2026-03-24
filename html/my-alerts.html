@@ -132,7 +132,8 @@
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
   <a href="/watchlist.html">Watch</a>
   <a href="#" class="active">My Alerts</a>
-  <a href="/get-my-link.html" style="margin-left:auto;background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
+  <button id="sauceBtn" style="margin-left:auto;background:none;border:1px solid var(--ember);color:var(--ember);padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">WITH SAUCE</button>
+  <a href="/get-my-link.html" style="background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
 </nav>
 
 <div class="container">
@@ -146,6 +147,24 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const token  = params.get('token');
+let dw_sauce = true;
+
+document.getElementById('sauceBtn').addEventListener('click', () => {
+  dw_sauce = !dw_sauce;
+  const btn = document.getElementById('sauceBtn');
+  btn.textContent = dw_sauce ? 'WITH SAUCE' : 'WITHOUT SAUCE';
+  btn.style.borderColor = dw_sauce ? 'var(--ember)' : 'var(--ash)';
+  btn.style.color = dw_sauce ? 'var(--ember)' : 'var(--ash)';
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'sauceBtn') return;
+  if (dw_sauce) {
+    const a = new Audio('/audio/dropwatcher.mp3');
+    a.volume = 0.4;
+    a.play().catch(() => {});
+  }
+});
 
 function esc(str) {
   const d = document.createElement('div');

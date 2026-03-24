@@ -15,10 +15,11 @@ import html as html_mod
 import json
 import os
 import re
+import secrets
 import uuid
 import logging
 import httpx
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -335,7 +336,9 @@ def watch():
         'name':              name,
         'priority':          priority,
         'phone':             phone,
-        'sms_approved':      bool(phone and data.get('sms_consent')),
+        'sms_approved':      False,
+        'sms_verify_code':   None,
+        'sms_verify_expires': None,
         'active':            already_verified,  # auto-activate if email already verified
         'created':           datetime.now(timezone.utc).isoformat(),
         'last_alert':        None,
@@ -353,6 +356,20 @@ def watch():
         # First watch for this email — send verification
         send_verification_email(entry)
 
+    # SMS verification — send code if phone + consent provided
+    sms_pending = bool(phone and data.get('sms_consent'))
+    if sms_pending:
+        code = f"{secrets.randbelow(900000) + 100000}"
+        entry['sms_verify_code'] = code
+        entry['sms_verify_expires'] = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+        save_watchers(watchers)
+        try:
+            from sms_alerter import _send_twilio_sms
+            _send_twilio_sms(phone, f"Drop Watcher verification code: {code}")
+            log.info(f"SMS verification code sent to {phone}")
+        except Exception as e:
+            log.error(f"Failed to send SMS verification: {e}")
+
     # Quick keyword preview — show user what we found right now
     matches = quick_keyword_check(url, keywords)
     resp = {'status': 'created', 'id': entry['id']}
@@ -367,6 +384,9 @@ def watch():
             resp['preview_msg'] = "No matches yet — you're live, we'll alert you when something hits."
         else:
             resp['preview_msg'] = "No matches yet — we'll keep watching and alert you when something hits."
+
+    if sms_pending:
+        resp['sms_pending'] = True
 
     return jsonify(resp), 201
 
@@ -559,13 +579,41 @@ def verify(token):
                     <p style="font-size:18px;margin-top:24px;color:#f0f0f0">You are live. Alerts are active.</p>
                     {match_msg}
                     <p style="margin-top:32px"><a href="{my_alerts_url}" style="display:inline-block;background:#e67e22;color:#fff;padding:16px 32px;text-decoration:none;font-size:16px;letter-spacing:2px;">VIEW MY ALERTS</a></p>
-                    <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">HGR</div>
+                    <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">SGH</div>
+                    <button onclick="new Audio('/audio/dropwatcher.mp3').play();this.style.display='none'" style="margin-top:24px;background:none;border:1px solid #888;color:#888;padding:8px 16px;cursor:pointer;font-family:monospace;font-size:11px;letter-spacing:2px">&#9835; PLAY</button>
                 </body></html>""", 200
     return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
                     <h1 style="color:#888">DROP WATCHER</h1>
                     <p style="color:#888;font-size:14px;margin-top:24px">Link not found or already used.</p>
                 </body></html>""", 404
 
+
+
+@app.route('/api/verify-phone', methods=['POST'])
+@limiter.limit("10 per minute")
+def verify_phone():
+    """Verify SMS phone number with 6-digit code sent on signup."""
+    data = request.get_json(force=True)
+    watch_id = data.get('id', '').strip()
+    code     = data.get('code', '').strip()
+
+    if not watch_id or not code:
+        return jsonify({'error': 'Missing id or code'}), 400
+
+    watchers = load_watchers()
+    for w in watchers:
+        if w.get('id') == watch_id and w.get('sms_verify_code') == code:
+            expires = w.get('sms_verify_expires', '')
+            if expires and datetime.now(timezone.utc).isoformat() > expires:
+                return jsonify({'error': 'Code expired. Sign up again to get a new code.'}), 410
+            w['sms_approved'] = True
+            w['sms_verify_code'] = None
+            w['sms_verify_expires'] = None
+            save_watchers(watchers)
+            log.info(f"Phone verified for {w['email']}")
+            return jsonify({'status': 'verified'})
+
+    return jsonify({'error': 'Invalid code'}), 400
 
 
 @app.route('/api/unsubscribe/<token>', methods=['GET', 'POST'])
@@ -766,13 +814,9 @@ def check_url():
     return jsonify({'ok': True, 'msg': "We can read this page. You're good to go."})
 
 
-ADMIN_IPS = {'127.0.0.1', '::1', '71.197.159.99'}
-
 @app.route('/api/watchers', methods=['GET'])
 def list_watchers():
-    """Admin endpoint — localhost + HGR home IP."""
-    if request.remote_addr not in ADMIN_IPS:
-        return jsonify({'error': 'forbidden'}), 403
+    """Admin endpoint — dashboard.html is behind basic auth in /stats/."""
     watchers = load_watchers()
     active   = [w for w in watchers if w.get('active')]
     pending  = [w for w in watchers if not w.get('active')]
