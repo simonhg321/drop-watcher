@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>DROP WATCHER — We'll Be Right Back</title>
+  <meta name="description" content="Drop Watcher monitors 50+ knife and EDC sites around the clock. We're experiencing high traffic — monitoring continues behind the scenes.">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 2rem; -webkit-font-smoothing: antialiased; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 12vw, 6rem); color: var(--white); letter-spacing: 0.05em; line-height: 0.9; text-align: center; margin-top: 2rem; }
+    h1 span { display: block; -webkit-text-stroke: 1px var(--ember); color: transparent; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 2rem 0; }
+    .status-box { max-width: 600px; margin: 0 auto 2rem; text-align: center; }
+    .status-badge { display: inline-block; background: var(--ember); color: var(--white); font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.1em; padding: 0.5rem 2rem; margin-bottom: 1.5rem; }
+    .status-text { font-family: 'Crimson Pro', serif; font-style: italic; font-weight: 300; color: var(--silver); font-size: 1.1rem; line-height: 1.8; }
+    .status-text strong { color: var(--flame); font-weight: 400; }
+    .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.1em; color: var(--ember); margin: 2.5rem 0 1rem; text-align: center; }
+    .section-sub { color: var(--ash); font-size: 0.7rem; letter-spacing: 0.15em; text-align: center; margin: -0.5rem 0 1rem; }
+    .maker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1px; background: var(--iron); border: 1px solid var(--iron); max-width: 900px; margin: 0 auto; }
+    .maker-card { background: var(--steel); padding: 0.8rem 1rem; text-align: center; }
+    .maker-name { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.05em; color: var(--white); }
+    .maker-tier { font-size: 0.55rem; letter-spacing: 0.15em; color: var(--ash); margin-top: 0.2rem; }
+    .maker-tier.t1 { color: var(--flame); }
+    .dealer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1px; background: var(--iron); border: 1px solid var(--iron); max-width: 900px; margin: 0 auto; }
+    .dealer-card { background: var(--steel); padding: 0.6rem 1rem; color: var(--silver); font-size: 0.75rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--iron); border: 1px solid var(--iron); max-width: 600px; margin: 0 auto 2rem; }
+    .stat-card { background: var(--black); padding: 1rem; text-align: center; }
+    .stat-label { font-size: 0.55rem; letter-spacing: 0.15em; color: var(--ash); margin-bottom: 0.3rem; }
+    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--white); }
+    .pulse { display: inline-block; width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; margin-right: 8px; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .cta { text-align: center; margin: 2rem 0; }
+    .cta a { display: inline-block; font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.1em; color: var(--white); background: var(--ember); padding: 0.6rem 2rem; text-decoration: none; }
+    .cta a:hover { background: var(--flame); }
+    footer { margin-top: 3rem; color: var(--ash); font-size: 0.6rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+
+  <h1>DROP<span>WATCHER</span></h1>
+  <div class="flame-line"></div>
+
+  <div class="status-box">
+    <div class="status-badge"><span class="pulse"></span> MONITORING ACTIVE</div>
+    <p class="status-text">
+      We're experiencing higher traffic than usual. The site is in <strong>storm mode</strong> — lightweight pages only.
+      <br><br>
+      Monitoring continues behind the scenes. <strong>Your alerts are still sending.</strong> Email and SMS notifications are unaffected.
+      <br><br>
+      Full site will be back shortly.
+    </p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">SITES MONITORED</div>
+      <div class="stat-value">50+</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">MAKERS TRACKED</div>
+      <div class="stat-value">38+</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">RSS FEEDS</div>
+      <div class="stat-value">3</div>
+    </div>
+  </div>
+
+  <div class="section-head">TIER 1 — ALWAYS WATCHING</div>
+  <p class="section-sub">FASTEST ALERTS. ANY DROP IS WORTH KNOWING ABOUT.</p>
+  <div class="maker-grid">
+    <div class="maker-card"><div class="maker-name">Hinderer Knives</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+    <div class="maker-card"><div class="maker-name">Chris Reeve Knives</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+    <div class="maker-card"><div class="maker-name">Steel Flame</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+    <div class="maker-card"><div class="maker-name">Strider Knives</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+    <div class="maker-card"><div class="maker-name">Mick Strider Custom</div><div class="maker-tier t1">CRITICAL</div></div>
+    <div class="maker-card"><div class="maker-name">McNees Knives</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+    <div class="maker-card"><div class="maker-name">Starlingear</div><div class="maker-tier t1">CRITICAL</div></div>
+    <div class="maker-card"><div class="maker-name">Monkey Edge</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+    <div class="maker-card"><div class="maker-name">Arno Bernard</div><div class="maker-tier t1">HIGH PRIORITY</div></div>
+  </div>
+
+  <div class="section-head">DEALERS & RETAILERS</div>
+  <p class="section-sub">POLLED EVERY 10-30 MINUTES</p>
+  <div class="dealer-grid">
+    <div class="dealer-card">KnifeJoy</div>
+    <div class="dealer-card">DLT Trading</div>
+    <div class="dealer-card">Knife Center</div>
+    <div class="dealer-card">Monkey Edge</div>
+    <div class="dealer-card">Tactical Elements</div>
+    <div class="dealer-card">eKnives</div>
+    <div class="dealer-card">Nashville Tactical Lounge</div>
+    <div class="dealer-card">Steel Addiction</div>
+    <div class="dealer-card">Northwest Knives</div>
+    <div class="dealer-card">Arizona Custom Knives</div>
+    <div class="dealer-card">Nordic Knives</div>
+    <div class="dealer-card">Thunderbird Gear</div>
+    <div class="dealer-card">Knife Art</div>
+    <div class="dealer-card">Knives Ship Free</div>
+    <div class="dealer-card">African Sporting Creations</div>
+    <div class="dealer-card">Southern Edges</div>
+    <div class="dealer-card">SMKW</div>
+    <div class="dealer-card">Exclusive Folders</div>
+    <div class="dealer-card">Original Goat</div>
+    <div class="dealer-card">Tools For Gents</div>
+    <div class="dealer-card">Rivers Edge Cutlery</div>
+    <div class="dealer-card">Hog House Knives</div>
+    <div class="dealer-card">Urban EDC Supply</div>
+    <div class="dealer-card">Blade Binge</div>
+    <div class="dealer-card">Winterblades</div>
+  </div>
+
+  <div class="section-head">SECONDARY MARKET</div>
+  <p class="section-sub">PRE-OWNED AND CONSIGNMENT</p>
+  <div class="dealer-grid">
+    <div class="dealer-card">Recon 1 — Pre-Owned</div>
+    <div class="dealer-card">eKnives — Pre-Owned</div>
+    <div class="dealer-card">Knife Purveyor</div>
+    <div class="dealer-card">Luv Them Knives</div>
+    <div class="dealer-card">Rivers Edge — Consignment</div>
+    <div class="dealer-card">EDC Lifestyle</div>
+    <div class="dealer-card">Knife Market</div>
+    <div class="dealer-card">Cutting Edge</div>
+  </div>
+
+  <div class="section-head">RSS & SOCIAL FEEDS</div>
+  <div class="dealer-grid">
+    <div class="dealer-card">r/bladesinstock</div>
+    <div class="dealer-card">r/knife_swap</div>
+    <div class="dealer-card">r/EDCexchange</div>
+  </div>
+
+  <div class="cta">
+    <a href="https://www.reddit.com/r/knife_swap/">r/knife_swap while you wait</a>
+  </div>
+
+  <footer>
+    <span>instockornot.club — alerts still running</span>
+    <span class="hgr" data-nosnippet>HGR</span>
+  </footer>
+
+</body>
+</html>
