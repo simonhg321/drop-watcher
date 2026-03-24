@@ -4,472 +4,284 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SMS Terms &amp; Conditions — Drop Watcher</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
       --bg: #0f0f0f;
-      --surface: #161616;
+      --surface: #181818;
       --border: #2a2a2a;
       --text: #e8e8e8;
       --muted: #888;
       --accent: #f5a623;
-      --link: #f5a623;
-      --green: #4caf82;
-      --red: #e05a5a;
+      --font-body: 'Georgia', serif;
+      --font-mono: 'Courier New', monospace;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 300;
-      font-size: 15px;
+      font-family: var(--font-body);
+      font-size: 16px;
       line-height: 1.75;
       min-height: 100vh;
     }
 
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 20px 40px;
+    /* ── NAV ── */
+    nav {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border);
     }
+    nav a { color: var(--text); text-decoration: none; font-family: var(--font-mono); font-size: 0.85rem; }
+    nav a:hover { color: var(--accent); }
+    .nav-brand { font-size: 1rem; font-weight: bold; letter-spacing: 0.05em; }
 
-    .wordmark {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      color: var(--accent);
-      text-decoration: none;
+    /* ── LAYOUT ── */
+    .legal-label {
+      padding: 2.5rem 2rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-    }
-
-    .header-nav a {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      text-decoration: none;
-      text-transform: uppercase;
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
-    .header-nav a:hover {
-      border-color: var(--accent);
       color: var(--accent);
     }
 
-    .container {
+    main {
       max-width: 720px;
       margin: 0 auto;
-      padding: 64px 40px 96px;
-    }
-
-    .doc-label {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 16px;
+      padding: 2rem 2rem 5rem;
     }
 
     h1 {
-      font-size: 28px;
-      font-weight: 500;
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: normal;
       letter-spacing: -0.02em;
-      margin-bottom: 8px;
+      margin-bottom: 0.25rem;
     }
 
     .updated {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
       color: var(--muted);
-      margin-bottom: 48px;
-    }
-
-    /* Quick-reference compliance box — top of page, visible without scrolling */
-    .compliance-summary {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-top: 3px solid var(--accent);
-      padding: 28px 28px 24px;
-      margin-bottom: 56px;
-    }
-
-    .compliance-summary h2 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 20px;
-    }
-
-    .compliance-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .compliance-item {
-      padding: 14px 16px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-    }
-
-    .compliance-item .label {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .compliance-item .value {
-      font-size: 14px;
-      color: var(--text);
-      font-weight: 400;
-    }
-
-    .compliance-item .value.stop {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 16px;
-      color: var(--red);
-      font-weight: 500;
-      letter-spacing: 0.1em;
-    }
-
-    .compliance-item .value.help {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 16px;
-      color: var(--green);
-      font-weight: 500;
-      letter-spacing: 0.1em;
-    }
-
-    section {
-      margin-bottom: 40px;
-      padding-bottom: 40px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    section:last-child {
-      border-bottom: none;
+      margin-bottom: 2.5rem;
     }
 
     h2 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.06em;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--accent);
-      margin-bottom: 16px;
+      margin: 2.5rem 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
     }
 
-    p {
-      margin-bottom: 14px;
-      color: #d0d0d0;
-    }
+    p { margin-bottom: 1rem; }
 
     ul {
-      margin: 12px 0 14px 20px;
-      color: #d0d0d0;
-    }
-
-    ul li {
-      margin-bottom: 6px;
-    }
-
-    a {
-      color: var(--link);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(245, 166, 35, 0.3);
-      transition: border-color 0.2s;
-    }
-
-    a:hover {
-      border-color: var(--accent);
-    }
-
-    /* Opt-in flow box — visually documents the consent CTA for reviewers */
-    .optin-flow {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--green);
-      padding: 24px 28px;
-      margin: 20px 0;
-    }
-
-    .optin-flow .flow-title {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--green);
-      margin-bottom: 16px;
-    }
-
-    .flow-step {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 12px;
-      align-items: flex-start;
-    }
-
-    .flow-step:last-child {
-      margin-bottom: 0;
-    }
-
-    .step-num {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      min-width: 20px;
-      padding-top: 2px;
-    }
-
-    .step-text {
-      font-size: 14px;
-      color: #c8c8c8;
-      line-height: 1.6;
-    }
-
-    .consent-language {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 16px 20px;
-      margin: 16px 0;
-      font-size: 13px;
-      color: #c0c0c0;
-      font-style: italic;
-      line-height: 1.6;
-    }
-
-    .mdra-notice {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 16px 20px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
+      margin: 0.5rem 0 1rem 1.25rem;
       color: var(--text);
-      margin: 16px 0;
+    }
+    li { margin-bottom: 0.35rem; }
+
+    strong { color: #fff; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── AT A GLANCE TABLE ── */
+    .glance {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+    .glance td {
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .glance td:first-child {
+      color: var(--muted);
+      white-space: nowrap;
+      width: 40%;
+      background: var(--surface);
     }
 
-    .keyword-pill {
-      display: inline-block;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      padding: 3px 10px;
-      border: 1px solid;
-      margin: 3px 4px 3px 0;
+    /* ── CALLOUT ── */
+    .callout {
+      background: #1c1c1c;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #ccc;
     }
 
-    .keyword-pill.stop { color: var(--red); border-color: var(--red); }
-    .keyword-pill.help { color: var(--green); border-color: var(--green); }
+    /* ── CONSENT VERBATIM ── */
+    .consent-text {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #ddd;
+      font-style: italic;
+    }
 
+    /* ── KEYWORD CHIPS ── */
+    .keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.75rem 0 1rem;
+      list-style: none;
+      padding: 0;
+    }
+    .keyword-list li {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.75rem;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    /* ── FOOTER ── */
     footer {
       border-top: 1px solid var(--border);
-      padding: 24px 40px;
+      padding: 1.5rem 2rem;
       display: flex;
-      gap: 24px;
-      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
     }
-
-    footer a {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      text-transform: uppercase;
-      border: none;
-    }
-
-    footer a:hover {
-      color: var(--accent);
-      border: none;
-    }
-
-    @media (max-width: 600px) {
-      header { padding: 16px 20px; }
-      .container { padding: 40px 20px 64px; }
-      .compliance-grid { grid-template-columns: 1fr; }
-      footer { padding: 20px; flex-wrap: wrap; justify-content: center; gap: 16px; }
-    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
   </style>
 </head>
 <body>
 
-  <header>
-    <a class="wordmark" href="https://instockornot.club">Drop Watcher</a>
-    <nav class="header-nav">
-      <a href="/privacy.html">Privacy Policy →</a>
-    </nav>
-  </header>
+<nav>
+  <a class="nav-brand" href="https://instockornot.club">Drop Watcher</a>
+  <a href="https://instockornot.club/privacy.html">Privacy Policy →</a>
+</nav>
 
-  <div class="container">
+<div class="legal-label">Legal</div>
 
-    <div class="doc-label">Legal</div>
-    <h1>SMS Terms &amp; Conditions</h1>
-    <div class="updated">Last updated: March 15, 2026</div>
+<main>
+  <h1>SMS Terms &amp; Conditions</h1>
+  <p class="updated">Last updated: March 23, 2026</p>
 
-    <!-- Compliance quick-reference — all required disclosures above the fold -->
-    <div class="compliance-summary">
-      <h2>At a glance</h2>
-      <div class="compliance-grid">
-        <div class="compliance-item">
-          <div class="label">Program Name</div>
-          <div class="value">Drop Watcher SMS Alerts</div>
-        </div>
-        <div class="compliance-item">
-          <div class="label">Operated by</div>
-          <div class="value">instockornot.club</div>
-        </div>
-        <div class="compliance-item">
-          <div class="label">Message Frequency</div>
-          <div class="value">Varies — based on product drop activity</div>
-        </div>
-        <div class="compliance-item">
-          <div class="label">Rates</div>
-          <div class="value">Msg &amp; data rates may apply</div>
-        </div>
-        <div class="compliance-item">
-          <div class="label">To Opt Out</div>
-          <div class="value stop">Reply STOP</div>
-        </div>
-        <div class="compliance-item">
-          <div class="label">For Help</div>
-          <div class="value help">Reply HELP</div>
-        </div>
-      </div>
-    </div>
+  <table class="glance">
+    <tr><td>Program Name</td><td>Drop Watcher SMS Alerts</td></tr>
+    <tr><td>Operated by</td><td>instockornot.club</td></tr>
+    <tr><td>Message Frequency</td><td>Varies — based on product drop activity</td></tr>
+    <tr><td>Rates</td><td>Msg &amp; data rates may apply</td></tr>
+    <tr><td>To Opt Out</td><td>Reply STOP</td></tr>
+    <tr><td>For Help</td><td>Reply HELP</td></tr>
+  </table>
 
-    <section>
-      <h2>1. Program Description</h2>
-      <p><strong>Drop Watcher</strong> (instockornot.club) is a free web monitoring service that sends SMS and email alerts when specific keywords appear on webpages you are tracking. SMS messages are transactional alerts only — never marketing, promotions, or advertising.</p>
-      <p>When you opt in to SMS, you will receive text message alerts when keywords you specified are detected on a webpage you are watching.</p>
-    </section>
+  <h2>1. Program Description</h2>
+  <p><strong>Drop Watcher</strong> (instockornot.club) is a free web monitoring service that sends SMS and email alerts when specific keywords appear on webpages you are tracking. SMS messages are transactional alerts only — never marketing, promotions, or advertising.</p>
+  <p>When you opt in to SMS, you will receive text message alerts when keywords you specified are detected on a webpage you are watching.</p>
 
-    <section>
-      <h2>2. How You Opt In (Call to Action)</h2>
-      <p>Drop Watcher uses a single opt-in method: a web signup form at <a href="https://instockornot.club/watchlist.html" target="_blank">instockornot.club/watchlist.html</a>.</p>
+  <h2>2. How You Opt In (Call to Action)</h2>
+  <p>Drop Watcher uses web form opt-in. Consent is collected at the point of signup through an explicit, unchecked-by-default SMS consent checkbox.</p>
 
-      <div class="optin-flow">
-        <div class="flow-title">Web Form Opt-In Flow</div>
-        <div class="flow-step">
-          <div class="step-num">1.</div>
-          <div class="step-text">User visits <strong>instockornot.club</strong> and fills out the watchlist signup form with their name, email, and the URL + keywords they want to monitor.</div>
-        </div>
-        <div class="flow-step">
-          <div class="step-num">2.</div>
-          <div class="step-text">User optionally enters their phone number in the SMS field.</div>
-        </div>
-        <div class="flow-step">
-          <div class="step-num">3.</div>
-          <div class="step-text">User checks an explicit, unchecked-by-default SMS consent checkbox. The checkbox is required to enable SMS — the form does not proceed with SMS without it.</div>
-        </div>
-        <div class="flow-step">
-          <div class="step-num">4.</div>
-          <div class="step-text">The following consent language is displayed directly below the phone number field and checkbox at the point of collection:</div>
-        </div>
-      </div>
+  <p><strong>Web Form Opt-In Flow:</strong></p>
+  <ol style="margin: 0.5rem 0 1rem 1.25rem;">
+    <li>User visits <strong>instockornot.club</strong> and fills out the watchlist signup form with their name, email, and the URL + keywords they want to monitor.</li>
+    <li>User optionally enters their phone number in the SMS field.</li>
+    <li>User checks an explicit, unchecked-by-default SMS consent checkbox. The checkbox is required to enable SMS — the form does not proceed with SMS enrollment without it.</li>
+    <li>The following consent language is displayed directly below the phone number field and checkbox at the point of collection:</li>
+  </ol>
 
-      <div class="consent-language">
-        "By providing your phone number, you consent to receive SMS alerts from Drop Watcher (instockornot.club) about knife and EDC gear availability. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe, HELP for help."
-      </div>
-
-      <p>SMS opt-in is entirely optional. Email alerts are available without providing a phone number. Users are not required to opt in to SMS as a condition of using the service.</p>
-
-      <p><strong>Note on page access:</strong> The signup form is personalized per watcher (each user's watchlist dashboard is private). The opt-in consent flow described above and the consent language shown are consistent for all users at signup. Screenshots of the opt-in flow are available upon request at <a href="mailto:support@instockornot.club">support@instockornot.club</a>.</p>
-    </section>
-
-    <section>
-      <h2>3. Message Frequency</h2>
-      <p>Message frequency varies based on keyword matches on your watched pages. You may receive anywhere from zero to several messages per day depending on activity. Typical usage is a few messages per week. Drop Watcher only sends alerts when a monitored keyword is actually detected — there are no scheduled or periodic messages.</p>
-
-      <div class="mdra-notice">
-        Msg &amp; data rates may apply. Check with your carrier for details on your messaging plan.
-      </div>
-    </section>
-
-    <section>
-      <h2>4. Opt-Out Instructions</h2>
-      <p>You can stop receiving SMS alerts at any time by any of these methods:</p>
-      <ul>
-        <li>Reply <strong>STOP</strong> to any message from Drop Watcher</li>
-        <li>Using the STOP button on your personal dashboard at instockornot.club</li>
-        <li>Contacting <a href="mailto:support@instockornot.club">support@instockornot.club</a></li>
-      </ul>
-      <p>Opt-out keywords recognized:</p>
-      <div>
-        <span class="keyword-pill stop">STOP</span>
-        <span class="keyword-pill stop">STOPALL</span>
-        <span class="keyword-pill stop">UNSUBSCRIBE</span>
-        <span class="keyword-pill stop">CANCEL</span>
-        <span class="keyword-pill stop">END</span>
-        <span class="keyword-pill stop">QUIT</span>
-        <span class="keyword-pill stop">REVOKE</span>
-      </div>
-      <p style="margin-top: 16px;">After opting out, you will receive one final confirmation message. You will not receive any further SMS unless you opt in again.</p>
-    </section>
-
-    <section>
-      <h2>5. Help</h2>
-      <p>For help with SMS alerts:</p>
-      <ul>
-        <li>Reply <strong>HELP</strong> to any message from Drop Watcher</li>
-        <li>Email <a href="mailto:support@instockornot.club">support@instockornot.club</a></li>
-      </ul>
-      <p>Help keywords recognized:</p>
-      <div>
-        <span class="keyword-pill help">HELP</span>
-        <span class="keyword-pill help">INFO</span>
-      </div>
-    </section>
-
-    <section>
-      <h2>6. Privacy &amp; Data Use</h2>
-      <p>Your phone number and SMS opt-in consent are not sold, rented, or shared with any third parties for marketing or any other purpose. Your phone number is shared only with our SMS delivery provider (Twilio) for the sole purpose of delivering your alerts.</p>
-      <p>For full details on how we handle your personal data, see our <a href="/privacy.html">Privacy Policy</a>.</p>
-    </section>
-
-    <section>
-      <h2>7. Supported Carriers</h2>
-      <p>SMS alerts are available on all major US carriers including AT&amp;T, T-Mobile, Verizon, and most regional carriers. Carrier support may vary.</p>
-    </section>
-
-    <section>
-      <h2>8. Changes to These Terms</h2>
-      <p>We may update these SMS Terms from time to time. Changes will be posted on this page with an updated date. Continued use of the SMS service following any changes constitutes acceptance of the revised terms.</p>
-    </section>
-
-    <section>
-      <h2>9. Contact</h2>
-      <p>For questions or support:<br>
-      <a href="mailto:support@instockornot.club">support@instockornot.club</a><br>
-      instockornot.club</p>
-    </section>
-
+  <div class="consent-text">
+    "By providing your phone number, you consent to receive SMS alerts from Drop Watcher (instockornot.club) about knife and EDC gear availability. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe, HELP for help."
   </div>
 
-  <footer>
-    <a href="https://instockornot.club">Home</a>
-    <a href="/privacy.html">Privacy Policy</a>
-    <a href="/terms.html">SMS Terms</a>
-    <a href="mailto:support@instockornot.club">Support</a>
-  </footer>
+  <p>SMS opt-in is entirely optional. Email alerts are available without providing a phone number. Users are not required to opt in to SMS as a condition of using the service.</p>
+
+  <p>A publicly accessible demonstration of the SMS opt-in consent flow — showing the form layout, checkbox, and consent language exactly as presented to users at signup — is available at <a href="https://instockornot.club/sms-optin.html">instockornot.club/sms-optin.html</a>. Screenshots of the live opt-in flow are also available upon request at <a href="mailto:support@instockornot.club">support@instockornot.club</a>.</p>
+
+  <h2>3. Message Frequency</h2>
+  <p>Message frequency varies based on keyword matches on your watched pages. You may receive anywhere from zero to several messages per day depending on activity. Typical usage is a few messages per week. Drop Watcher only sends alerts when a monitored keyword is actually detected — there are no scheduled or periodic messages.</p>
+  <p>Msg &amp; data rates may apply. Check with your carrier for details on your messaging plan.</p>
+
+  <h2>4. Opt-Out Instructions</h2>
+  <p>You can stop receiving SMS alerts at any time by any of these methods:</p>
+  <ul>
+    <li>Reply <strong>STOP</strong> to any message from Drop Watcher</li>
+    <li>Use the stop option on your personal dashboard at instockornot.club</li>
+    <li>Contact <a href="mailto:support@instockornot.club">support@instockornot.club</a></li>
+  </ul>
+  <p>Opt-out keywords recognized:</p>
+  <ul class="keyword-list">
+    <li>STOP</li><li>STOPALL</li><li>UNSUBSCRIBE</li><li>CANCEL</li><li>END</li><li>QUIT</li><li>REVOKE</li>
+  </ul>
+  <p>After opting out, you will receive one final confirmation message. You will not receive any further SMS unless you opt in again.</p>
+
+  <h2>5. Help</h2>
+  <p>For help with SMS alerts:</p>
+  <ul>
+    <li>Reply <strong>HELP</strong> to any message from Drop Watcher</li>
+    <li>Email <a href="mailto:support@instockornot.club">support@instockornot.club</a></li>
+  </ul>
+  <p>Help keywords recognized:</p>
+  <ul class="keyword-list">
+    <li>HELP</li><li>INFO</li>
+  </ul>
+
+  <h2>6. Privacy &amp; Data Use</h2>
+
+  <div class="callout">
+    <strong>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.</strong>
+  </div>
+
+  <p>Your phone number and SMS opt-in consent are collected solely to deliver the SMS alert service you requested. Your mobile information is:</p>
+  <ul>
+    <li><strong>Never sold</strong> to any party</li>
+    <li><strong>Never rented</strong> to any party</li>
+    <li><strong>Never shared</strong> for marketing, promotional, or advertising purposes</li>
+    <li>Processed by our SMS delivery provider only for the purpose of transmitting your alerts to your device</li>
+  </ul>
+  <p>For full details on how we handle your personal data, see our <a href="https://instockornot.club/privacy.html">Privacy Policy</a>.</p>
+
+  <h2>7. Supported Carriers</h2>
+  <p>SMS alerts are available on all major US carriers including AT&amp;T, T-Mobile, Verizon, and most regional carriers. Carrier support may vary.</p>
+
+  <h2>8. Changes to These Terms</h2>
+  <p>We may update these SMS Terms from time to time. Changes will be posted on this page with an updated date. Continued use of the SMS service following any changes constitutes acceptance of the revised terms.</p>
+
+  <h2>9. Contact</h2>
+  <p>For questions or support:<br>
+  <a href="mailto:support@instockornot.club">support@instockornot.club</a><br>
+  instockornot.club</p>
+</main>
+
+<footer>
+  <a href="https://instockornot.club">Home</a>
+  <a href="https://instockornot.club/privacy.html">Privacy Policy</a>
+  <a href="https://instockornot.club/terms.html">SMS Terms</a>
+  <a href="mailto:support@instockornot.club">Support</a>
+</footer>
 
 </body>
 </html>

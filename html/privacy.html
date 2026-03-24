@@ -4,322 +4,247 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy — Drop Watcher</title>
-  <meta name="description" content="Drop Watcher privacy policy. How we handle your data, email alerts, and watch registrations at instockornot.club.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://instockornot.club/privacy.html">
-  <meta property="og:title" content="Privacy Policy — Drop Watcher">
-  <meta property="og:description" content="How we handle your data, email alerts, and watch registrations at instockornot.club.">
-  <meta property="og:image" content="https://instockornot.club/favicon.svg">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Privacy Policy — Drop Watcher">
-  <meta name="twitter:description" content="How we handle your data, email alerts, and watch registrations at instockornot.club.">
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
       --bg: #0f0f0f;
-      --surface: #161616;
+      --surface: #181818;
       --border: #2a2a2a;
       --text: #e8e8e8;
       --muted: #888;
       --accent: #f5a623;
-      --link: #f5a623;
+      --font-body: 'Georgia', serif;
+      --font-mono: 'Courier New', monospace;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 300;
-      font-size: 15px;
+      font-family: var(--font-body);
+      font-size: 16px;
       line-height: 1.75;
       min-height: 100vh;
     }
 
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 20px 40px;
+    /* ── NAV ── */
+    nav {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border);
     }
+    nav a { color: var(--text); text-decoration: none; font-family: var(--font-mono); font-size: 0.85rem; }
+    nav a:hover { color: var(--accent); }
+    .nav-brand { font-size: 1rem; font-weight: bold; letter-spacing: 0.05em; }
 
-    .wordmark {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      color: var(--accent);
-      text-decoration: none;
+    /* ── LAYOUT ── */
+    .legal-label {
+      padding: 2.5rem 2rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-    }
-
-    .header-nav a {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      text-decoration: none;
-      text-transform: uppercase;
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
-    .header-nav a:hover {
-      border-color: var(--accent);
       color: var(--accent);
     }
 
-    .container {
+    main {
       max-width: 720px;
       margin: 0 auto;
-      padding: 64px 40px 96px;
-    }
-
-    .doc-label {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 16px;
+      padding: 2rem 2rem 5rem;
     }
 
     h1 {
-      font-size: 28px;
-      font-weight: 500;
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: normal;
       letter-spacing: -0.02em;
-      margin-bottom: 8px;
+      margin-bottom: 0.25rem;
     }
 
     .updated {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
       color: var(--muted);
-      margin-bottom: 48px;
-    }
-
-    .intro {
-      background: var(--surface);
-      border-left: 3px solid var(--accent);
-      padding: 20px 24px;
-      margin-bottom: 48px;
-      font-size: 14px;
-      color: #c8c8c8;
-    }
-
-    section {
-      margin-bottom: 40px;
-      padding-bottom: 40px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    section:last-child {
-      border-bottom: none;
+      margin-bottom: 2.5rem;
     }
 
     h2 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.06em;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--accent);
-      margin-bottom: 16px;
+      margin: 2.5rem 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
     }
 
-    p {
-      margin-bottom: 14px;
-      color: #d0d0d0;
-    }
+    p { margin-bottom: 1rem; }
 
     ul {
-      margin: 12px 0 14px 20px;
-      color: #d0d0d0;
+      margin: 0.5rem 0 1rem 1.25rem;
+      color: var(--text);
+    }
+    li { margin-bottom: 0.35rem; }
+
+    strong { color: #fff; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── CALLOUT ── */
+    .callout {
+      background: #1c1c1c;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #ccc;
     }
 
-    ul li {
-      margin-bottom: 6px;
-    }
-
-    a {
-      color: var(--link);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(245, 166, 35, 0.3);
-      transition: border-color 0.2s;
-    }
-
-    a:hover {
-      border-color: var(--accent);
-    }
-
-    .terms-link-box {
+    /* ── CTA BLOCK ── */
+    .cta-block {
+      margin-top: 3.5rem;
+      padding: 1.5rem;
       background: var(--surface);
       border: 1px solid var(--border);
-      padding: 20px 24px;
-      margin-top: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .terms-link-box p {
-      margin: 0;
-      font-size: 14px;
+      border-radius: 4px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
       color: var(--muted);
     }
-
-    .terms-link-box a {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      white-space: nowrap;
-      border: 1px solid var(--accent);
-      padding: 8px 16px;
-      border-bottom: none;
-      color: var(--accent);
-    }
-
-    .terms-link-box a:hover {
+    .cta-block a {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.5rem 1.25rem;
       background: var(--accent);
-      color: var(--bg);
+      color: #000;
+      font-weight: bold;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
     }
+    .cta-block a:hover { text-decoration: none; opacity: 0.9; }
 
+    /* ── FOOTER ── */
     footer {
       border-top: 1px solid var(--border);
-      padding: 24px 40px;
+      padding: 1.5rem 2rem;
       display: flex;
-      gap: 24px;
-      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
     }
-
-    footer a {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      text-transform: uppercase;
-      border: none;
-    }
-
-    footer a:hover {
-      color: var(--accent);
-      border: none;
-    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
   </style>
 </head>
 <body>
 
-  <header>
-    <a class="wordmark" href="https://instockornot.club">Drop Watcher</a>
-    <nav class="header-nav">
-      <a href="/terms.html">SMS Terms &amp; Conditions →</a>
-    </nav>
-  </header>
+<nav>
+  <a class="nav-brand" href="https://instockornot.club">Drop Watcher</a>
+  <a href="https://instockornot.club/terms.html">SMS Terms &amp; Conditions →</a>
+</nav>
 
-  <div class="container">
+<div class="legal-label">Legal</div>
 
-    <div class="doc-label">Legal</div>
-    <h1>Privacy Policy</h1>
-    <div class="updated">Last updated: March 15, 2026</div>
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: March 23, 2026</p>
 
-    <div class="intro">
-      This Privacy Policy describes how Drop Watcher, operated at instockornot.club, collects, uses, and protects your information when you use our web monitoring and alert service.
-    </div>
+  <p>This Privacy Policy describes how Drop Watcher, operated at instockornot.club, collects, uses, and protects your information when you use our web monitoring and alert service.</p>
 
-    <section>
-      <h2>1. Information We Collect</h2>
-      <p>We collect only the information you voluntarily provide when signing up for alerts:</p>
-      <ul>
-        <li><strong>Email address</strong> — to send you drop alerts and service communications</li>
-        <li><strong>Phone number</strong> (optional) — to send SMS alerts, only if you explicitly opt in</li>
-        <li><strong>Watch preferences</strong> — the URLs and keywords you want to track</li>
-        <li><strong>Name</strong> (optional) — to personalize your alerts</li>
-      </ul>
-      <p>We do not collect payment information, physical addresses, browsing history, or any other personal data.</p>
-    </section>
+  <h2>1. Information We Collect</h2>
+  <p>We collect only the information you voluntarily provide when signing up for alerts:</p>
+  <ul>
+    <li><strong>Email address</strong> — to send you drop alerts and service communications</li>
+    <li><strong>Phone number</strong> (optional) — to send SMS alerts, only if you explicitly opt in</li>
+    <li><strong>Watch preferences</strong> — the URLs and keywords you want to track</li>
+    <li><strong>Name</strong> (optional) — to personalize your alerts</li>
+  </ul>
+  <p>We do not collect payment information, physical addresses, browsing history, or any other personal data.</p>
 
-    <section>
-      <h2>2. How We Use Your Information</h2>
-      <p>Your information is used solely to:</p>
-      <ul>
-        <li>Send you email or SMS alerts when keywords matching your watch appear on your tracked page</li>
-        <li>Manage your subscription and preferences</li>
-        <li>Prevent abuse of the service (rate limiting)</li>
-      </ul>
-      <p>We do not sell, rent, or share your personal information with any third parties. We do not send marketing messages. All communications are transactional alerts based on your explicit watch configuration.</p>
-    </section>
+  <h2>2. How We Use Your Information</h2>
+  <p>Your information is used solely to:</p>
+  <ul>
+    <li>Send you email or SMS alerts when keywords matching your watch appear on your tracked page</li>
+    <li>Manage your subscription and preferences</li>
+    <li>Prevent abuse of the service (rate limiting)</li>
+  </ul>
+  <p>We do not sell, rent, or share your personal information with any third parties. We do not send marketing messages. All communications are transactional alerts based on your explicit watch configuration.</p>
 
-    <section>
-      <h2>3. Email Communications</h2>
-      <p>You can unsubscribe from email alerts at any time by:</p>
-      <ul>
-        <li>Clicking the unsubscribe link in any alert email</li>
-        <li>Using the STOP button on your personal dashboard</li>
-        <li>Contacting <a href="mailto:support@instockornot.club">support@instockornot.club</a></li>
-      </ul>
-    </section>
+  <h2>3. Email Communications</h2>
+  <p>You can unsubscribe from email alerts at any time by:</p>
+  <ul>
+    <li>Clicking the unsubscribe link in any alert email</li>
+    <li>Using the stop option on your personal dashboard</li>
+    <li>Contacting <a href="mailto:support@instockornot.club">support@instockornot.club</a></li>
+  </ul>
 
-    <section>
-      <h2>4. Data Retention</h2>
-      <p>We retain your contact information and preferences for as long as your subscription is active. Alert history (drops detected) is retained for 30 days. You may request deletion of all your data at any time by contacting us.</p>
-    </section>
+  <h2>4. Data Retention</h2>
+  <p>We retain your contact information and preferences for as long as your subscription is active. Alert history (drops detected) is retained for 30 days. You may request deletion of all your data at any time by contacting us.</p>
 
-    <section>
-      <h2>5. Security</h2>
-      <ul>
-        <li>Subscriber data is stored on a secured server with restricted file permissions</li>
-        <li>Secrets and configuration are separated from public-facing code</li>
-        <li>We use TLS encryption for all connections</li>
-      </ul>
-      <p>We take reasonable precautions to protect your information but cannot guarantee absolute security.</p>
-    </section>
+  <h2>5. Security</h2>
+  <ul>
+    <li>Subscriber data is stored on a secured server with restricted file permissions</li>
+    <li>Secrets and configuration are separated from public-facing code</li>
+    <li>We use TLS encryption for all connections</li>
+  </ul>
+  <p>We take reasonable precautions to protect your information but cannot guarantee absolute security.</p>
 
-    <section>
-      <h2>6. Third-Party Services</h2>
-      <p>We use the following third-party services to operate Drop Watcher:</p>
-      <ul>
-        <li><strong>Resend</strong> — email delivery</li>
-        <li><strong>Twilio</strong> — SMS delivery</li>
-        <li><strong>Cloudflare</strong> — DNS and CDN</li>
-        <li><strong>Anthropic (Claude)</strong> — AI-powered page analysis</li>
-      </ul>
-      <p>These services process data in accordance with their own privacy policies and applicable law. We do not share your personal data with these services beyond what is necessary to deliver the service.</p>
-    </section>
+  <h2>6. Third-Party Service Providers</h2>
+  <p>Drop Watcher uses third-party service providers solely to operate the service. These providers process data only as instructed and only to the extent necessary to deliver the service to you. We use providers for the following functions:</p>
+  <ul>
+    <li>Email delivery</li>
+    <li>SMS delivery</li>
+    <li>DNS and content delivery</li>
+    <li>AI-powered page analysis</li>
+  </ul>
+  <p>No personal data — including phone numbers, email addresses, or opt-in consent records — is shared with these providers for any purpose other than delivering the specific service function listed above. These providers are not permitted to use your information for their own purposes.</p>
 
-    <section>
-      <h2>7. SMS Privacy</h2>
-      <p>Your phone number and SMS opt-in consent are not sold, rented, or shared with any third parties for marketing or any other purpose. Your phone number is shared only with Twilio for the sole purpose of delivering your alerts. For full SMS terms including opt-out and frequency disclosures, see our <a href="/terms.html">SMS Terms &amp; Conditions</a>.</p>
-    </section>
+  <h2>7. SMS Privacy</h2>
 
-    <section>
-      <h2>8. Changes to This Policy</h2>
-      <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated date.</p>
-    </section>
-
-    <section>
-      <h2>9. Contact</h2>
-      <p>For questions, data requests, or support:<br>
-      <a href="mailto:support@instockornot.club">support@instockornot.club</a></p>
-    </section>
-
-    <div class="terms-link-box">
-      <p>Looking for SMS opt-in terms, frequency disclosures, and opt-out instructions?</p>
-      <a href="/terms.html">View SMS Terms &amp; Conditions</a>
-    </div>
-
+  <div class="callout">
+    <strong>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.</strong>
   </div>
 
-  <footer>
-    <a href="https://instockornot.club">Home</a>
-    <a href="/privacy.html">Privacy Policy</a>
-    <a href="/terms.html">SMS Terms</a>
-    <a href="mailto:support@instockornot.club">Support</a>
-  </footer>
+  <p>Your phone number and SMS opt-in consent are collected solely to deliver the SMS alert service you requested. Your mobile information is:</p>
+  <ul>
+    <li><strong>Never sold</strong> to any party</li>
+    <li><strong>Never rented</strong> to any party</li>
+    <li><strong>Never shared</strong> for marketing, promotional, or advertising purposes</li>
+    <li>Processed by our SMS delivery provider only for the purpose of transmitting your alerts</li>
+  </ul>
+  <p>For full SMS terms including opt-out and frequency disclosures, see our <a href="https://instockornot.club/terms.html">SMS Terms &amp; Conditions</a>.</p>
+
+  <h2>8. Changes to This Policy</h2>
+  <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated date.</p>
+
+  <h2>9. Contact</h2>
+  <p>For questions, data requests, or support:<br>
+  <a href="mailto:support@instockornot.club">support@instockornot.club</a></p>
+
+  <div class="cta-block">
+    Looking for SMS opt-in terms, frequency disclosures, and opt-out instructions?
+    <br>
+    <a href="https://instockornot.club/terms.html">View SMS Terms &amp; Conditions</a>
+  </div>
+</main>
+
+<footer>
+  <a href="https://instockornot.club">Home</a>
+  <a href="https://instockornot.club/privacy.html">Privacy Policy</a>
+  <a href="https://instockornot.club/terms.html">SMS Terms</a>
+  <a href="mailto:support@instockornot.club">Support</a>
+</footer>
 
 </body>
 </html>
