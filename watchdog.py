@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 """
 watchdog.py — Self-healing watchdog for Drop Watcher services
 Runs via cron every 2 minutes: */2 * * * * python3 /home/shg/drop-watcher/watchdog.py

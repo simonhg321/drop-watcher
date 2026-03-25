@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 """
 safe_fetch.py — SSRF-safe URL fetching for Drop Watcher.
 Blocks requests to private/internal IPs, metadata endpoints, and non-HTTP schemes.

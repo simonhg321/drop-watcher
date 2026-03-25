@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 """
 cleanup_stale.py — Remove pending (unverified) watches older than 2 hours.
 Catches typo'd emails, bots, and people who never clicked verify.

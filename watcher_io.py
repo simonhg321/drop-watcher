@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 """
 watcher_io.py — Shared watchers.json read/write with file locking.
 Single source of truth for watcher file I/O.

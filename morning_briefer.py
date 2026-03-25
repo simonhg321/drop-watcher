@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
 Morning briefer — reads overnight alerts from drops.jsonl,

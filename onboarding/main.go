@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+// Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 //
 // onboarding-sse — Real-time onboarding status via Server-Sent Events.
 // Streams signup verification status to watchlist.html after a user signs up.

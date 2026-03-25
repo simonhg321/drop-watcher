@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 """
 paths.py — Single source of truth for all Drop Watcher file paths.
 Every script imports from here. Change paths once, everything follows.

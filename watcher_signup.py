@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Simon HGR — instockornot.club — ELv2 License
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 """
 watcher_signup.py — Flask API for public watch signups
 Receives POST /api/watch, writes to watchers.json
