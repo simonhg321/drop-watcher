@@ -616,6 +616,35 @@ def verify_phone():
     return jsonify({'error': 'Invalid code'}), 400
 
 
+@app.route('/api/pageview', methods=['POST'])
+@limiter.limit("60 per minute")
+def track_pageview():
+    """Anonymous pageview tracking — cookie-based visitor ID."""
+    data = request.get_json(silent=True) or {}
+    vid  = data.get('vid', '')[:16]
+    path = data.get('path', '')[:200]
+    ref  = data.get('ref', '')[:500]
+
+    if not vid or not path:
+        return '', 204
+
+    entry = json.dumps({
+        'vid':  vid,
+        'path': path,
+        'ref':  ref,
+        'ip':   request.remote_addr,
+        'ts':   datetime.now(timezone.utc).isoformat()
+    })
+
+    try:
+        with open(paths.PAGEVIEWS_JSONL, 'a') as f:
+            f.write(entry + '\n')
+    except Exception:
+        pass
+
+    return '', 204
+
+
 @app.route('/api/unsubscribe/<token>', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def unsubscribe(token):

@@ -73,3 +73,6 @@ SECURITY_HTML = os.path.join(WWW_DIR, 'stats', 'security.html') # admin
 
 # ── API usage tracking ─────────────────────────────────────────────────────
 API_USAGE_JSONL = os.path.join(LOG_DIR, 'api_usage.jsonl')
+
+# ── Visitor tracking ──────────────────────────────────────────────────────
+PAGEVIEWS_JSONL = os.path.join(LOG_DIR, 'pageviews.jsonl')
