@@ -300,6 +300,62 @@ def load_api_usage():
     return result
 
 
+# ── Visitor tracking stats ──────────────────────────────────────────────────
+
+def load_pageviews():
+    """Load pageviews.jsonl and return visitor summary."""
+    result = {
+        'total_views': 0, 'views_24h': 0,
+        'unique_vids': set(), 'vids_24h': set(),
+        'by_path': defaultdict(int),
+        'by_ref': defaultdict(int),
+        'journeys': defaultdict(list),  # vid → list of {path, ref, ts}
+    }
+    if not os.path.exists(paths.PAGEVIEWS_JSONL):
+        return result
+
+    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
+    try:
+        with open(paths.PAGEVIEWS_JSONL) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                    vid  = e.get('vid', '')
+                    path = e.get('path', '')
+                    ref  = e.get('ref', '')
+                    ts   = e.get('ts', '')
+
+                    result['total_views'] += 1
+                    result['unique_vids'].add(vid)
+                    result['by_path'][path] += 1
+
+                    if ref:
+                        # Extract domain from referrer
+                        try:
+                            from urllib.parse import urlparse
+                            ref_domain = urlparse(ref).netloc or ref
+                        except Exception:
+                            ref_domain = ref
+                        if 'instockornot.club' not in ref_domain:
+                            result['by_ref'][ref_domain] += 1
+
+                    if ts >= cutoff_24h:
+                        result['views_24h'] += 1
+                        result['vids_24h'].add(vid)
+                        result['journeys'][vid].append({'path': path, 'ref': ref, 'ts': ts})
+
+                except Exception:
+                    continue
+    except FileNotFoundError:
+        pass
+
+    return result
+
+
 # ── Formatting helpers ───────────────────────────────────────────────────────
 
 def fmt_bytes(b):
@@ -337,6 +393,7 @@ def generate_traffic_page():
 
     watcher_stats = load_watcher_stats()
     api_usage = load_api_usage()
+    pageviews = load_pageviews()
 
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
@@ -550,6 +607,97 @@ def generate_traffic_page():
       </div>
     </div>"""
 
+    # ── Visitor tracking section ─────────────────────────────────────────────
+    visitor_html = ''
+    if pageviews['total_views'] > 0:
+        unique_total = len(pageviews['unique_vids'])
+        unique_24h = len(pageviews['vids_24h'])
+
+        # Top pages table
+        top_pages = sorted(pageviews['by_path'].items(), key=lambda x: x[1], reverse=True)[:10]
+        page_rows = ''.join(
+            f'<tr><td class="path-cell">{html_mod.escape(p)}</td><td class="num-cell">{c}</td></tr>'
+            for p, c in top_pages
+        )
+
+        # External referrers table
+        top_refs = sorted(pageviews['by_ref'].items(), key=lambda x: x[1], reverse=True)[:10]
+        ref_rows = ''.join(
+            f'<tr><td>{html_mod.escape(r)}</td><td class="num-cell">{c}</td></tr>'
+            for r, c in top_refs
+        ) if top_refs else '<tr><td colspan="2" style="color:var(--ash);text-align:center;padding:1rem">No external referrers yet</td></tr>'
+
+        # Recent visitor journeys (last 24h, most active first)
+        sorted_journeys = sorted(pageviews['journeys'].items(), key=lambda x: len(x[1]), reverse=True)[:10]
+        journey_rows = ''
+        for vid, hits in sorted_journeys:
+            pages = ' → '.join(h['path'] for h in sorted(hits, key=lambda x: x['ts']))
+            first_ref = next((h['ref'] for h in hits if h['ref'] and 'instockornot.club' not in h['ref']), '—')
+            if len(first_ref) > 40:
+                first_ref = first_ref[:40] + '…'
+            journey_rows += (
+                f'<tr><td style="color:var(--flame)">{html_mod.escape(vid[:12])}</td>'
+                f'<td class="num-cell">{len(hits)}</td>'
+                f'<td class="path-cell" style="max-width:400px">{html_mod.escape(pages)}</td>'
+                f'<td>{html_mod.escape(first_ref)}</td></tr>'
+            )
+
+        visitor_html = f"""
+    <div class="section-head">VISITOR TRACKING</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-label">PAGEVIEWS (24H)</div>
+        <div class="stat-value">{pageviews['views_24h']}</div>
+        <div class="stat-sub">{pageviews['total_views']} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">UNIQUE VISITORS (24H)</div>
+        <div class="stat-value" style="color:var(--flame)">{unique_24h}</div>
+        <div class="stat-sub">{unique_total} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">PAGES / VISITOR</div>
+        <div class="stat-value">{pageviews['views_24h'] / max(unique_24h, 1):.1f}</div>
+        <div class="stat-sub">24h avg</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">EXTERNAL REFS</div>
+        <div class="stat-value">{len(pageviews['by_ref'])}</div>
+        <div class="stat-sub">unique sources</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">TOP PAGES (ALL TIME)</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>PATH</th><th>VIEWS</th></tr></thead>
+            <tbody>{page_rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">EXTERNAL REFERRERS</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>SOURCE</th><th>VISITS</th></tr></thead>
+            <tbody>{ref_rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head" style="font-size:1rem;margin-top:1.5rem">VISITOR JOURNEYS (24H)</div>
+    <div class="panel" style="margin-bottom:2rem">
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>VISITOR</th><th>HITS</th><th>JOURNEY</th><th>CAME FROM</th></tr></thead>
+          <tbody>{journey_rows}</tbody>
+        </table>
+      </div>
+    </div>"""
+
     # ── Data source indicator ────────────────────────────────────────────────
     sources = []
     if cf_data:
@@ -681,6 +829,8 @@ def generate_traffic_page():
   </div>
 
   {api_usage_html}
+
+  {visitor_html}
 
   <p class="source-line">Sources: {source_str} — Updated: {now_str}</p>
   <p class="source-line"><a href="/stats/" style="color:var(--flame);text-decoration:none">Full GoAccess server stats →</a></p>
