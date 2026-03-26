@@ -277,7 +277,7 @@ def watch():
     priority = data.get('priority', 'high')
 
     # Email format
-    if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email) or len(email) > 254:
+    if not re.match(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$', email) or len(email) > 254:
         return jsonify({'error': 'Invalid email address.'}), 400
 
     # URL: must be http(s), reasonable length
@@ -402,7 +402,7 @@ def resend_link():
     email = (data.get('email') or '').strip().lower()
     if not email:
         return jsonify({'error': 'email required'}), 400
-    if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email) or len(email) > 254:
+    if not re.match(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$', email) or len(email) > 254:
         return jsonify({'error': 'Invalid email address.'}), 400
 
     watchers = load_watchers()
