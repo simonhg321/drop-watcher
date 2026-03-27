@@ -800,6 +800,12 @@ def generate_traffic_page():
     <a href="/">HOME</a>
   </nav>
 
+  {visitor_html}
+
+  {api_usage_html}
+
+  <div class="section-head">SERVER STATS</div>
+
   {cards_html}
 
   {bars_html}
@@ -808,11 +814,11 @@ def generate_traffic_page():
 
   <div class="panels">
     <div class="panel">
-      <div class="panel-title">TOP PATHS</div>
+      <div class="panel-title">TOP PATHS (SERVER)</div>
       <div class="panel-body">{paths_html}</div>
     </div>
     <div class="panel">
-      <div class="panel-title">TOP REFERRERS</div>
+      <div class="panel-title">TOP REFERRERS (SERVER)</div>
       <div class="panel-body">{refs_html}</div>
     </div>
   </div>
@@ -827,10 +833,6 @@ def generate_traffic_page():
       <div class="panel-body">{status_html}</div>
     </div>
   </div>
-
-  {api_usage_html}
-
-  {visitor_html}
 
   <p class="source-line">Sources: {source_str} — Updated: {now_str}</p>
   <p class="source-line"><a href="/stats/" style="color:var(--flame);text-decoration:none">Full GoAccess server stats →</a></p>
