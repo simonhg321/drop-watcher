@@ -206,6 +206,15 @@ def generate_alerts_page():
   <meta http-equiv="refresh" content="30">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>Drop Watcher — Alerts</title>
+  <meta name="description" content="Real-time knife and EDC drop alerts — Steel Flame, Hinderer, CRK, Strider and more.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://instockornot.club/alerts.html">
+  <meta property="og:title" content="DROP WATCHER — Live Alerts">
+  <meta property="og:description" content="Real-time knife and EDC drop alerts. 50+ sources monitored every 20 minutes.">
+  <meta property="og:image" content="https://instockornot.club/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DROP WATCHER — Live Alerts">
+  <meta name="twitter:description" content="Real-time knife and EDC drop alerts. 50+ sources monitored every 20 minutes.">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}

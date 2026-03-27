@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; }
+  .card {
+    width: 1200px;
+    height: 630px;
+    background: #1a1a1a;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Gritty noise texture */
+  .noise {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Big sloppy ember splash — left */
+  .splash-1 {
+    position: absolute;
+    width: 500px; height: 700px;
+    background: radial-gradient(ellipse at 30% 50%, rgba(192,57,43,0.35) 0%, transparent 60%);
+    top: -100px; left: -50px;
+    transform: rotate(-15deg);
+    z-index: 1;
+  }
+
+  /* Flame drip — right side */
+  .splash-2 {
+    position: absolute;
+    width: 400px; height: 500px;
+    background: radial-gradient(ellipse at 70% 40%, rgba(230,126,34,0.25) 0%, transparent 55%);
+    bottom: -100px; right: 50px;
+    transform: rotate(10deg);
+    z-index: 1;
+  }
+
+  /* Thick crooked top bar */
+  .bar-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: #c0392b;
+    z-index: 4;
+  }
+
+  /* Content */
+  .content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    padding: 50px 70px;
+  }
+
+  .left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .drop {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 140px;
+    line-height: 0.9;
+    color: #f0f0f0;
+    transform: rotate(-2deg);
+    margin-left: -5px;
+  }
+  .watcher {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 140px;
+    line-height: 0.9;
+    color: #c0392b;
+    text-shadow: 4px 4px 0px rgba(0,0,0,0.5), 0 0 40px rgba(192,57,43,0.3);
+    transform: rotate(-2deg);
+    margin-left: 20px;
+  }
+
+  .tagline {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    color: #e67e22;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-top: 35px;
+    transform: rotate(-1deg);
+  }
+
+  .right {
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: #2ecc71;
+    letter-spacing: 0.15em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    background: #2ecc71;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #2ecc71, 0 0 24px rgba(46,204,113,0.3);
+  }
+
+  .stats-block {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 48px;
+    color: #f0f0f0;
+    line-height: 1.1;
+  }
+  .stats-block .num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    color: #e67e22;
+  }
+  .stats-block .label {
+    font-size: 14px;
+    color: #555;
+    letter-spacing: 0.3em;
+  }
+
+  .bottom-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .url {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    color: #e67e22;
+    letter-spacing: 0.15em;
+  }
+
+  .badge {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 32px;
+    color: rgba(192,57,43,0.5);
+    letter-spacing: 0.2em;
+  }
+
+  /* Crossed out "SOLD OUT" stamp */
+  .stamp {
+    position: absolute;
+    top: 45%;
+    right: 120px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 50px;
+    color: rgba(192,57,43,0.12);
+    letter-spacing: 0.2em;
+    transform: rotate(-25deg);
+    border: 3px solid rgba(192,57,43,0.12);
+    padding: 5px 20px;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="noise"></div>
+  <div class="splash-1"></div>
+  <div class="splash-2"></div>
+  <div class="bar-top"></div>
+  <div class="stamp">SOLD OUT</div>
+  <div class="content">
+    <div class="left">
+      <div class="drop">DROP</div>
+      <div class="watcher">WATCHER</div>
+      <div class="tagline">You sleep. We watch. You score.</div>
+    </div>
+    <div class="right">
+      <div class="status"><div class="status-dot"></div> LIVE</div>
+      <div class="stats-block">
+        <div class="num">50+</div>
+        <div class="label">SOURCES WATCHED</div>
+        <div style="height:20px"></div>
+        <div class="num">&lt;2m</div>
+        <div class="label">DETECTION TIME</div>
+      </div>
+      <div class="bottom-right">
+        <div class="url">instockornot.club</div>
+        <div class="badge">SGH</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
