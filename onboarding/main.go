@@ -82,7 +82,7 @@ func handleOnboarding(w http.ResponseWriter, r *http.Request) {
 	// Already verified? Send immediate success and close
 	if watcher.Active {
 		dashURL := fmt.Sprintf("/my-alerts.html?token=%s", watcher.UnsubscribeToken)
-		sendSSE(w, sseEvent{Status: "verified", Message: "You're live! Alerts are active.", Step: 3, DashboardURL: dashURL})
+		sendSSE(w, sseEvent{Status: "verified", Message: "You're live! Email alerts are active — we'll text you when a drop hits so you know to check it.", Step: 3, DashboardURL: dashURL})
 		log.Printf("[%s] Already verified, closing", id)
 		return
 	}
@@ -128,7 +128,7 @@ func handleOnboarding(w http.ResponseWriter, r *http.Request) {
 				dashURL := fmt.Sprintf("/my-alerts.html?token=%s", watcher.UnsubscribeToken)
 				sendSSE(w, sseEvent{
 					Status:       "verified",
-					Message:      "Verified! You're live. Bookmark your dashboard.",
+					Message:      "Verified! You're live — email alerts active, SMS nudge on. Bookmark your dashboard.",
 					Step:         3,
 					DashboardURL: dashURL,
 				})

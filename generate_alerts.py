@@ -205,16 +205,16 @@ def generate_alerts_page():
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="30">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <title>Drop Watcher — Alerts</title>
-  <meta name="description" content="Real-time knife and EDC drop alerts — Steel Flame, Hinderer, CRK, Strider and more.">
+  <title>Live Drop Alerts — In-Stock Notifications Updated Every 2 Minutes | Drop Watcher</title>
+  <meta name="description" content="Live in-stock alerts updated every 2 minutes. See what just dropped — knives, limited releases, restocks. AI-powered drop detection, free, no account needed.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://instockornot.club/alerts.html">
-  <meta property="og:title" content="DROP WATCHER — Live Alerts">
-  <meta property="og:description" content="Real-time knife and EDC drop alerts. 50+ sources monitored every 20 minutes.">
+  <meta property="og:title" content="Live Drop Alerts — Drop Watcher">
+  <meta property="og:description" content="Live in-stock alerts. See what just dropped — updated every 2 minutes. Free, AI-powered.">
   <meta property="og:image" content="https://instockornot.club/og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="DROP WATCHER — Live Alerts">
-  <meta name="twitter:description" content="Real-time knife and EDC drop alerts. 50+ sources monitored every 20 minutes.">
+  <meta name="twitter:title" content="Live Drop Alerts — Drop Watcher">
+  <meta name="twitter:description" content="Live in-stock alerts. See what just dropped — updated every 2 minutes. Free, AI-powered.">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}

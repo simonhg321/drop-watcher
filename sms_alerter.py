@@ -19,9 +19,10 @@ import paths
 load_dotenv(paths.ENV_FILE, override=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN  = os.environ.get('TWILIO_AUTH_TOKEN')
-TWILIO_FROM        = os.environ.get('TWILIO_FROM')  # +19282498690
+TWILIO_ACCOUNT_SID    = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN     = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_FROM           = os.environ.get('TWILIO_FROM')  # +19282498690
+TWILIO_MESSAGING_SID  = os.environ.get('TWILIO_MESSAGING_SID')  # MG... — A2P campaign
 
 WATCHERS_FILE = paths.WATCHERS_JSON
 SMS_SENT_LOG  = paths.SMS_SENT_JSONL
@@ -31,19 +32,7 @@ log = logging.getLogger('sms_alerter')
 
 # ── Format SMS message ────────────────────────────────────────────────────────
 def format_sms(alert):
-    source  = alert.get('source', 'Unknown')
-    url     = alert.get('url', 'https://instockornot.club')
-    items   = alert.get('notable_items', [])
-
-    item_str = f" — {items[0]}" if items else ""
-    msg = f"DROP WATCHER: CRITICAL — {source}{item_str}. {url} Reply STOP to unsubscribe."
-
-    # SMS hard limit: 160 chars for single segment
-    if len(msg) > 160:
-        item_str = ""
-        msg = f"DROP WATCHER: CRITICAL — {source}. {url} Reply STOP to unsubscribe."
-    if len(msg) > 160:
-        msg = f"DROP WATCHER: CRITICAL — {source}. instockornot.club Reply STOP to opt out."
+    return "Drop Watcher: New drop alert — check your email for details. Reply STOP to opt out."
 
     return msg
 
@@ -88,17 +77,21 @@ def get_approved_phones():
 
 # ── Send a single SMS via Twilio ──────────────────────────────────────────────
 def _send_twilio_sms(to_phone, body):
-    if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM]):
+    if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN]):
         log.error("Twilio credentials not configured in .env")
+        return False
+    if not TWILIO_MESSAGING_SID and not TWILIO_FROM:
+        log.error("Need TWILIO_MESSAGING_SID or TWILIO_FROM in .env")
         return False
     try:
         from twilio.rest import Client
         client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        message = client.messages.create(
-            body=body,
-            from_=TWILIO_FROM,
-            to=to_phone
-        )
+        params = {'body': body, 'to': to_phone}
+        if TWILIO_MESSAGING_SID:
+            params['messaging_service_sid'] = TWILIO_MESSAGING_SID
+        else:
+            params['from_'] = TWILIO_FROM
+        message = client.messages.create(**params)
         log.info(f"SMS sent to {to_phone} — sid: {message.sid}")
         return True
     except Exception as e:

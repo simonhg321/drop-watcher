@@ -11,9 +11,24 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://instockornot.club/what-we-watch.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://instockornot.club/alerts.html</loc>
     <changefreq>always</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instockornot.club/get-my-link.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://instockornot.club/hgr.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>https://instockornot.club/privacy.html</loc>
@@ -24,10 +39,5 @@
     <loc>https://instockornot.club/terms.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://instockornot.club/hgr.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
   </url>
 </urlset>

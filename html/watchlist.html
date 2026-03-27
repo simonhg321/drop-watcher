@@ -5,16 +5,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<title>Drop Watcher — Watch Anything</title>
-<meta name="description" content="Enter any URL and keywords — Drop Watcher will monitor the page and email you the second your item appears. Free alerts for knife and EDC drops.">
+<title>Set a Watch — Free In-Stock Alerts and Restock Notifications | Drop Watcher</title>
+<meta name="description" content="Set up a free in-stock alert in 30 seconds. Paste any URL, add your keywords, and get emailed or texted when your item drops. Sneakers, knives, GPUs, anything.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://instockornot.club/watchlist.html">
-<meta property="og:title" content="Drop Watcher — Watch Anything">
-<meta property="og:description" content="Enter any URL and keywords — Drop Watcher will monitor the page and email you the second your item appears.">
+<meta property="og:title" content="Set a Watch — Free In-Stock Alerts | Drop Watcher">
+<meta property="og:description" content="Paste any URL, add your keywords, get alerted when your item drops. Free, no account needed.">
 <meta property="og:image" content="https://instockornot.club/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Drop Watcher — Watch Anything">
-<meta name="twitter:description" content="Enter any URL and keywords — Drop Watcher will monitor the page and email you the second your item appears.">
+<meta name="twitter:title" content="Set a Watch — Free In-Stock Alerts | Drop Watcher">
+<meta name="twitter:description" content="Paste any URL, add your keywords, get alerted when your item drops. Free, no account needed.">
+<link rel="canonical" href="https://instockornot.club/watchlist.html">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -330,15 +331,15 @@
     </div>
 
     <div class="field">
-      <label>Phone number <span style="color:var(--ash);">(optional — for SMS alerts)</span></label>
+      <label>Phone number <span style="color:var(--ash);">(optional — SMS nudge)</span></label>
       <input type="tel" name="phone" placeholder="+1 (555) 123-4567">
-      <div class="hint">Get a text for CRITICAL drops. US numbers only. Msg & data rates apply.</div>
+      <div class="hint">Get a text when a drop hits so you know to check your email. US numbers only. Msg & data rates apply.</div>
     </div>
 
     <div class="field" id="smsConsentField" style="display:none;">
       <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;color:var(--silver);">
         <input type="checkbox" name="sms_consent" style="width:auto;margin-top:2px;flex-shrink:0;accent-color:var(--ember);">
-        I agree to receive SMS alerts from Drop Watcher. Msg frequency varies. Reply STOP to cancel. <a href="/terms.html" style="color:var(--flame);">SMS Terms</a>
+        I agree to receive SMS notifications from Drop Watcher when a drop is detected. Details come by email. Msg frequency varies. Reply STOP to cancel. <a href="/terms.html" style="color:var(--flame);">SMS Terms</a>
       </label>
     </div>
 
@@ -541,7 +542,7 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
             });
             const d = await r.json();
             if (r.ok) {
-              statusEl.textContent = 'Phone verified — SMS alerts active.';
+              statusEl.textContent = 'Phone verified — we\'ll text you when a drop hits.';
               statusEl.style.color = '#2ecc71';
               document.getElementById('smsVerifyBlock').querySelector('div').style.display = 'none';
             } else {
@@ -600,7 +601,7 @@ function startOnboarding(watchId) {
       document.getElementById('successIcon').textContent = '✓';
       document.getElementById('successTitle').textContent = 'You\'re live!';
       document.getElementById('successTitle').style.color = '#2ecc71';
-      document.getElementById('successSubtitle').textContent = 'We\'re watching your page. You\'ll get an email the moment your keywords appear.';
+      document.getElementById('successSubtitle').textContent = 'We\'re watching your page. You\'ll get an email when your keywords appear — and a text so you know to check it.';
 
       // Show dashboard button
       if (data.dashboard_url) {
