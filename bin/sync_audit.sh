@@ -11,6 +11,12 @@ REMOTE_WEB="/var/www/html"
 REMOTE_CONF="/etc/drop-watcher"
 REMOTE_SUPV="/etc/supervisor/conf.d/drop-watcher.conf"
 
+# SSH multiplexing — one connection for all checks
+SSH_SOCK="/tmp/dw-sync-audit-$$"
+ssh -fNM -S "$SSH_SOCK" "$HOST" 2>/dev/null
+SSH="ssh -S $SSH_SOCK $HOST"
+trap 'ssh -S "$SSH_SOCK" -O exit "$HOST" 2>/dev/null' EXIT
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -33,7 +39,7 @@ compare() {
   fi
 
   LOCAL_MD5=$(md5 -q "$local_file" 2>/dev/null || md5sum "$local_file" 2>/dev/null | cut -d' ' -f1)
-  REMOTE_MD5=$(ssh "$HOST" "md5sum $remote_file 2>/dev/null" | cut -d' ' -f1)
+  REMOTE_MD5=$($SSH "md5sum $remote_file 2>/dev/null" | cut -d' ' -f1)
 
   if [ -z "$REMOTE_MD5" ]; then
     echo -e "  ${RED}MISSING${RESET}  $label  ${DIM}→ not on ironman${RESET}"
@@ -159,7 +165,7 @@ done
 # ── 6. Files on ironman that SHOULDN'T exist ──────────────────────────────────
 echo ""
 echo -e "${BOLD}── IRONMAN GHOSTS (should not exist) ──${RESET}"
-GHOSTS=$(ssh "$HOST" "ls \
+GHOSTS=$($SSH "ls \
   ~/drop-watcher/orchestrator.py \
   ~/drop-watcher/.env \
   ~/drop-watcher/config/watchers.jso? \
@@ -185,7 +191,7 @@ fi
 # ── 7. Services ──────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}── IRONMAN SERVICES ──${RESET}"
-ssh "$HOST" "sudo supervisorctl status 2>/dev/null" | while read -r line; do
+$SSH "sudo supervisorctl status 2>/dev/null" | while read -r line; do
   if echo "$line" | grep -q "RUNNING"; then
     echo -e "  ${GREEN}✓${RESET}  $line"
   else
