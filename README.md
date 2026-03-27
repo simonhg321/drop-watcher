@@ -1,33 +1,35 @@
 # Drop Watcher
 ### instockornot.club
 
-A public alert platform for knife and EDC collectors. Enter a URL and keywords — get notified when drops happen.
+A public alert platform for collectors. Enter a URL and keywords — get notified when drops happen.
 
 ---
 
 ## Mission
 
-The knife and EDC collector world moves fast. Limited runs sell out in minutes. Steel Flame drops are announced and gone before most people see them. Drop Watcher exists to level the playing field for collectors — not dealers, not bots, not resellers.
+If you're looking for something — knives, sneakers, GPUs, cameras, limited releases, anything — Drop Watcher watches the page so you don't have to. Enter a URL and your keywords. Walk away. Get an email when it hits, and a text so you know to check it.
 
-You enter what you're watching for. The system watches. You get alerted. You decide.
+Built for collectors. Works on anything.
 
 ---
 
 ## What It Does
 
-- Monitors maker and dealer sites for inventory changes and drop announcements
-- Scores alerts by priority — CRITICAL for rare collabs and customs, HIGH for specials, MEDIUM for production runs
-- Sends email and SMS alerts to registered watchers when something worth caring about surfaces
-- Runs a live public alert feed at [instockornot.club](https://instockornot.club/)
+- Monitors any URL for inventory changes and drop announcements
+- AI-powered page analysis — knows the difference between "add to cart" and "sold out"
+- Scores alerts by priority — CRITICAL for rare finds, HIGH for specials, MEDIUM for production runs
+- Email alerts with full details + SMS nudge so you never miss the email
+- Live public alert feed at [instockornot.club](https://instockornot.club/)
+- Free. No account. No app. No password.
 
 ---
 
 ## Core Values
 
-- **Good citizen** — polite polling, randomized intervals, respectful rate limits. No hammering small maker sites.
-- **Collector-first** — built for the community, not dealers or resellers
+- **Good citizen** — polite polling, randomized intervals, respectful rate limits. No hammering small sites.
+- **Collector-first** — built for people who want things, not dealers or resellers
 - **No automated purchasing** — the system watches and alerts, you pull the trigger
-- **ELv2 licensed** — free for collectors, closed to commercial exploitation
+- **ELv2 licensed** — free for personal use, closed to commercial exploitation
 
 ---
 
@@ -70,6 +72,6 @@ ELv2 — see [LICENSE](LICENSE). Free for personal and community use. Commercial
 
 ---
 
-*Built across 20 sessions with Claude (Anthropic) as co-pilot — architecture, debugging, and the occasional argument about git stashes. Claude did half. I did the half that mattered.*
+*Built across 23 sessions with Claude (Anthropic) as co-pilot — architecture, debugging, and the occasional argument about git stashes. Claude did half. I did the half that mattered.*
 
 **SGH**
