@@ -21,6 +21,7 @@ Built for collectors. Works on anything.
 - Email alerts with full details + SMS nudge so you never miss the email
 - Live public alert feed at [instockornot.club](https://instockornot.club/)
 - Free. No account. No app. No password.
+- Built with AI, open source — fork it, learn how AI and humans build software together
 
 ---
 
