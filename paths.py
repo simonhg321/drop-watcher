@@ -74,5 +74,8 @@ SECURITY_HTML = os.path.join(WWW_DIR, 'stats', 'security.html') # admin
 # ── API usage tracking ─────────────────────────────────────────────────────
 API_USAGE_JSONL = os.path.join(LOG_DIR, 'api_usage.jsonl')
 
+# ── AI call logging (full prompt + response) ──────────────────────────────
+AI_CALLS_JSONL = os.path.join(LOG_DIR, 'ai_calls.jsonl')
+
 # ── Visitor tracking ──────────────────────────────────────────────────────
 PAGEVIEWS_JSONL = os.path.join(LOG_DIR, 'pageviews.jsonl')

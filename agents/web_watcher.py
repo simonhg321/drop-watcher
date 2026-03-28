@@ -3,7 +3,9 @@
 """
 web_watcher.py
 Drop Watcher — Web Agent
-Monitors websites for knife and Steel Flame drops.
+Monitors two classes of URLs:
+  1. Curated sources (sources.yaml) — knife/EDC market, AI analyzed with maker priority rules
+  2. User-submitted watches (watchers.json) — any URL, any product, AI analyzed for stock status
 SSL permissive support + AI interpretation layer.
 HGR
 """
@@ -35,7 +37,8 @@ load_dotenv(paths.ENV_FILE)
 
 # ── Add agents dir to path so we can import ai_interpreter ───────────────────
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
-from ai_interpreter import analyze_page
+import fcntl
+from ai_interpreter import analyze_page, analyze_user_page
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 CONFIG_DIR = paths.CONFIG_DIR
@@ -215,6 +218,49 @@ def fetch_page(url, ssl_permissive=False):
         log.warning(f"Failed to fetch {url}: {e}")
         return None
 
+# ── User-submitted watch URLs ─────────────────────────────────────────────────
+USER_POLL_INTERVAL = 15 * 60          # scrape user URLs every 15 min
+USER_SITES_RELOAD_INTERVAL = 5 * 60   # reload watchers.json every 5 min
+
+def domain_from_url(url):
+    """Extract domain from URL, stripping scheme and www."""
+    url = url.lower().replace('https://', '').replace('http://', '')
+    if url.startswith('www.'):
+        url = url[4:]
+    return url.split('/')[0]
+
+def load_user_sites(source_domains):
+    """Load unique URLs from active watchers that aren't already in sources.yaml."""
+    if not os.path.exists(paths.WATCHERS_JSON):
+        return {}
+    try:
+        with open(paths.WATCHERS_JSON) as f:
+            fcntl.flock(f, fcntl.LOCK_SH)
+            watchers = json.load(f)
+            fcntl.flock(f, fcntl.LOCK_UN)
+    except Exception as e:
+        log.warning(f"Could not load watchers.json for user sites: {e}")
+        return {}
+
+    user_sites = {}  # url -> {url, keywords: set, name}
+    for w in watchers:
+        if not w.get('active'):
+            continue
+        url = w.get('url', '').strip()
+        if not url:
+            continue
+        domain = domain_from_url(url)
+        if domain in source_domains:
+            continue
+        if url not in user_sites:
+            user_sites[url] = {'url': url, 'keywords': set(), 'name': domain}
+        kws = [k.strip().lower() for k in w.get('keywords', '').split(',') if k.strip()]
+        user_sites[url]['keywords'].update(kws)
+
+    for site in user_sites.values():
+        site['keywords'] = list(site['keywords'])
+    return user_sites
+
 # ── Main loop ─────────────────────────────────────────────────────────────────
 def run():
     log.info("Web Watcher starting up — HGR")
@@ -241,6 +287,14 @@ def run():
     seen_content  = load_seen_content()
 
     websites = [s for s in sources.get('websites', []) if s.get('enabled', True)]
+
+    # Build set of domains already covered by sources.yaml
+    source_domains = set()
+    for site in websites:
+        source_domains.add(domain_from_url(site['url']))
+
+    user_sites = {}
+    last_user_reload = 0
 
     while True:
         for site in websites:
@@ -340,6 +394,82 @@ def run():
                     log.info(f"{name} — all notable items already seen, suppressing alert")
             else:
                 log.info(f"{name} — AI says not alert worthy")
+
+        # ── User-submitted URL watches ──────────────────���────────────────────
+        if time.time() - last_user_reload > USER_SITES_RELOAD_INTERVAL:
+            user_sites = load_user_sites(source_domains)
+            last_user_reload = time.time()
+            if user_sites:
+                log.info(f"Tracking {len(user_sites)} user-submitted URL(s)")
+
+        for uurl, usite in user_sites.items():
+            uname = usite['name'] + ' (user)'
+            user_kws = usite['keywords']
+
+            last_checked = page_cache.get(uurl, {}).get('last_checked', 0)
+            if time.time() - last_checked < USER_POLL_INTERVAL:
+                continue
+
+            sleep_time = random.randint(min_gap, min_gap + jitter)
+            log.info(f"Checking user site {uname} in {sleep_time}s (keywords: {', '.join(user_kws)})...")
+            time.sleep(sleep_time)
+
+            html = fetch_page(uurl)
+            if html is None:
+                failure_count[uurl] = failure_count.get(uurl, 0) + 1
+                if failure_count[uurl] >= fail_thresh:
+                    log.error(f"{uname} has failed {failure_count[uurl]} times in a row")
+                continue
+
+            failure_count[uurl] = 0
+
+            soup = BeautifulSoup(html, 'html.parser')
+            for tag in soup(['nav', 'header', 'footer', 'script', 'style', 'meta', 'link']):
+                tag.decompose()
+            text = soup.get_text(separator=' ', strip=True)
+            fp = fingerprint(text)
+            old_fp = page_cache.get(uurl, {}).get('fingerprint')
+
+            page_cache[uurl] = {
+                'fingerprint': fp,
+                'last_checked': time.time()
+            }
+
+            if old_fp is not None and fp == old_fp:
+                log.info(f"{uname} — no change")
+                continue
+
+            if old_fp is None:
+                log.info(f"{uname} — baseline captured, running analysis...")
+            else:
+                log.info(f"{uname} — PAGE CHANGED")
+
+            result = analyze_user_page(uurl, text, user_kws)
+
+            if result is None:
+                log.error(f"{uname} — AI analysis failed")
+                continue
+
+            if result.get('alert_worthy'):
+                summary = result.get('page_summary', '')
+                if is_content_seen(uname, summary, seen_content):
+                    log.info(f"{uname} — content unchanged since last alert, suppressing")
+                    continue
+                new_items = filter_new_items(uname, result.get('notable_items', []), seen_items)
+                if new_items or not result.get('notable_items'):
+                    result['notable_items'] = new_items
+                    result['agent'] = 'web_watcher'
+                    result['source'] = uname
+                    result['event'] = 'user_watch_alert'
+                    write_alert(settings, result)
+                    seen_content = mark_content_seen(uname, summary, seen_content)
+                    save_seen_content(seen_content)
+                    seen_items = mark_items_seen(uname, new_items, seen_items)
+                    save_seen_items(seen_items)
+                else:
+                    log.info(f"{uname} — all items already seen, suppressing")
+            else:
+                log.info(f"{uname} — not alert worthy (items sold out or no keyword matches)")
 
         time.sleep(10)
 

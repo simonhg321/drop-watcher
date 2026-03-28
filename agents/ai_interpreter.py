@@ -3,7 +3,10 @@
 """
 ai_interpreter.py
 Drop Watcher — AI Interpretation Layer
-Uses Claude to intelligently analyze page content for drops, stock, and announcements.
+Two modes:
+  1. Curated analysis (analyze_page) — knife/EDC expert prompt with maker priority rules
+  2. User watch analysis (analyze_user_page) — generic stock-status prompt for any product/URL
+Uses Claude Haiku for all analysis.
 HGR
 """
 
@@ -47,6 +50,24 @@ def log_api_usage(caller, site_name, message):
             f.write(json.dumps(entry) + '\n')
     except Exception as e:
         log.warning(f"Could not log API usage: {e}")
+
+
+def log_ai_call(caller, site_name, url, prompt_snippet, response_json):
+    """Log full AI interaction to ai_calls.jsonl — what we sent, what came back."""
+    try:
+        entry = {
+            'ts': datetime.now(timezone.utc).isoformat(),
+            'caller': caller,
+            'site': site_name,
+            'url': url,
+            'prompt_snippet': prompt_snippet[:500],
+            'response': response_json,
+        }
+        os.makedirs(os.path.dirname(paths.AI_CALLS_JSONL), exist_ok=True)
+        with open(paths.AI_CALLS_JSONL, 'a') as f:
+            f.write(json.dumps(entry) + '\n')
+    except Exception as e:
+        log.warning(f"Could not log AI call: {e}")
 
 # ── Load makers config ────────────────────────────────────────────────────────
 def load_makers_config():
@@ -181,6 +202,38 @@ Return ONLY valid JSON:
 }}"""
 
 
+USER_PAGE_PROMPT = """You are analyzing a product or e-commerce page for a user who wants to know when specific items become available to purchase. This could be any type of product — knives, sneakers, electronics, concert tickets, collectibles, anything.
+
+Page: {url}
+The user is watching for these keywords: {keywords}
+
+Look at the page content and determine:
+1. Which of the user's keywords appear on the page
+2. For each keyword match, what is the stock/availability status
+3. Is anything the user wants actually purchasable right now
+
+WEBPAGE CONTENT (truncated to 3000 chars):
+{page_content}
+
+Return ONLY valid JSON in this exact format, no other text:
+{{
+  "keywords_found": ["keywords from the user's list that appear on the page"],
+  "notable_items": ["item name — STATUS — price if visible, e.g. 'Air Jordan 4 Retro — IN STOCK — $210' or 'RTX 5090 FE — SOLD OUT'"],
+  "page_summary": "one sentence summarizing availability of the user's keywords on this page",
+  "priority": "high/medium/low",
+  "alert_worthy": true
+}}
+
+Rules:
+- alert_worthy = true ONLY if at least one keyword-matching item can be purchased right now (Add to Cart, Buy Now, In Stock, Available)
+- SOLD OUT, Out of Stock, Coming Soon, Notify Me, Waitlist, Unavailable = NOT alert worthy
+- Include ALL keyword-matching items in notable_items with their real status — even sold-out ones — but only set alert_worthy true for purchasable items
+- page_summary MUST name the user's keywords and their stock status so downstream keyword matching works
+- Be conservative — only alert on clear availability signals, false positives waste the user's time
+- If none of the user's keywords appear on the page at all, return alert_worthy false and empty arrays
+- Do not assume what the product is — read the page and report what you see"""
+
+
 MORNING_BRIEFING_PROMPT = """You are a personal assistant to a knife and Steel Flame collector.
 
 Here is a summary of what the Drop Watcher system found overnight:
@@ -234,6 +287,7 @@ def analyze_page(site_name, url, page_text, makers_list):
         result['model'] = MODEL
 
         log.info(f"{site_name} — AI analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
+        log_ai_call('analyze_page', site_name, url, truncated, result)
         return result
 
     except json.JSONDecodeError as e:
@@ -271,6 +325,55 @@ def analyze_drop_announcement(site_name, content, makers_list):
         return result
     except Exception as e:
         log.error(f"Drop announcement analysis failed for {site_name}: {e}")
+        return None
+
+
+def analyze_user_page(url, page_text, user_keywords):
+    """Analyze a page for a user's specific keywords — generic, not knife-market-specific."""
+    truncated = page_text[:3000] if len(page_text) > 3000 else page_text
+    keywords_formatted = ', '.join(user_keywords)
+    site_name = url.lower().replace('https://', '').replace('http://', '').split('/')[0]
+
+    prompt = USER_PAGE_PROMPT.format(
+        url=url,
+        keywords=keywords_formatted,
+        page_content=truncated
+    )
+
+    try:
+        log.info(f"Sending user watch {site_name} to AI (keywords: {keywords_formatted})...")
+        message = client.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        log_api_usage('analyze_user_page', site_name, message)
+        raw = message.content[0].text.strip()
+
+        if raw.startswith('```'):
+            raw = raw.split('```')[1]
+            if raw.startswith('json'):
+                raw = raw[4:]
+
+        result = json.loads(raw)
+        result['timestamp'] = datetime.now(timezone.utc).isoformat()
+        result['site'] = site_name
+        result['url'] = url
+        result['model'] = MODEL
+
+        log.info(f"{site_name} — user page analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
+        log_ai_call('analyze_user_page', site_name, url, f"keywords: {keywords_formatted}\n{truncated}", result)
+        return result
+
+    except json.JSONDecodeError as e:
+        log.error(f"AI returned invalid JSON for user page {site_name}: {e}")
+        return None
+    except anthropic.APIError as e:
+        log.error(f"Anthropic API error for user page {site_name}: {e}")
+        return None
+    except Exception as e:
+        log.error(f"Unexpected error analyzing user page {site_name}: {e}")
         return None
 
 
