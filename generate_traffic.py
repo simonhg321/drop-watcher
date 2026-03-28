@@ -300,6 +300,28 @@ def load_api_usage():
     return result
 
 
+# ── AI call log ──────────────────────────────────────────────────────────────
+
+def load_ai_calls(limit=20):
+    """Load last N entries from ai_calls.jsonl."""
+    calls = []
+    if not os.path.exists(paths.AI_CALLS_JSONL):
+        return calls
+    try:
+        with open(paths.AI_CALLS_JSONL) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    calls.append(json.loads(line))
+                except Exception:
+                    continue
+    except FileNotFoundError:
+        pass
+    return calls[-limit:]
+
+
 # ── Visitor tracking stats ──────────────────────────────────────────────────
 
 def load_pageviews():
@@ -607,6 +629,59 @@ def generate_traffic_page():
       </div>
     </div>"""
 
+    # ── AI calls section ──────────────────────────────────────────────────────
+    ai_calls_html = ''
+    ai_calls = load_ai_calls(limit=20)
+    if ai_calls:
+        call_rows = ''
+        for c in ai_calls:
+            ts = html_mod.escape(c.get('ts', '?')[:19].replace('T', ' '))
+            caller = c.get('caller', '?')
+            tag = 'USER' if caller == 'analyze_user_page' else 'CURATED'
+            tag_color = 'var(--flame)' if tag == 'USER' else 'var(--ash)'
+            site = html_mod.escape(c.get('site', '?'))
+            url = html_mod.escape(c.get('url', '?'))
+            snippet = html_mod.escape(c.get('prompt_snippet', '')[:200])
+            resp = c.get('response', {})
+            alert = resp.get('alert_worthy', False)
+            priority = html_mod.escape(str(resp.get('priority', '?')))
+            summary = html_mod.escape(resp.get('page_summary', '') or '')
+            alert_color = '#2ecc71' if alert else 'var(--ash)'
+            notable = resp.get('notable_items', [])
+            notable_str = html_mod.escape(' | '.join(notable[:3])) if notable else ''
+            kw_found = resp.get('keywords_found', [])
+            kw_str = html_mod.escape(', '.join(kw_found)) if kw_found else ''
+            makers = resp.get('makers_found', [])
+            makers_str = html_mod.escape(', '.join(makers)) if makers else ''
+            found_str = kw_str or makers_str or ''
+
+            call_rows += f'''<tr>
+              <td style="white-space:nowrap">{ts}</td>
+              <td><span style="color:{tag_color};font-weight:bold">{tag}</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{url}">{site}</td>
+              <td style="color:{alert_color}">{str(alert).upper()}</td>
+              <td>{priority}</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{found_str}</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{summary}">{summary}</td>
+            </tr>'''
+            if notable_str:
+                call_rows += f'''<tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">{notable_str}</td>
+                </tr>'''
+
+        ai_calls_html = f"""
+    <div class="section-head">AI CALLS (LAST 20)</div>
+    <div class="panel" style="margin-bottom:2rem">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr>
+            <th>TIME</th><th>TYPE</th><th>SITE</th><th>ALERT</th><th>PRI</th><th>FOUND</th><th>SUMMARY</th>
+          </tr></thead>
+          <tbody>{call_rows}</tbody>
+        </table>
+      </div>
+    </div>"""
+
     # ── Visitor tracking section ─────────────────────────────────────────────
     visitor_html = ''
     if pageviews['total_views'] > 0:
@@ -803,6 +878,8 @@ def generate_traffic_page():
   {visitor_html}
 
   {api_usage_html}
+
+  {ai_calls_html}
 
   <div class="section-head">SERVER STATS</div>
 

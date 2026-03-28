@@ -177,7 +177,6 @@ GHOSTS=$($SSH "ls \
   /var/www/html/all_the_things.html \
   /var/www/html/watcher_signup.py \
   /var/www/html/watchlist.html-bak \
-  /var/www/html/sitemap.xml \
   2>/dev/null")
 
 if [ -z "$GHOSTS" ]; then
