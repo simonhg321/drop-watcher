@@ -41,7 +41,7 @@ rm -f /var/www/html/all_the_things.html
 rm -f /var/www/html/watcher_status.html
 rm -f /var/www/html/watcher_signup.py
 rm -f /var/www/html/watchlist.html-bak
-rm -f /var/www/html/sitemap.xml
+# sitemap.xml stays — needed for Google Search Console
 echo "  done"
 
 echo ""

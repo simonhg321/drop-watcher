@@ -215,6 +215,7 @@ def generate_alerts_page():
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Live Drop Alerts — Drop Watcher">
   <meta name="twitter:description" content="Live in-stock alerts. See what just dropped — updated every 2 minutes. Free, AI-powered.">
+  <link rel="canonical" href="https://instockornot.club/alerts.html">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
