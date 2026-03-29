@@ -31,10 +31,13 @@ SMS_SENT_LOG  = paths.SMS_SENT_JSONL
 log = logging.getLogger('sms_alerter')
 
 # ── Format SMS message ────────────────────────────────────────────────────────
-def format_sms(alert):
-    return "Drop Watcher: New drop alert — check your email for details. Reply STOP to opt out."
-
-    return msg
+def format_sms(alert, email=None, keywords=None, token=None):
+    kw = keywords.split(',')[0].strip() if keywords else alert.get('source', 'drop')
+    if token:
+        return f"Drop Watcher: {kw} alert\ninstockornot.club/my-alerts.html?token={token}\nReply STOP to opt out."
+    if email:
+        return f"Drop Watcher: {kw} — check {email} for details. Reply STOP to opt out."
+    return f"Drop Watcher: {kw} — check your email for details. Reply STOP to opt out."
 
 # ── Check if SMS already sent for this alert+phone ───────────────────────────
 def already_sent_sms(alert_id, phone):
@@ -60,17 +63,22 @@ def mark_sms_sent(alert_id, phone):
         }) + '\n')
 
 # ── Get approved SMS recipients from watchers.json ───────────────────────────
-def get_approved_phones():
+def get_approved_watchers():
     if not os.path.exists(WATCHERS_FILE):
         return []
     try:
         with open(WATCHERS_FILE, 'r') as f:
             watchers = json.load(f)
-        phones = []
+        result = []
         for w in watchers:
             if w.get('sms_approved') and w.get('phone'):
-                phones.append(w['phone'].strip())
-        return phones
+                result.append({
+                    'phone': w['phone'].strip(),
+                    'email': w.get('email', ''),
+                    'keywords': w.get('keywords', ''),
+                    'token': w.get('unsubscribe_token', ''),
+                })
+        return result
     except Exception as e:
         log.error(f"Failed to load watchers.json: {e}")
         return []
@@ -110,18 +118,19 @@ def send_sms_alert(alert):
             return  # SMS is CRITICAL only
 
         alert_id = f"{alert.get('timestamp','')}_{alert.get('source','')}"
-        phones   = get_approved_phones()
+        watchers = get_approved_watchers()
 
-        if not phones:
+        if not watchers:
             log.info("No sms_approved watchers — skipping SMS")
             return
 
-        body = format_sms(alert)
         sent = 0
 
-        for phone in phones:
+        for w in watchers:
+            phone = w['phone']
             if already_sent_sms(alert_id, phone):
                 continue
+            body = format_sms(alert, email=w['email'], keywords=w['keywords'], token=w['token'])
             if _send_twilio_sms(phone, body):
                 mark_sms_sent(alert_id, phone)
                 sent += 1
@@ -152,7 +161,7 @@ if __name__ == '__main__':
             'url': 'https://instockornot.club',
             'notable_items': ['Hinderer x Steel Flame XM-18 — 1 in stock'],
         }
-        body = format_sms(test_alert)
+        body = format_sms(test_alert, email='simonhg@gmail.com', keywords='Steel Flame', token='test-token-123')
         print(f"Message ({len(body)} chars): {body}")
         success = _send_twilio_sms(test_phone, body)
         print("✓ SMS sent!" if success else "✗ SMS failed — check logs")
