@@ -214,3 +214,8 @@ else
   echo -e "  ${YELLOW}Run 'ship' then 'bash ~/drop-watcher/bin/sync_ironman.sh' on ironman.${RESET}"
 fi
 echo -e "${BOLD}════════════════════════════════════════════${RESET}"
+echo ""
+echo -e "  \033[38;5;208m╔══════════════════════════════════════╗\033[0m"
+echo -e "  \033[38;5;208m║\033[0m  \033[1mY O U   A R E   T H E   S Y S A D M\033[0m \033[38;5;208m║\033[0m"
+echo -e "  \033[38;5;208m╚══════════════════════════════════════╝\033[0m"
+echo ""
