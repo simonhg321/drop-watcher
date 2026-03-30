@@ -398,6 +398,39 @@ def fmt_num(n):
     return str(n)
 
 
+def load_sms_stats():
+    """Load SMS delivery stats from sms_sent.jsonl."""
+    stats = {'total': 0, 'last_24h': 0, 'by_day': {}, 'recent': []}
+    sms_path = paths.SMS_SENT_JSONL
+    if not os.path.exists(sms_path):
+        return stats
+
+    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
+    try:
+        with open(sms_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                    stats['total'] += 1
+                    sent_at = entry.get('sent_at', '')
+                    if sent_at > cutoff_24h:
+                        stats['last_24h'] += 1
+
+                    day = sent_at[:10] if len(sent_at) >= 10 else 'unknown'
+                    stats['by_day'][day] = stats['by_day'].get(day, 0) + 1
+                    stats['recent'].append(entry)
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        stats['recent'] = stats['recent'][-10:]  # last 10
+    except Exception:
+        pass
+    return stats
+
+
 # ── HTML generation ──────────────────────────────────────────────────────────
 
 def generate_traffic_page():
@@ -416,6 +449,7 @@ def generate_traffic_page():
     watcher_stats = load_watcher_stats()
     api_usage = load_api_usage()
     pageviews = load_pageviews()
+    sms_stats = load_sms_stats()
 
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
@@ -773,6 +807,63 @@ def generate_traffic_page():
       </div>
     </div>"""
 
+    # ── SMS section ──────────────────────────────────────────────────────────
+    sms_html = ''
+    if sms_stats['total'] > 0:
+        # Daily breakdown (last 7 days)
+        sms_day_rows = ''
+        for day in sorted(sms_stats['by_day'].keys())[-7:]:
+            n = sms_stats['by_day'][day]
+            sms_day_rows += f'<tr><td>{day}</td><td class="num-cell">{n}</td></tr>'
+
+        # Recent messages
+        sms_recent_rows = ''
+        for entry in reversed(sms_stats['recent']):
+            sent_at = entry.get('sent_at', '?')[:16]
+            phone = entry.get('phone', '?')
+            alert_id = html_mod.escape(str(entry.get('alert_id', '—')))[:40]
+            sms_recent_rows += f'<tr><td>{sent_at}</td><td>{phone}</td><td>{alert_id}</td></tr>'
+
+        sms_html = f"""
+    <div class="section-head">SMS ALERTS</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-label">SMS SENT (24H)</div>
+        <div class="stat-value">{sms_stats['last_24h']}</div>
+        <div class="stat-sub">{sms_stats['total']} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL SMS</div>
+        <div class="stat-value">{sms_stats['total']}</div>
+        <div class="stat-sub">all time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DAYS ACTIVE</div>
+        <div class="stat-value">{len(sms_stats['by_day'])}</div>
+        <div class="stat-sub">with SMS sent</div>
+      </div>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">DAILY SMS (LAST 7 DAYS)</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>DATE</th><th>SENT</th></tr></thead>
+            <tbody>{sms_day_rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">RECENT SMS</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>SENT</th><th>TO</th><th>ALERT</th></tr></thead>
+            <tbody>{sms_recent_rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>"""
+
     # ── Data source indicator ────────────────────────────────────────────────
     sources = []
     if cf_data:
@@ -880,6 +971,8 @@ def generate_traffic_page():
   {api_usage_html}
 
   {ai_calls_html}
+
+  {sms_html}
 
   <div class="section-head">SERVER STATS</div>
 

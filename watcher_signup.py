@@ -44,6 +44,28 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
+# ── URL normalization ────────────────────────────────────────────────────────
+
+JUNK_PARAMS = {
+    'gclid', 'gclsrc', 'gbraid', 'gad_source', 'gad_campaignid',
+    'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+    'srsltid', 'tcid', 'wmlspartner', 'veh', 'cn', 'wl9', 'wl11',
+    'sourceid', 'dclid', 'fbclid', 'msclkid', 'mc_cid', 'mc_eid',
+}
+
+def normalize_url(url):
+    """Strip tracking/ad params from URL."""
+    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query, keep_blank_values=True)
+    cleaned = {k: v for k, v in params.items() if k.lower() not in JUNK_PARAMS}
+    new_query = urlencode(cleaned, doseq=True) if cleaned else ''
+    return urlunparse((
+        parsed.scheme, parsed.netloc, parsed.path,
+        parsed.params, new_query, ''
+    ))
+
+
 # ── Watchers file helpers (with file locking) ────────────────────────────────
 
 LOCK_FILE = WATCHERS_FILE + '.lock'
@@ -280,9 +302,10 @@ def watch():
     if not re.match(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$', email) or len(email) > 254:
         return jsonify({'error': 'Invalid email address.'}), 400
 
-    # URL: must be http(s), reasonable length
+    # URL: must be http(s), reasonable length, strip tracking params
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
+    url = normalize_url(url)
     if len(url) > 2048:
         return jsonify({'error': 'URL is too long (max 2048 chars).'}), 400
 
@@ -793,6 +816,7 @@ def check_url():
 
     if not url.startswith('http'):
         url = 'https://' + url
+    url = normalize_url(url)
 
     # SSRF protection — block internal/private IPs
     safe, reason = is_safe_url(url)
@@ -840,7 +864,17 @@ def check_url():
     if len(text) < 200:
         return jsonify({'ok': False, 'msg': "That page doesn't have enough readable text. It may require JavaScript to load — we can't watch those yet."})
 
-    return jsonify({'ok': True, 'msg': "We can read this page. You're good to go."})
+    # Homepage nudge — no path means they're watching a landing page, not a product
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    warning = None
+    if parsed.path in ('', '/'):
+        warning = "Heads up — this looks like a homepage. A direct product or search page gets better results."
+
+    resp = {'ok': True, 'msg': "We can read this page. You're good to go."}
+    if warning:
+        resp['warning'] = warning
+    return jsonify(resp)
 
 
 @app.route('/api/watchers', methods=['GET'])

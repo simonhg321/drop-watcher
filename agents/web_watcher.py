@@ -96,6 +96,35 @@ def prefilter(text, keywords):
     return any(kw in text_lower for kw in keywords)
 
 
+# ── Homepage / nav-only detection ─────────────────────────────────────────────
+HOMEPAGE_SIGNALS = [
+    'skip to content', 'skip to main', 'cookie policy', 'accept cookies',
+    'subscribe to newsletter', 'sign up for', 'free shipping over',
+    'shop all', 'all products', 'all categories', 'browse categories',
+]
+
+def is_homepage_junk(text):
+    """Detect if stripped page content is mostly navigation/menu with no real product data."""
+    text_lower = text.lower()
+    # Count homepage signals
+    signals = sum(1 for s in HOMEPAGE_SIGNALS if s in text_lower)
+    # Short pages with lots of nav signals = homepage
+    words = len(text.split())
+    if words < 200 and signals >= 2:
+        return True
+    # High signal-to-content ratio
+    if words < 500 and signals >= 3:
+        return True
+    return False
+
+
+# ── Stale user watch throttling ───────────────────────────────────────────────
+# Track consecutive "not found" results per URL — throttle after threshold
+stale_watch_count = {}  # url → consecutive not-found count
+STALE_THRESHOLD = 3     # after 3 identical "not found", slow down
+STALE_INTERVAL = 3600   # throttle to hourly (seconds)
+
+
 # ── Item deduplication ────────────────────────────────────────────────────────
 SEEN_ITEMS_FILE = paths.SEEN_ITEMS_JSON
 SEEN_CONTENT_FILE = paths.SEEN_CONTENT_JSON
@@ -336,6 +365,9 @@ def run():
             if old_fp is None:
                 log.info(f"{name} — baseline captured")
                 # On baseline — run AI if makers found to catch existing stock
+                if is_homepage_junk(text):
+                    log.info(f"{name} — homepage/nav detected, skipping AI")
+                    continue
                 if prefilter(text, keywords):
                     log.info(f"{name} — makers found on baseline, running AI analysis...")
                     result = analyze_page(name, url, text, makers_list)
@@ -362,6 +394,10 @@ def run():
 
             # Page changed
             log.info(f"{name} — PAGE CHANGED")
+
+            if is_homepage_junk(text):
+                log.info(f"{name} — homepage/nav detected, skipping AI")
+                continue
 
             if not prefilter(text, keywords):
                 log.info(f"{name} — changed but no maker keywords, skipping AI")
@@ -407,7 +443,11 @@ def run():
             user_kws = usite['keywords']
 
             last_checked = page_cache.get(uurl, {}).get('last_checked', 0)
-            if time.time() - last_checked < USER_POLL_INTERVAL:
+            # Stale watches get throttled to hourly
+            interval = USER_POLL_INTERVAL
+            if stale_watch_count.get(uurl, 0) >= STALE_THRESHOLD:
+                interval = STALE_INTERVAL
+            if time.time() - last_checked < interval:
                 continue
 
             sleep_time = random.randint(min_gap, min_gap + jitter)
@@ -444,6 +484,10 @@ def run():
             else:
                 log.info(f"{uname} — PAGE CHANGED")
 
+            if is_homepage_junk(text):
+                log.info(f"{uname} — homepage/nav detected, skipping AI")
+                continue
+
             result = analyze_user_page(uurl, text, user_kws)
 
             if result is None:
@@ -451,6 +495,7 @@ def run():
                 continue
 
             if result.get('alert_worthy'):
+                stale_watch_count[uurl] = 0  # reset — found something
                 summary = result.get('page_summary', '')
                 if is_content_seen(uname, summary, seen_content):
                     log.info(f"{uname} — content unchanged since last alert, suppressing")
@@ -469,7 +514,11 @@ def run():
                 else:
                     log.info(f"{uname} — all items already seen, suppressing")
             else:
-                log.info(f"{uname} — not alert worthy (items sold out or no keyword matches)")
+                stale_watch_count[uurl] = stale_watch_count.get(uurl, 0) + 1
+                if stale_watch_count[uurl] == STALE_THRESHOLD:
+                    log.info(f"{uname} — {STALE_THRESHOLD} consecutive no-finds, throttling to hourly")
+                else:
+                    log.info(f"{uname} — not alert worthy ({stale_watch_count.get(uurl, 0)}/{STALE_THRESHOLD} stale)")
 
         time.sleep(10)
 

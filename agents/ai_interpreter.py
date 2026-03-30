@@ -52,6 +52,26 @@ def log_api_usage(caller, site_name, message):
         log.warning(f"Could not log API usage: {e}")
 
 
+def clean_ai_json(raw):
+    """Extract valid JSON from AI response, handling markdown fences and preamble."""
+    raw = raw.strip()
+    if '```' in raw:
+        parts = raw.split('```')
+        for part in parts[1:]:
+            cleaned = part.strip()
+            if cleaned.startswith('json'):
+                cleaned = cleaned[4:].strip()
+            if cleaned.startswith('{'):
+                raw = cleaned
+                break
+    if not raw.startswith('{'):
+        start = raw.find('{')
+        end = raw.rfind('}')
+        if start != -1 and end != -1:
+            raw = raw[start:end+1]
+    return json.loads(raw)
+
+
 def log_ai_call(caller, site_name, url, prompt_snippet, response_json):
     """Log full AI interaction to ai_calls.jsonl — what we sent, what came back."""
     try:
@@ -60,7 +80,7 @@ def log_ai_call(caller, site_name, url, prompt_snippet, response_json):
             'caller': caller,
             'site': site_name,
             'url': url,
-            'prompt_snippet': prompt_snippet[:500],
+            'prompt_snippet': prompt_snippet[:1000],
             'response': response_json,
         }
         os.makedirs(os.path.dirname(paths.AI_CALLS_JSONL), exist_ok=True)
@@ -274,13 +294,7 @@ def analyze_page(site_name, url, page_text, makers_list):
 
         log_api_usage('analyze_page', site_name, message)
         raw = message.content[0].text.strip()
-
-        if raw.startswith('```'):
-            raw = raw.split('```')[1]
-            if raw.startswith('json'):
-                raw = raw[4:]
-
-        result = json.loads(raw)
+        result = clean_ai_json(raw)
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         result['site'] = site_name
         result['url'] = url
@@ -350,13 +364,7 @@ def analyze_user_page(url, page_text, user_keywords):
 
         log_api_usage('analyze_user_page', site_name, message)
         raw = message.content[0].text.strip()
-
-        if raw.startswith('```'):
-            raw = raw.split('```')[1]
-            if raw.startswith('json'):
-                raw = raw[4:]
-
-        result = json.loads(raw)
+        result = clean_ai_json(raw)
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         result['site'] = site_name
         result['url'] = url

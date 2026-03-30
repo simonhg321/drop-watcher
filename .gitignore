@@ -43,3 +43,7 @@ dev/
 *.save
 Screenshot*.png
 .ZZZ/
+
+# Scraped data — local only
+INCOMING/
+bin/slurp_breadcrumbs.sh

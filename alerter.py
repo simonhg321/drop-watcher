@@ -103,7 +103,13 @@ def mark_sent(alert_id, alert_type):
         }) + '\n')
 
 def make_alert_id(alert):
-    return f"{alert.get('timestamp','')}_{alert.get('source','')}"
+    """Unique ID: timestamp + source + first notable item (or url hash)."""
+    ts = alert.get('timestamp', '')
+    source = alert.get('source', '')
+    items = alert.get('notable_items', [])
+    extra = items[0][:40] if items else alert.get('url', '')
+    import hashlib
+    return f"{ts}_{source}_{hashlib.md5(extra.encode()).hexdigest()[:8]}"
 
 # ── Format immediate alert email ──────────────────────────────────────────────
 def format_immediate_email(alert):
@@ -335,10 +341,14 @@ def send_immediate_alerts():
                     continue
 
                 subject, body_html, body_text = format_immediate_email(alert)
-                if send_email(subject, body_html, body_text, extra_recipients=None):
+                email_ok = send_email(subject, body_html, body_text, extra_recipients=None)
+                # SMS fires independently — don't gate on email success
+                send_sms_alert(alert)
+                if email_ok:
                     mark_sent(alert_id, 'immediate')
-                    send_sms_alert(alert)
                     sent_count += 1
+                else:
+                    log.error(f"Email failed for {alert_id} but SMS attempted independently")
 
             except json.JSONDecodeError:
                 continue

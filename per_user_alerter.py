@@ -280,11 +280,9 @@ def run():
             _alerter.ALERT_TO = original_to
 
             if result:
-                # Mark cooldown for ALL watchers that matched this drop
-                for w2, m2, d2, ck2 in alerts:
-                    if d2.get('url') == drop.get('url'):
-                        sent[ck2] = now.isoformat()
-                        sent_changed = True
+                # Mark cooldown for THIS watcher's match only
+                sent[ck] = now.isoformat()
+                sent_changed = True
                 watcher['last_alert'] = now.isoformat()
                 watcher['alert_count'] = watcher.get('alert_count', 0) + 1
                 changed = True

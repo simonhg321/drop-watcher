@@ -259,6 +259,8 @@
   .url-status.ok .dot { background: #2ecc71; }
   .url-status.fail { color: var(--ember); }
   .url-status.fail .dot { background: var(--ember); }
+  .url-status.warn { color: #f39c12; }
+  .url-status.warn .dot { background: #f39c12; }
 
   .removed-banner {
     background: #1a0a0a;
@@ -438,6 +440,15 @@ function setUrlStatus(state, msg) {
   el.querySelector('.msg').textContent = msg;
 }
 
+function looksLikeHomepage(raw) {
+  try {
+    let u = raw;
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    const path = new URL(u).pathname;
+    return path === '/' || path === '';
+  } catch(e) { return false; }
+}
+
 document.getElementById('urlInput').addEventListener('blur', async function() {
   const url = this.value.trim();
   if (!url) {
@@ -458,7 +469,11 @@ document.getElementById('urlInput').addEventListener('blur', async function() {
     const data = await res.json();
     urlChecked = true;
     urlOk = data.ok;
-    setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+    if (data.ok && data.warning) {
+      setUrlStatus('warn', data.warning);
+    } else {
+      setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+    }
   } catch(e) {
     urlChecked = true;
     urlOk = false;
@@ -483,7 +498,11 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       const data = await res.json();
       urlChecked = true;
       urlOk = data.ok;
-      setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+      if (data.ok && data.warning) {
+        setUrlStatus('warn', data.warning);
+      } else {
+        setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+      }
     } catch(e) {
       urlChecked = true;
       urlOk = false;
