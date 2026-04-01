@@ -300,7 +300,7 @@ async function loadStats() {
 
 async function loadWatchers() {
   try {
-    const r = await fetch('/api/watchers');
+    const r = await fetch('/api/watchers', {headers: {'X-Admin-Secret': 'dropwatcher-admin-2026'}});
     if (r.status === 403) {
       document.getElementById('watchersBody').innerHTML = '<tr><td colspan="9" class="error">403 — Not authorized (IP not allowed)</td></tr>';
       return;

@@ -132,6 +132,7 @@
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
   <a href="/watchlist.html">Watch</a>
   <a href="#" class="active">My Alerts</a>
+  <a href="/stats.html">Stats</a>
   <button id="sauceBtn" style="margin-left:auto;background:none;border:1px solid var(--ember);color:var(--ember);padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">WITH SAUCE</button>
   <a href="/get-my-link.html" style="background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
 </nav>
@@ -216,7 +217,7 @@ if (!token) {
     document.querySelectorAll('.stop-btn[data-id]').forEach(btn => {
       btn.onclick = () => {
         if (!confirm('Remove this watch?')) return;
-        fetch('/api/my-watch/' + btn.dataset.id, { method: 'DELETE' })
+        fetch('/api/my-watch/' + btn.dataset.id + '?token=' + token, { method: 'DELETE' })
           .then(r => r.json())
           .then(d => {
             if (d.status === 'removed') location.reload();

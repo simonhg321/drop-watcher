@@ -319,10 +319,11 @@ def generate_page():
     .flame-line {{ height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 1.5rem; }}
 
     /* Nav */
-    .nav {{ display: flex; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 0.75rem; letter-spacing: 0.2em; flex-wrap: wrap; }}
-    .nav a {{ color: var(--ash); text-decoration: none; }}
-    .nav a:hover {{ color: var(--flame); }}
-    .nav a.active {{ color: var(--flame); border-bottom: 1px solid var(--flame); }}
+    .dw-nav {{ border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 0; display: flex; align-items: center; gap: 32px; margin-bottom: 1.5rem; flex-wrap: wrap; }}
+    .dw-nav .logo {{ font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }}
+    .dw-nav .logo span {{ color: var(--ember); }}
+    .dw-nav a:not(.logo) {{ font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }}
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active {{ color: var(--white); }}
 
     /* Stats grid */
     .stats-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }}
@@ -379,12 +380,12 @@ def generate_page():
   <p class="subtitle">WHAT DROP WATCHER IS DOING RIGHT NOW</p>
   <div class="flame-line"></div>
 
-  <nav class="nav">
-    <a href="/">HOME</a>
-    <a href="/watchlist.html">WATCH SOMETHING</a>
-    <a href="/alerts.html">ALERTS</a>
-    <a href="/what-we-watch.html">WHAT WE WATCH</a>
-    <a href="/stats.html" class="active">STATS</a>
+  <nav class="dw-nav">
+    <a href="/" class="logo">DROP <span>WATCHER</span></a>
+    <a href="/">Home</a>
+    <a href="/what-we-watch.html">What We Watch</a>
+    <a href="/watchlist.html">Watch</a>
+    <a href="/stats.html" class="active">Stats</a>
   </nav>
 
   {hero_html}

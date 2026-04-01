@@ -959,10 +959,11 @@ def generate_traffic_page():
 
   <nav class="nav">
     <a href="/stats/dashboard.html">DASHBOARD</a>
-    <a href="/alerts.html">ALERTS</a>
-    <a href="/stats/status.html">STATUS</a>
+    <a href="/stats/simon.html">DEEP DIVE</a>
     <a href="/stats/traffic.html" class="active">TRAFFIC</a>
-    <a href="/stats/">STATS</a>
+    <a href="/stats/security.html">SECURITY</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/alerts.html">ALERTS</a>
     <a href="/">HOME</a>
   </nav>
 

@@ -30,10 +30,11 @@
     .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 2rem; }
 
     /* Nav */
-    .nav { display: flex; gap: 1.5rem; margin-bottom: 2rem; font-size: 0.75rem; letter-spacing: 0.2em; flex-wrap: wrap; }
-    .nav a { color: var(--ash); text-decoration: none; }
-    .nav a:hover { color: var(--flame); }
-    .nav a.active { color: var(--flame); border-bottom: 1px solid var(--flame); }
+    .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 0; display: flex; align-items: center; gap: 32px; margin-bottom: 2rem; flex-wrap: wrap; }
+    .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo span { color: var(--ember); }
+    .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
 
     /* Section heads */
     .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.1em; color: var(--ember); margin: 2.5rem 0 1rem; }
@@ -93,11 +94,13 @@
   <p style="color:var(--flame);font-size:0.8rem;letter-spacing:0.2em;margin-top:-0.5rem">WE WATCH KNIVES. YOU CAN WATCH ANYTHING.</p>
   <div class="flame-line"></div>
 
-  <nav class="nav">
-    <a href="/index.html">HOME</a>
-    <a href="/watchlist.html">WATCHLIST</a>
-    <a href="/what-we-watch.html" class="active">WHAT WE WATCH</a>
-    <a href="/privacy.html">PRIVACY</a>
+  <nav class="dw-nav">
+    <a href="/" class="logo">DROP <span>WATCHER</span></a>
+    <a href="/">Home</a>
+    <a href="/what-we-watch.html" class="active">What We Watch</a>
+    <a href="/watchlist.html">Watch</a>
+    <a href="/alerts.html">Alerts</a>
+    <a href="/stats.html">Stats</a>
   </nav>
 
   <!-- Stats -->

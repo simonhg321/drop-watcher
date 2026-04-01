@@ -616,10 +616,11 @@ def write_html_status():
 
   <nav class="nav">
     <a href="/stats/dashboard.html">DASHBOARD</a>
-    <a href="/alerts.html">ALERTS</a>
-    <a href="/stats/status.html" class="active">STATUS</a>
+    <a href="/stats/simon.html">DEEP DIVE</a>
     <a href="/stats/traffic.html">TRAFFIC</a>
-    <a href="/stats/">STATS</a>
+    <a href="/stats/security.html">SECURITY</a>
+    <a href="/stats/status.html" class="active">STATUS</a>
+    <a href="/alerts.html">ALERTS</a>
     <a href="/">HOME</a>
   </nav>
 

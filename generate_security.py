@@ -455,11 +455,12 @@ def generate_html(data):
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
   <div class="nav-links">
     <a href="/stats/dashboard.html">DASHBOARD</a>
-    <a href="/alerts.html">ALERTS</a>
-    <a href="/stats/status.html">STATUS</a>
+    <a href="/stats/simon.html">DEEP DIVE</a>
     <a href="/stats/traffic.html">TRAFFIC</a>
     <a href="/stats/security.html">SECURITY</a>
-    <a href="/stats/">STATS</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/alerts.html">ALERTS</a>
+    <a href="/">HOME</a>
   </div>
 </nav>
 

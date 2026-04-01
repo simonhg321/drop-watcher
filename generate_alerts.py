@@ -229,10 +229,11 @@ def generate_alerts_page():
     h1 span {{ color: var(--ember); }}
     .subtitle {{ color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 0.5rem; }}
     .flame-line {{ height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 2rem; }}
-    .nav {{ display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; letter-spacing: 0.2em; }}
-    .nav a {{ color: var(--ash); text-decoration: none; }}
-    .nav a:hover {{ color: var(--flame); }}
-    .nav a.active {{ color: var(--flame); border-bottom: 1px solid var(--flame); }}
+    .dw-nav {{ border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 0; display: flex; align-items: center; gap: 32px; margin-bottom: 2rem; flex-wrap: wrap; }}
+    .dw-nav .logo {{ font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }}
+    .dw-nav .logo span {{ color: var(--ember); }}
+    .dw-nav a:not(.logo) {{ font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }}
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active {{ color: var(--white); }}
     .stats {{ display: flex; gap: 2rem; margin-bottom: 2rem; font-size: 0.75rem; flex-wrap: wrap; }}
     .stat {{ padding: 0.5rem 1rem; border: 1px solid var(--iron); cursor: pointer; }}
     .stat:hover {{ border-color: var(--flame); }}
@@ -266,12 +267,13 @@ def generate_alerts_page():
   <h1>DROP <span>WATCHER</span></h1>
   <p class="subtitle">LIVE ALERTS — LAST 48 HOURS — AUTO REFRESHES EVERY 30 SECONDS</p>
   <div class="flame-line"></div>
-  <nav class="nav">
-    <a href="/alerts.html" class="active">ALERTS</a>
-    <a href="/stats/status.html">STATUS</a>
-    <a href="/stats/traffic.html">TRAFFIC</a>
-    <a href="/stats/">STATS</a>
-    <a href="/">HOME</a>
+  <nav class="dw-nav">
+    <a href="/" class="logo">DROP <span>WATCHER</span></a>
+    <a href="/">Home</a>
+    <a href="/what-we-watch.html">What We Watch</a>
+    <a href="/watchlist.html">Watch</a>
+    <a href="/alerts.html" class="active">Alerts</a>
+    <a href="/stats.html">Stats</a>
   </nav>
   <div class="stats">
     <div class="stat" onclick="filterAlerts('all')">

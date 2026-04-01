@@ -18,8 +18,7 @@ import httpx
 import paths
 
 # ── Config ────────────────────────────────────────────────────────────────────
-WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL',
-    'https://discord.com/api/webhooks/1483119340478795928/vEgBeMtiq2rgb8xBWnxjxUWabVrK8-nlFGZbCI7tevQ6kXzOdyraduaN-iXDd97wMrMr')
+WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
 
 DROPS_FILE = paths.DROPS_JSONL
 SENT_FILE  = os.path.join(paths.DATA_DIR, 'discord_sent.json')
@@ -102,6 +101,9 @@ def format_embed(drop):
 
 # ── Post to Discord ───────────────────────────────────────────────────────────
 def post_to_discord(embed):
+    if not WEBHOOK_URL:
+        log.warning("DISCORD_WEBHOOK_URL not set — skipping")
+        return False
     payload = {
         'username': 'Drop Watcher',
         'embeds': [embed],

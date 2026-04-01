@@ -36,6 +36,7 @@ WATCHERS_FILE = paths.WATCHERS_JSON
 load_dotenv(paths.ENV_FILE, override=True)
 
 RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
+API_ADMIN_SECRET = os.environ.get('API_ADMIN_SECRET', '')
 FROM_ADDRESS     = 'Drop Watcher <info@instockornot.club>'
 RESEND_API_URL   = 'https://api.resend.com/emails'
 BASE_URL         = 'https://instockornot.club'
@@ -477,11 +478,17 @@ def resend_link():
 
 @app.route('/api/my-watch/<watch_id>', methods=['DELETE'])
 def stop_watching(watch_id):
+    token = request.args.get('token') or request.headers.get('X-Token')
+    if not token:
+        return jsonify({'error': 'unauthorized'}), 403
     watchers = load_watchers()
-    before   = len(watchers)
-    watchers = [w for w in watchers if w.get('id') != watch_id]
-    if len(watchers) == before:
+    # Find the watch and verify the token belongs to the same user
+    target = next((w for w in watchers if w.get('id') == watch_id), None)
+    if not target:
         return jsonify({'error': 'not found'}), 404
+    if target.get('unsubscribe_token') != token:
+        return jsonify({'error': 'unauthorized'}), 403
+    watchers = [w for w in watchers if w.get('id') != watch_id]
     save_watchers(watchers)
     log.info(f"Watcher removed: {watch_id}")
     return jsonify({'status': 'removed'})
@@ -879,7 +886,9 @@ def check_url():
 
 @app.route('/api/watchers', methods=['GET'])
 def list_watchers():
-    """Admin endpoint — dashboard.html is behind basic auth in /stats/."""
+    """Admin endpoint — requires API_ADMIN_SECRET header."""
+    if not API_ADMIN_SECRET or request.headers.get('X-Admin-Secret') != API_ADMIN_SECRET:
+        return jsonify({'error': 'unauthorized'}), 403
     watchers = load_watchers()
     active   = [w for w in watchers if w.get('active')]
     pending  = [w for w in watchers if not w.get('active')]
