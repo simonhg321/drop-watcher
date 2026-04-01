@@ -229,6 +229,8 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
 }
 
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024  # 2MB — reject oversized pages
+
 def fetch_page(url, ssl_permissive=False):
     try:
         session = requests.Session()
@@ -239,10 +241,18 @@ def fetch_page(url, ssl_permissive=False):
             url,
             headers=HEADERS,
             timeout=15,
-            verify=not ssl_permissive
+            verify=not ssl_permissive,
+            stream=True
         )
         response.raise_for_status()
-        return response.text
+        content_length = response.headers.get('Content-Length')
+        if content_length and int(content_length) > MAX_RESPONSE_BYTES:
+            log.warning(f"Skipping {url} — Content-Length {content_length} exceeds 2MB limit")
+            response.close()
+            return None
+        content = response.content[:MAX_RESPONSE_BYTES]
+        response.close()
+        return content.decode('utf-8', errors='replace')
     except requests.RequestException as e:
         log.warning(f"Failed to fetch {url}: {e}")
         return None
@@ -486,6 +496,16 @@ def run():
 
             if is_homepage_junk(text):
                 log.info(f"{uname} — homepage/nav detected, skipping AI")
+                continue
+
+            # Pre-filter: skip AI if none of the user's keywords appear in the page text
+            text_lower = text.lower()
+            kw_found = any(kw.lower() in text_lower for kw in user_kws)
+            if not kw_found:
+                log.info(f"{uname} — no keywords in page text, skipping AI")
+                stale_watch_count[uurl] = stale_watch_count.get(uurl, 0) + 1
+                if stale_watch_count[uurl] == STALE_THRESHOLD:
+                    log.info(f"{uname} — {STALE_THRESHOLD} consecutive no-finds, throttling to hourly")
                 continue
 
             result = analyze_user_page(uurl, text, user_kws)

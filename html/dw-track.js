@@ -9,7 +9,7 @@
   function setCookie(name, val, days) {
     var d = new Date();
     d.setTime(d.getTime() + days * 86400000);
-    document.cookie = name + '=' + val + ';path=/;expires=' + d.toUTCString() + ';SameSite=Lax';
+    document.cookie = name + '=' + val + ';path=/;expires=' + d.toUTCString() + ';SameSite=Lax;Secure';
   }
 
   function uuid() {
