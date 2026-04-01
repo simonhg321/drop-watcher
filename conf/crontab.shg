@@ -17,6 +17,8 @@ DW_ENV_FILE=/etc/drop-watcher/.env
 */10 * * * * python3 /home/shg/drop-watcher/discord_logger.py >> /var/log/drop-watcher/discord.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_traffic.py >> /var/log/drop-watcher/generate_traffic.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_security.py >> /var/log/drop-watcher/generate_security.log 2>&1
+*/10 * * * * python3 /home/shg/drop-watcher/generate_public_stats.py >> /var/log/drop-watcher/generate_public_stats.log 2>&1
+*/10 * * * * python3 /home/shg/drop-watcher/generate_simon_status.py >> /var/log/drop-watcher/generate_simon_status.log 2>&1
 
 # ── Every 15 min ─────────────────────────────────────────────────────────────
 */15 * * * * python3 /home/shg/drop-watcher/agents/feed_watcher.py >> /var/log/drop-watcher/feed_watcher.log 2>&1
