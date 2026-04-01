@@ -17,6 +17,7 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
 import paths
+import db as _db
 from generate_traffic import (
     fetch_cloudflare_data, parse_cf_today,
     load_watcher_stats, load_api_usage, load_sms_stats,
@@ -32,52 +33,19 @@ SIMON_HTML = os.path.join(paths.WWW_DIR, 'stats', 'simon.html')
 # ── Data loaders ────────────────────────────────────────────────────────────
 
 def load_all_watchers():
-    """Load full watcher list from watchers.json."""
-    try:
-        with open(paths.WATCHERS_JSON) as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+    """Load full watcher list from SQLite."""
+    return _db.get_all_watchers()
 
 
 def load_recent_drops(limit=30):
-    """Load last N drops from drops.jsonl."""
-    drops = []
-    if not os.path.exists(paths.DROPS_JSONL):
-        return drops
-    try:
-        with open(paths.DROPS_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    drops.append(json.loads(line))
-                except Exception:
-                    continue
-    except FileNotFoundError:
-        pass
-    return drops[-limit:]
+    """Load last N drops from SQLite."""
+    drops = _db.get_recent_drops(hours=72)  # get last 3 days, then limit
+    return drops[:limit]
 
 
 def load_recent_alerts(limit=20):
-    """Load last N sent alerts from alerts_sent.jsonl."""
-    alerts = []
-    if not os.path.exists(paths.ALERTS_SENT_JSONL):
-        return alerts
-    try:
-        with open(paths.ALERTS_SENT_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    alerts.append(json.loads(line))
-                except Exception:
-                    continue
-    except FileNotFoundError:
-        pass
-    return alerts[-limit:]
+    """Load last N sent alerts from SQLite."""
+    return _db.get_recent_alerts_sent(limit=limit)
 
 
 # ── HTML generation ─────────────────────────────────────────────────────────

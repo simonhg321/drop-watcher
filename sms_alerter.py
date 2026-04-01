@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 # ── Load environment ──────────────────────────────────────────────────────────
 import paths
+import db
 load_dotenv(paths.ENV_FILE, override=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -23,9 +24,6 @@ TWILIO_ACCOUNT_SID    = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN     = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_FROM           = os.environ.get('TWILIO_FROM')  # +19282498690
 TWILIO_MESSAGING_SID  = os.environ.get('TWILIO_MESSAGING_SID')  # MG... — A2P campaign
-
-WATCHERS_FILE = paths.WATCHERS_JSON
-SMS_SENT_LOG  = paths.SMS_SENT_JSONL
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 log = logging.getLogger('sms_alerter')
@@ -41,46 +39,26 @@ def format_sms(alert, email=None, keywords=None, token=None):
 
 # ── Check if SMS already sent for this alert+phone ───────────────────────────
 def already_sent_sms(alert_id, phone):
-    if not os.path.exists(SMS_SENT_LOG):
-        return False
-    with open(SMS_SENT_LOG, 'r') as f:
-        for line in f:
-            try:
-                entry = json.loads(line)
-                if entry.get('alert_id') == alert_id and entry.get('phone') == phone:
-                    return True
-            except:
-                continue
-    return False
+    return db.is_sms_sent(alert_id, phone)
 
 def mark_sms_sent(alert_id, phone):
-    os.makedirs(os.path.dirname(SMS_SENT_LOG), exist_ok=True)
-    with open(SMS_SENT_LOG, 'a') as f:
-        f.write(json.dumps({
-            'alert_id': alert_id,
-            'phone': phone,
-            'sent_at': datetime.now(timezone.utc).isoformat()
-        }) + '\n')
+    db.mark_sms_sent(alert_id, phone)
 
-# ── Get approved SMS recipients from watchers.json ───────────────────────────
+# ── Get approved SMS recipients from database ───────────────────────────────
 def get_approved_watchers():
-    if not os.path.exists(WATCHERS_FILE):
-        return []
     try:
-        with open(WATCHERS_FILE, 'r') as f:
-            watchers = json.load(f)
+        watchers = db.get_sms_approved_watchers()
         result = []
         for w in watchers:
-            if w.get('sms_approved') and w.get('phone'):
-                result.append({
-                    'phone': w['phone'].strip(),
-                    'email': w.get('email', ''),
-                    'keywords': w.get('keywords', ''),
-                    'token': w.get('unsubscribe_token', ''),
-                })
+            result.append({
+                'phone': w['phone'].strip(),
+                'email': w.get('email', ''),
+                'keywords': w.get('keywords', ''),
+                'token': w.get('unsubscribe_token', ''),
+            })
         return result
     except Exception as e:
-        log.error(f"Failed to load watchers.json: {e}")
+        log.error(f"Failed to load SMS watchers: {e}")
         return []
 
 # ── Send a single SMS via Twilio ──────────────────────────────────────────────

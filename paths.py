@@ -52,7 +52,13 @@ MAKERS_YAML    = os.path.join(CONFIG_DIR, 'makers.yaml')
 COOL_LIST_YAML = os.path.join(CONFIG_DIR, 'cool_list.yaml')
 SETTINGS_YAML  = os.path.join(CONFIG_DIR, 'settings.yaml')
 
-# ── Data files (PII + runtime state) ───────────────────────────────────────
+# ── Database ───────────────────────────────────────────────────────────────
+DB_PATH = os.environ.get(
+    'DW_DB',
+    os.path.join(DATA_DIR, 'dropwatcher.db')
+)
+
+# ── Data files (PII + runtime state) — legacy, used by migration script ───
 WATCHERS_JSON      = os.path.join(DATA_DIR, 'watchers.json')
 WATCHERS_LOCK      = os.path.join(DATA_DIR, 'watchers.json.lock')
 DROPS_JSONL        = os.path.join(LOG_DIR, 'drops.jsonl')

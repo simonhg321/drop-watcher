@@ -16,12 +16,10 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 import paths
+import db
 
 # ── Config ────────────────────────────────────────────────────────────────────
 WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
-
-DROPS_FILE = paths.DROPS_JSONL
-SENT_FILE  = os.path.join(paths.DATA_DIR, 'discord_sent.json')
 
 # Only post drops from the last 15 minutes (aligns with cron cycle)
 WINDOW_MINUTES = 15
@@ -30,29 +28,13 @@ WINDOW_MINUTES = 15
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [discord] %(message)s')
 log = logging.getLogger('discord_logger')
 
-# ── Dedup tracking ────────────────────────────────────────────────────────────
-def load_sent():
-    if not os.path.exists(SENT_FILE):
-        return {}
-    try:
-        with open(SENT_FILE) as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_sent(sent):
-    os.makedirs(os.path.dirname(SENT_FILE), exist_ok=True)
-    tmp = SENT_FILE + '.tmp'
-    with open(tmp, 'w') as f:
-        json.dump(sent, f)
-    os.replace(tmp, SENT_FILE)
-
+# ── Dedup tracking (via SQLite) ───────────────────────────────────────────────
 def drop_id(drop):
     raw = f"{drop.get('timestamp', '')}|{drop.get('url', '')}|{drop.get('source', '')}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 def prune_sent(sent, hours=48):
-    """Remove entries older than 48h to keep the file small."""
+    """Legacy compat — no longer needed with SQLite."""
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     return {k: v for k, v in sent.items() if v > cutoff}
 
@@ -124,39 +106,19 @@ def post_to_discord(embed):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def run():
-    if not os.path.exists(DROPS_FILE):
-        log.info("No drops.jsonl found")
-        return
-
-    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=WINDOW_MINUTES)).isoformat()
-    drops = []
-    with open(DROPS_FILE) as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                d = json.loads(line)
-                if (d.get('timestamp') or '') >= cutoff:
-                    drops.append(d)
-            except Exception:
-                continue
-
-    sent = load_sent()
-    sent = prune_sent(sent)
+    drops = db.get_recent_drops(minutes=WINDOW_MINUTES)
     posted = 0
 
     for drop in drops:
         did = drop_id(drop)
-        if did in sent:
+        if db.is_discord_sent(did):
             continue
 
         embed = format_embed(drop)
         if post_to_discord(embed):
-            sent[did] = datetime.now(timezone.utc).isoformat()
+            db.mark_discord_sent(did)
             posted += 1
 
-    save_sent(sent)
     if posted:
         log.info(f"Posted {posted} drop(s) to Discord")
 

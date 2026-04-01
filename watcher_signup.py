@@ -10,7 +10,6 @@ Apache proxies /api/ → localhost:5001
 HGR
 """
 
-import fcntl
 import html as html_mod
 import json
 import os
@@ -31,7 +30,7 @@ CORS(app, origins=['https://instockornot.club'])
 limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
 import paths
-WATCHERS_FILE = paths.WATCHERS_JSON
+import db
 
 load_dotenv(paths.ENV_FILE, override=True)
 
@@ -67,33 +66,8 @@ def normalize_url(url):
     ))
 
 
-# ── Watchers file helpers (with file locking) ────────────────────────────────
-
-LOCK_FILE = WATCHERS_FILE + '.lock'
-
-def load_watchers():
-    if not os.path.exists(WATCHERS_FILE):
-        return []
-    with open(WATCHERS_FILE) as f:
-        fcntl.flock(f, fcntl.LOCK_SH)  # shared lock for reads
-        data = json.load(f)
-        fcntl.flock(f, fcntl.LOCK_UN)
-        return data
-
-
-def save_watchers(watchers):
-    os.makedirs(os.path.dirname(WATCHERS_FILE), exist_ok=True)
-    lock_fd = open(LOCK_FILE, 'w')
-    fcntl.flock(lock_fd, fcntl.LOCK_EX)  # exclusive lock for writes
-    try:
-        # Write to temp file then rename — atomic on same filesystem
-        tmp = WATCHERS_FILE + '.tmp'
-        with open(tmp, 'w') as f:
-            json.dump(watchers, f, indent=2)
-        os.replace(tmp, WATCHERS_FILE)
-    finally:
-        fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        lock_fd.close()
+# ── Watcher database helpers ─────────────────────────────────────────────────
+# All watcher state is now in SQLite via db.py
 
 
 # ── Quick keyword check ──────────────────────────────────────────────────────
@@ -326,23 +300,20 @@ def watch():
     if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
         return jsonify({'error': 'Invalid phone number format.'}), 400
 
-    watchers = load_watchers()
-
     # Deduplicate: same email + url combo
-    existing = [w for w in watchers if w['email'] == email and w['url'] == url]
+    existing = db.find_watcher_by_email_url(email, url)
     if existing:
         log.info(f"Duplicate watcher for {email} / {url} — updating keywords")
-        existing[0]['keywords'] = keywords
-        existing[0]['priority'] = priority
-        if not existing[0].get('active'):
-            if not existing[0].get('verify_token'):
-                existing[0]['verify_token'] = str(uuid.uuid4())
-            send_verification_email(existing[0])
-        save_watchers(watchers)
-        return jsonify({'status': 'updated', 'id': existing[0]['id']}), 200
+        db.update_watcher(existing['id'], keywords=keywords, priority=priority)
+        if not existing.get('active'):
+            vt = existing.get('verify_token') or str(uuid.uuid4())
+            db.update_watcher(existing['id'], verify_token=vt)
+            existing['verify_token'] = vt
+            send_verification_email(existing)
+        return jsonify({'status': 'updated', 'id': existing['id']}), 200
 
     # One token per email — reuse existing if this email already has watches
-    email_watches = [w for w in watchers if w.get('email', '').lower() == email]
+    email_watches = db.get_watchers_by_email(email)
     if email_watches:
         shared_token = email_watches[0]['unsubscribe_token']
         already_verified = any(w.get('active') for w in email_watches)
@@ -369,24 +340,21 @@ def watch():
         'alert_count':       0,
     }
 
-    watchers.append(entry)
-    save_watchers(watchers)
+    db.add_watcher(entry)
     log.info(f"New watcher: {entry['id']} | {entry['email']} | {entry['url']} | reused_token={bool(email_watches)}")
 
     if already_verified:
-        # Email already verified — send welcome email, skip verification
         send_confirmation_email(entry)
     else:
-        # First watch for this email — send verification
         send_verification_email(entry)
 
     # SMS verification — send code if phone + consent provided
     sms_pending = bool(phone and data.get('sms_consent'))
     if sms_pending:
         code = f"{secrets.randbelow(900000) + 100000}"
-        entry['sms_verify_code'] = code
-        entry['sms_verify_expires'] = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
-        save_watchers(watchers)
+        db.update_watcher(entry['id'],
+            sms_verify_code=code,
+            sms_verify_expires=(datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat())
         try:
             from sms_alerter import _send_twilio_sms
             _send_twilio_sms(phone, f"Drop Watcher verification code: {code}")
@@ -429,8 +397,8 @@ def resend_link():
     if not re.match(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$', email) or len(email) > 254:
         return jsonify({'error': 'Invalid email address.'}), 400
 
-    watchers = load_watchers()
-    matches  = [w for w in watchers if w.get('email', '').lower() == email and w.get('active')]
+    all_watches = db.get_watchers_by_email(email)
+    matches = [w for w in all_watches if w.get('active')]
     if not matches:
         # Return 200 regardless — don't leak whether email exists
         log.info(f"resend-link: no active watcher for {email}")
@@ -481,46 +449,42 @@ def stop_watching(watch_id):
     token = request.args.get('token') or request.headers.get('X-Token')
     if not token:
         return jsonify({'error': 'unauthorized'}), 403
-    watchers = load_watchers()
-    # Find the watch and verify the token belongs to the same user
-    target = next((w for w in watchers if w.get('id') == watch_id), None)
+    target = db.get_watcher_by_id(watch_id)
     if not target:
         return jsonify({'error': 'not found'}), 404
     if target.get('unsubscribe_token') != token:
         return jsonify({'error': 'unauthorized'}), 403
-    watchers = [w for w in watchers if w.get('id') != watch_id]
-    save_watchers(watchers)
+    db.delete_watcher(watch_id)
     log.info(f"Watcher removed: {watch_id}")
     return jsonify({'status': 'removed'})
 
 @app.route('/api/my-watch/<token>', methods=['GET'])
 def my_watch(token):
-    watchers = load_watchers()
-    for w in watchers:
-        if w.get('unsubscribe_token') == token:
-            return jsonify({
-                'email':    w.get('email'),
-                'name':     w.get('name'),
-                'url':      w.get('url'),
-                'keywords': w.get('keywords'),
-                'priority': w.get('priority'),
-                'active':   w.get('active'),
-                'created':  w.get('created'),
-            })
-    return jsonify({'error': 'not found'}), 404
+    w = db.get_watcher_by_unsub_token(token)
+    if not w:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({
+        'email':    w.get('email'),
+        'name':     w.get('name'),
+        'url':      w.get('url'),
+        'keywords': w.get('keywords'),
+        'priority': w.get('priority'),
+        'active':   bool(w.get('active')),
+        'created':  w.get('created'),
+    })
 
 
 @app.route('/api/my-alerts/<token>', methods=['GET'])
 def my_alerts(token):
     import re
-    watchers = load_watchers()
-    watcher  = next((w for w in watchers if w.get('unsubscribe_token') == token), None)
+    watcher = db.get_watcher_by_unsub_token(token)
     if not watcher:
         return jsonify({'error': 'not found'}), 404
 
     # Find ALL watches for this email
     email = watcher.get('email', '').lower()
-    my_watches = [w for w in watchers if w.get('email', '').lower() == email and w.get('active')]
+    all_watches = db.get_watchers_by_email(email)
+    my_watches = [w for w in all_watches if w.get('active')]
 
     # Build list of (domain, keywords) pairs across all watches
     watch_filters = []
@@ -533,78 +497,61 @@ def my_alerts(token):
                               'id': w.get('id'),
                               'token': w.get('unsubscribe_token')})
 
-    drops = []
-    from datetime import timedelta
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    drops_log = paths.DROPS_JSONL
-    try:
-        with open(drops_log) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    d = json.loads(line)
-                except Exception:
-                    continue
-                if (d.get('timestamp') or '') < cutoff:
-                    continue
-                drop_url    = (d.get('url') or '').lower()
-                drop_domain = re.sub(r'^https?://(www\.)?', '', drop_url).split('/')[0]
-                summary     = (d.get('page_summary') or '').lower()
-                notable     = ' '.join(d.get('notable_items') or []).lower()
-                searchable  = f"{summary} {notable}"
+    recent_drops = db.get_recent_drops(hours=72)
+    matched_drops = []
+    for d in recent_drops:
+        drop_url    = (d.get('url') or '').lower()
+        drop_domain = re.sub(r'^https?://(www\.)?', '', drop_url).split('/')[0]
+        summary     = (d.get('page_summary') or '').lower()
+        notable     = ' '.join(d.get('notable_items') or []).lower()
+        searchable  = f"{summary} {notable}"
 
-                # Match against ANY of the user's watches
-                for wf in watch_filters:
-                    if not wf['domain'] or wf['domain'] != drop_domain:
-                        continue
-                    if wf['keywords'] and not any(k in searchable for k in wf['keywords']):
-                        continue
-                    drops.append(d)
-                    break  # don't double-add
-    except FileNotFoundError:
-        pass
+        for wf in watch_filters:
+            if not wf['domain'] or wf['domain'] != drop_domain:
+                continue
+            if wf['keywords'] and not any(k in searchable for k in wf['keywords']):
+                continue
+            matched_drops.append(d)
+            break
 
-    drops.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    matched_drops.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
     return jsonify({
         'watcher': watcher.get('email'),
         'watches': watch_filters,
-        'drops': drops[:50]
+        'drops': matched_drops[:50]
     })
 
 @app.route('/api/verify/<token>', methods=['GET'])
 @limiter.limit("10 per minute")
 def verify(token):
-    watchers = load_watchers()
-    for w in watchers:
-        if w.get('verify_token') == token:
-            if w.get('active'):
-                return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+    w = db.get_watcher_by_verify_token(token)
+    if not w:
+        return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                    <h1 style="color:#888">DROP WATCHER</h1>
+                    <p style="color:#888;font-size:14px;margin-top:24px">Link not found or already used.</p>
+                </body></html>""", 404
+
+    if w.get('active'):
+        return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
                     <h1 style="color:#c0392b">DROP WATCHER</h1>
                     <p style="font-size:18px;margin-top:24px">Already verified.</p>
                     <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
                 </body></html>""", 200
-            # Activate ALL watches for this email
-            verified_email = w.get('email', '').lower()
-            for ww in watchers:
-                if ww.get('email', '').lower() == verified_email:
-                    ww['active'] = True
-                    ww['verify_token'] = None
-            save_watchers(watchers)
-            log.info(f"Verified: {w['email']} — activated all watches for this email")
-            send_confirmation_email(w)  # welcome email
 
-            # Quick preview check — show on verify page only, no alert or drop written
-            # Real alerts come from the AI pipeline (web_watcher → ai_interpreter → per_user_alerter)
-            matches = quick_keyword_check(w['url'], w['keywords'])
-            match_msg = ''
-            if matches:
-                log.info(f"Verify-check: {len(matches)} potential matches for {w['email']}: {matches}")
-                match_msg = f'<p style="color:#2ecc71;font-size:14px;margin-top:16px">We see potential matches for: {html_mod.escape(", ".join(matches))}. The AI pipeline will confirm and alert you.</p>'
+    # Activate ALL watches for this email
+    verified_email = w.get('email', '').lower()
+    db.update_watchers_by_email(verified_email, active=True, verify_token=None)
+    log.info(f"Verified: {w['email']} — activated all watches for this email")
+    send_confirmation_email(w)
 
-            my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
-            return f"""<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+    matches = quick_keyword_check(w['url'], w['keywords'])
+    match_msg = ''
+    if matches:
+        log.info(f"Verify-check: {len(matches)} potential matches for {w['email']}: {matches}")
+        match_msg = f'<p style="color:#2ecc71;font-size:14px;margin-top:16px">We see potential matches for: {html_mod.escape(", ".join(matches))}. The AI pipeline will confirm and alert you.</p>'
+
+    my_alerts_url = f"{BASE_URL}/my-alerts.html?token={w['unsubscribe_token']}"
+    return f"""<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
                     <h1 style="color:#2ecc71">VERIFIED</h1>
                     <p style="font-size:18px;margin-top:24px;color:#f0f0f0">You are live. Alerts are active.</p>
                     {match_msg}
@@ -612,10 +559,6 @@ def verify(token):
                     <div style="margin-top:24px;color:#c0392b;font-size:20px;font-weight:bold">SGH</div>
                     <button onclick="new Audio('/audio/dropwatcher.mp3').play();this.style.display='none'" style="margin-top:24px;background:none;border:1px solid #888;color:#888;padding:8px 16px;cursor:pointer;font-family:monospace;font-size:11px;letter-spacing:2px">&#9835; PLAY</button>
                 </body></html>""", 200
-    return """<html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
-                    <h1 style="color:#888">DROP WATCHER</h1>
-                    <p style="color:#888;font-size:14px;margin-top:24px">Link not found or already used.</p>
-                </body></html>""", 404
 
 
 
@@ -630,18 +573,15 @@ def verify_phone():
     if not watch_id or not code:
         return jsonify({'error': 'Missing id or code'}), 400
 
-    watchers = load_watchers()
-    for w in watchers:
-        if w.get('id') == watch_id and w.get('sms_verify_code') == code:
-            expires = w.get('sms_verify_expires', '')
-            if expires and datetime.now(timezone.utc).isoformat() > expires:
-                return jsonify({'error': 'Code expired. Sign up again to get a new code.'}), 410
-            w['sms_approved'] = True
-            w['sms_verify_code'] = None
-            w['sms_verify_expires'] = None
-            save_watchers(watchers)
-            log.info(f"Phone verified for {w['email']}")
-            return jsonify({'status': 'verified'})
+    w = db.get_watcher_by_id(watch_id)
+    if w and w.get('sms_verify_code') == code:
+        expires = w.get('sms_verify_expires', '')
+        if expires and datetime.now(timezone.utc).isoformat() > expires:
+            return jsonify({'error': 'Code expired. Sign up again to get a new code.'}), 410
+        db.update_watcher(watch_id,
+            sms_approved=True, sms_verify_code=None, sms_verify_expires=None)
+        log.info(f"Phone verified for {w['email']}")
+        return jsonify({'status': 'verified'})
 
     return jsonify({'error': 'Invalid code'}), 400
 
@@ -658,17 +598,8 @@ def track_pageview():
     if not vid or not path:
         return '', 204
 
-    entry = json.dumps({
-        'vid':  vid,
-        'path': path,
-        'ref':  ref,
-        'ip':   request.remote_addr,
-        'ts':   datetime.now(timezone.utc).isoformat()
-    })
-
     try:
-        with open(paths.PAGEVIEWS_JSONL, 'a') as f:
-            f.write(entry + '\n')
+        db.add_pageview(vid, path, ref, request.remote_addr)
     except Exception:
         pass
 
@@ -678,77 +609,41 @@ def track_pageview():
 @app.route('/api/unsubscribe/<token>', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def unsubscribe(token):
-    watchers = load_watchers()
-    for w in watchers:
-        if w.get('unsubscribe_token') == token:
-            email = w.get('email', '').lower()
-            any_active = any(ww.get('active') for ww in watchers if ww.get('email', '').lower() == email)
-            if not any_active:
-                return jsonify({'status': 'already_unsubscribed'}), 200
-            # Deactivate ALL watches for this email
-            count = 0
-            for ww in watchers:
-                if ww.get('email', '').lower() == email and ww.get('active'):
-                    ww['active'] = False
-                    count += 1
-            save_watchers(watchers)
-            log.info(f"Unsubscribed: {email} — deactivated {count} watches")
-            # Return a friendly HTML page for one-click unsubscribe
-            if request.method == 'GET':
-                return """
+    w = db.get_watcher_by_unsub_token(token)
+    if not w:
+        return jsonify({'error': 'Not found'}), 404
+
+    email = w.get('email', '').lower()
+    all_watches = db.get_watchers_by_email(email)
+    any_active = any(ww.get('active') for ww in all_watches)
+    if not any_active:
+        return jsonify({'status': 'already_unsubscribed'}), 200
+
+    db.update_watchers_by_email(email, active=False)
+    count = sum(1 for ww in all_watches if ww.get('active'))
+    log.info(f"Unsubscribed: {email} — deactivated {count} watches")
+
+    if request.method == 'GET':
+        return """
                 <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
                     <h1 style="color:#c0392b">DROP WATCHER</h1>
                     <p style="font-size:18px;margin-top:24px">You've been unsubscribed.</p>
                     <p style="color:#888;font-size:13px">You won't receive any more alerts from us.</p>
                     <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
                 </body></html>""", 200
-            return jsonify({'status': 'unsubscribed'}), 200
-    return jsonify({'error': 'Not found'}), 404
+    return jsonify({'status': 'unsubscribed'}), 200
 
 
 @app.route('/api/stats', methods=['GET'])
 def stats():
     """Public stats endpoint — no PII, just counts and timestamps."""
-    watchers = load_watchers()
-    active_count = sum(1 for w in watchers if w.get('active'))
+    active_count = db.count_active_watchers()
+    total_drops = db.get_drops_count()
+    drops_24h = db.get_drops_count(hours=24)
+    by_priority = db.get_drops_by_priority(hours=24)
+    latest_ts = db.get_latest_drop_timestamp()
 
-    drops_log = paths.DROPS_JSONL
-    total_drops = 0
-    critical = 0
-    high = 0
-    medium = 0
-    latest_ts = None
-    from datetime import timedelta
-    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-    drops_24h = 0
-
-    try:
-        with open(drops_log) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    d = json.loads(line)
-                except Exception:
-                    continue
-                total_drops += 1
-                ts = d.get('timestamp', '')
-                pri = (d.get('priority') or '').lower()
-                if ts > cutoff_24h:
-                    drops_24h += 1
-                    if pri == 'critical':
-                        critical += 1
-                    elif pri == 'high':
-                        high += 1
-                    elif pri == 'medium':
-                        medium += 1
-                if latest_ts is None or ts > latest_ts:
-                    latest_ts = ts
-    except FileNotFoundError:
-        pass
-
-    # Last preflight run
+    # Last preflight run — still from JSONL (not migrated, it's diagnostic)
     preflight_log = paths.PREFLIGHT_JSONL
     last_preflight = None
     try:
@@ -764,16 +659,14 @@ def stats():
     except FileNotFoundError:
         pass
 
-    # Watchdog status
+    # Watchdog status — still from JSON (not migrated, it's diagnostic)
     watchdog_state = {}
-    watchdog_log = paths.WATCHDOG_STATE
     try:
-        with open(watchdog_log) as f:
+        with open(paths.WATCHDOG_STATE) as f:
             watchdog_state = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         pass
 
-    # Last watchdog run time — read last line of watchdog.log
     last_watchdog = None
     watchdog_logfile = os.path.join(paths.LOG_DIR, 'watchdog.log')
     try:
@@ -785,7 +678,6 @@ def stats():
             lines = f.read().decode(errors='replace').strip().split('\n')
             if lines:
                 last_line = lines[-1]
-                # Extract timestamp from "2026-03-14 16:30:00 [watchdog]..."
                 if '[watchdog]' in last_line:
                     last_watchdog = last_line.split(' [watchdog]')[0].strip()
     except FileNotFoundError:
@@ -795,9 +687,9 @@ def stats():
         'watchers_active': active_count,
         'drops_24h': drops_24h,
         'drops_total': total_drops,
-        'critical_24h': critical,
-        'high_24h': high,
-        'medium_24h': medium,
+        'critical_24h': by_priority.get('critical', 0),
+        'high_24h': by_priority.get('high', 0),
+        'medium_24h': by_priority.get('medium', 0),
         'latest_drop': latest_ts,
         'last_preflight': last_preflight,
         'watchdog_failures': watchdog_state,
@@ -889,7 +781,7 @@ def list_watchers():
     """Admin endpoint — requires API_ADMIN_SECRET header."""
     if not API_ADMIN_SECRET or request.headers.get('X-Admin-Secret') != API_ADMIN_SECRET:
         return jsonify({'error': 'unauthorized'}), 403
-    watchers = load_watchers()
+    watchers = db.get_all_watchers()
     active   = [w for w in watchers if w.get('active')]
     pending  = [w for w in watchers if not w.get('active')]
     emails   = list(set(w.get('email', '').lower() for w in watchers))
@@ -906,9 +798,9 @@ def list_watchers():
             'url': w.get('url'),
             'keywords': w.get('keywords'),
             'priority': w.get('priority'),
-            'active': w.get('active'),
+            'active': bool(w.get('active')),
             'phone': bool(w.get('phone')),
-            'sms_approved': w.get('sms_approved'),
+            'sms_approved': bool(w.get('sms_approved')),
             'created': w.get('created'),
             'last_alert': w.get('last_alert'),
             'alert_count': w.get('alert_count', 0),

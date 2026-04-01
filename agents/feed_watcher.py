@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 import paths
+import db
 load_dotenv(paths.ENV_FILE)
 
 # ── Add agents dir to path ────────────────────────────────────────────────────
@@ -82,48 +83,25 @@ def prefilter(text, keywords):
     text_lower = text.lower()
     return any(kw in text_lower for kw in keywords)
 
-# ── Seen entry tracking ───────────────────────────────────────────────────────
-SEEN_TTL_HOURS = 72  # keep entry IDs for 3 days
-
-def load_seen_feeds():
-    if not os.path.exists(SEEN_FEEDS_FILE):
-        return {}
-    try:
-        with open(SEEN_FEEDS_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_seen_feeds(seen):
-    with open(SEEN_FEEDS_FILE, 'w') as f:
-        json.dump(seen, f)
+# ── Seen entry tracking (via SQLite) ─────────────────────────────────────────
+SEEN_TTL_HOURS = 72
 
 def entry_key(feed_name, entry_id):
     raw = f"{feed_name}:{entry_id}"
     return hashlib.md5(raw.encode()).hexdigest()
 
-def is_seen(key, seen):
-    now = time.time()
-    last = seen.get(key, 0)
-    return (now - last) < SEEN_TTL_HOURS * 3600
+def is_seen(key):
+    return db.is_feed_seen(key, hours=SEEN_TTL_HOURS)
 
-def mark_seen(key, seen):
-    now = time.time()
-    seen[key] = now
-    # Prune old entries
-    cutoff = now - SEEN_TTL_HOURS * 3600
-    return {k: v for k, v in seen.items() if v > cutoff}
+def mark_seen(key):
+    db.mark_feed_seen(key)
 
 # ── Alert writer (mirrors web_watcher) ───────────────────────────────────────
 def write_alert(settings, alert):
-    log_path = paths.DROPS_JSONL
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-    with open(log_path, 'a') as f:
-        f.write(json.dumps(alert) + '\n')
-
-    log.info(f"🔥 ALERT: {alert['source']} — {alert.get('priority','?').upper()}")
+    db.add_drop(alert)
+    log.info(f"ALERT: {alert['source']} -- {alert.get('priority','?').upper()}")
     for item in alert.get('notable_items', []):
-        log.info(f"   → {item}")
+        log.info(f"   -> {item}")
 
 # ── Fetch RSS feed ────────────────────────────────────────────────────────────
 HEADERS = {
@@ -151,7 +129,6 @@ def run():
 
     keywords    = build_keywords(cool, makers)
     makers_list = build_makers_list(makers)
-    seen        = load_seen_feeds()
 
     feeds = [f for f in sources.get('feeds', []) if f.get('enabled', True)]
 
@@ -190,10 +167,10 @@ def run():
             entry_id = entry.get('id') or entry.get('link') or entry.get('title', '')
             key = entry_key(name, entry_id)
 
-            if is_seen(key, seen):
+            if is_seen(key):
                 continue
 
-            seen = mark_seen(key, seen)
+            mark_seen(key)
             new_count += 1
 
             # Build text from title + summary
@@ -231,9 +208,7 @@ def run():
                 log.info(f"  AI says not alert worthy: {title[:60]}")
 
         log.info(f"{name} — {new_count} new entries processed")
-        save_seen_feeds(seen)
 
-    save_seen_feeds(seen)
     log.info("Feed Watcher done")
 
 if __name__ == '__main__':

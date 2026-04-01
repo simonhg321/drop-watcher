@@ -16,6 +16,7 @@ import httpx
 from dotenv import load_dotenv
 
 import paths
+import db as _db
 from collections import defaultdict
 
 load_dotenv(paths.ENV_FILE, override=True)
@@ -210,92 +211,50 @@ def parse_goaccess_visitors(ga_data):
 # ── Watcher stats ────────────────────────────────────────────────────────────
 
 def load_watcher_stats():
-    """Load watcher and drop stats from local files."""
+    """Load watcher and drop stats from SQLite."""
     stats = {'active_watchers': 0, 'total_watchers': 0, 'drops_24h': 0, 'drops_total': 0}
-
-    # Watchers
     try:
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
-        stats['total_watchers'] = len(watchers)
-        stats['active_watchers'] = sum(1 for w in watchers if w.get('active'))
-        stats['unique_emails'] = len(set(w.get('email', '').lower() for w in watchers))
-    except (FileNotFoundError, json.JSONDecodeError):
+        all_watchers = _db.get_all_watchers()
+        stats['total_watchers'] = len(all_watchers)
+        stats['active_watchers'] = sum(1 for w in all_watchers if w.get('active'))
+        stats['unique_emails'] = len(set(w.get('email', '').lower() for w in all_watchers))
+    except Exception:
         pass
 
-    # Drops
-    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-    try:
-        with open(paths.DROPS_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    d = json.loads(line)
-                    stats['drops_total'] = stats.get('drops_total', 0) + 1
-                    if (d.get('timestamp') or '') > cutoff_24h:
-                        stats['drops_24h'] = stats.get('drops_24h', 0) + 1
-                except Exception:
-                    continue
-    except FileNotFoundError:
-        pass
-
+    stats['drops_total'] = _db.get_drops_count()
+    stats['drops_24h'] = _db.get_drops_count(hours=24)
     return stats
 
 
 # ── API usage stats ─────────────────────────────────────────────────────────
 
 def load_api_usage():
-    """Load api_usage.jsonl and return summary dict."""
+    """Load API usage summary from SQLite."""
+    summary = _db.get_api_usage_summary()
+    by_caller = _db.get_api_usage_by_caller()
+    by_day_raw = _db.get_api_usage_by_day(days=7)
+
+    total_in = summary['total_in']
+    total_out = summary['total_out']
+    in_24h = summary['in_24h']
+    out_24h = summary['out_24h']
+
     result = {
-        'total_calls': 0, 'total_in': 0, 'total_out': 0, 'total_cost': 0.0,
-        'calls_24h': 0, 'in_24h': 0, 'out_24h': 0, 'cost_24h': 0.0,
+        'total_calls': summary['total_calls'],
+        'total_in': total_in,
+        'total_out': total_out,
+        'total_cost': (total_in / 1_000_000 * INPUT_COST_PER_M) + (total_out / 1_000_000 * OUTPUT_COST_PER_M),
+        'calls_24h': summary['calls_24h'],
+        'in_24h': in_24h,
+        'out_24h': out_24h,
+        'cost_24h': (in_24h / 1_000_000 * INPUT_COST_PER_M) + (out_24h / 1_000_000 * OUTPUT_COST_PER_M),
         'by_caller': defaultdict(lambda: {'calls': 0, 'in': 0, 'out': 0}),
         'by_day': defaultdict(lambda: {'calls': 0, 'in': 0, 'out': 0}),
     }
-    if not os.path.exists(paths.API_USAGE_JSONL):
-        return result
-
-    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-
-    try:
-        with open(paths.API_USAGE_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    e = json.loads(line)
-                    inp = e.get('input_tokens', 0)
-                    out = e.get('output_tokens', 0)
-                    cost = (inp / 1_000_000 * INPUT_COST_PER_M) + (out / 1_000_000 * OUTPUT_COST_PER_M)
-
-                    result['total_calls'] += 1
-                    result['total_in'] += inp
-                    result['total_out'] += out
-                    result['total_cost'] += cost
-
-                    ts = e.get('ts', '')
-                    if ts >= cutoff_24h:
-                        result['calls_24h'] += 1
-                        result['in_24h'] += inp
-                        result['out_24h'] += out
-                        result['cost_24h'] += cost
-
-                    caller = e.get('caller', 'unknown')
-                    result['by_caller'][caller]['calls'] += 1
-                    result['by_caller'][caller]['in'] += inp
-                    result['by_caller'][caller]['out'] += out
-
-                    day = ts[:10]
-                    result['by_day'][day]['calls'] += 1
-                    result['by_day'][day]['in'] += inp
-                    result['by_day'][day]['out'] += out
-                except Exception:
-                    continue
-    except FileNotFoundError:
-        pass
+    for caller, data in by_caller.items():
+        result['by_caller'][caller] = data
+    for row in by_day_raw:
+        result['by_day'][row['day']] = {'calls': row['calls'], 'in': row['inp'], 'out': row['outp']}
 
     return result
 
@@ -303,77 +262,67 @@ def load_api_usage():
 # ── AI call log ──────────────────────────────────────────────────────────────
 
 def load_ai_calls(limit=20):
-    """Load last N entries from ai_calls.jsonl."""
-    calls = []
-    if not os.path.exists(paths.AI_CALLS_JSONL):
-        return calls
-    try:
-        with open(paths.AI_CALLS_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    calls.append(json.loads(line))
-                except Exception:
-                    continue
-    except FileNotFoundError:
-        pass
-    return calls[-limit:]
+    """Load last N AI calls from SQLite."""
+    rows = _db.get_recent_ai_calls(limit=limit)
+    # Parse response JSON back to dict for backward compat
+    for r in rows:
+        if isinstance(r.get('response'), str):
+            try:
+                r['response'] = json.loads(r['response'])
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return rows
 
 
 # ── Visitor tracking stats ──────────────────────────────────────────────────
 
 def load_pageviews():
-    """Load pageviews.jsonl and return visitor summary."""
+    """Load pageview summary from SQLite."""
+    from urllib.parse import urlparse
+
     result = {
         'total_views': 0, 'views_24h': 0,
         'unique_vids': set(), 'vids_24h': set(),
         'by_path': defaultdict(int),
         'by_ref': defaultdict(int),
-        'journeys': defaultdict(list),  # vid → list of {path, ref, ts}
+        'journeys': defaultdict(list),
     }
-    if not os.path.exists(paths.PAGEVIEWS_JSONL):
-        return result
 
+    # Get all pageviews (for total counts) and 24h subset
     cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
-    try:
-        with open(paths.PAGEVIEWS_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    e = json.loads(line)
-                    vid  = e.get('vid', '')
-                    path = e.get('path', '')
-                    ref  = e.get('ref', '')
-                    ts   = e.get('ts', '')
+    with _db.get_db() as conn:
+        # Totals
+        row = conn.execute("SELECT COUNT(*) as c, COUNT(DISTINCT vid) as v FROM pageviews").fetchone()
+        result['total_views'] = row['c']
+        result['unique_vids'] = set()  # can't easily reconstruct, use count
+        result['unique_vid_count'] = row['v']
 
-                    result['total_views'] += 1
-                    result['unique_vids'].add(vid)
-                    result['by_path'][path] += 1
+        # 24h data
+        rows = conn.execute(
+            "SELECT vid, path, ref, ts FROM pageviews WHERE ts >= ? ORDER BY ts",
+            (cutoff_24h,)
+        ).fetchall()
 
-                    if ref:
-                        # Extract domain from referrer
-                        try:
-                            from urllib.parse import urlparse
-                            ref_domain = urlparse(ref).netloc or ref
-                        except Exception:
-                            ref_domain = ref
-                        if 'instockornot.club' not in ref_domain:
-                            result['by_ref'][ref_domain] += 1
+    for e in rows:
+        vid = e['vid']
+        path = e['path']
+        ref = e['ref'] or ''
+        ts = e['ts']
 
-                    if ts >= cutoff_24h:
-                        result['views_24h'] += 1
-                        result['vids_24h'].add(vid)
-                        result['journeys'][vid].append({'path': path, 'ref': ref, 'ts': ts})
+        result['views_24h'] += 1
+        result['vids_24h'].add(vid)
+        result['by_path'][path] += 1
 
-                except Exception:
-                    continue
-    except FileNotFoundError:
-        pass
+        if ref:
+            try:
+                ref_domain = urlparse(ref).netloc or ref
+            except Exception:
+                ref_domain = ref
+            if 'instockornot.club' not in ref_domain:
+                result['by_ref'][ref_domain] += 1
+
+        result['journeys'][vid].append({'path': path, 'ref': ref, 'ts': ts})
 
     return result
 
@@ -399,36 +348,15 @@ def fmt_num(n):
 
 
 def load_sms_stats():
-    """Load SMS delivery stats from sms_sent.jsonl."""
-    stats = {'total': 0, 'last_24h': 0, 'by_day': {}, 'recent': []}
-    sms_path = paths.SMS_SENT_JSONL
-    if not os.path.exists(sms_path):
-        return stats
-
-    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-
-    try:
-        with open(sms_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                    stats['total'] += 1
-                    sent_at = entry.get('sent_at', '')
-                    if sent_at > cutoff_24h:
-                        stats['last_24h'] += 1
-
-                    day = sent_at[:10] if len(sent_at) >= 10 else 'unknown'
-                    stats['by_day'][day] = stats['by_day'].get(day, 0) + 1
-                    stats['recent'].append(entry)
-                except (json.JSONDecodeError, KeyError):
-                    continue
-        stats['recent'] = stats['recent'][-10:]  # last 10
-    except Exception:
-        pass
-    return stats
+    """Load SMS delivery stats from SQLite."""
+    sms = _db.get_sms_stats()
+    return {
+        'total': sms['total_sent'],
+        'last_24h': sms['sent_24h'],
+        'by_day': {},  # not worth reconstructing — dashboard shows totals
+        'recent': [],  # not worth reconstructing
+        'last_sent': sms['last_sent'],
+    }
 
 
 # ── HTML generation ──────────────────────────────────────────────────────────

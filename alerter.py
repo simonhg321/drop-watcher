@@ -19,6 +19,7 @@ from sms_alerter import send_sms_alert
 
 # ── Load environment ──────────────────────────────────────────────────────────
 import paths
+import db
 load_dotenv(paths.ENV_FILE, override=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -28,9 +29,6 @@ ALERT_TO         = os.environ.get('ALERT_TO')
 REPLY_TO         = os.environ.get('ALERT_TO')
 
 UNSUBSCRIBE_URL  = 'https://instockornot.club'
-
-DROPS_LOG = paths.DROPS_JSONL
-SENT_LOG  = paths.ALERTS_SENT_JSONL
 
 IMMEDIATE_PRIORITIES = {'critical', 'high'}
 
@@ -82,25 +80,10 @@ def send_email(subject, body_html, body_text, extra_recipients=None):
 
 # ── Track sent alerts ─────────────────────────────────────────────────────────
 def already_sent(alert_id):
-    if not os.path.exists(SENT_LOG):
-        return False
-    with open(SENT_LOG, 'r') as f:
-        for line in f:
-            try:
-                entry = json.loads(line)
-                if entry.get('alert_id') == alert_id:
-                    return True
-            except:
-                continue
-    return False
+    return db.is_alert_sent(alert_id, alert_type='email')
 
 def mark_sent(alert_id, alert_type):
-    with open(SENT_LOG, 'a') as f:
-        f.write(json.dumps({
-            'alert_id': alert_id,
-            'type': alert_type,
-            'sent_at': datetime.now(timezone.utc).isoformat()
-        }) + '\n')
+    db.mark_alert_sent(alert_id, alert_type='email')
 
 def make_alert_id(alert):
     """Unique ID: timestamp + source + first notable item (or url hash)."""
@@ -312,73 +295,35 @@ def format_digest_email(alerts):
 
 # ── Send immediate alerts for new high/critical drops ────────────────────────
 def send_immediate_alerts():
-    if not os.path.exists(DROPS_LOG):
-        return
-
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=35)
+    recent_drops = db.get_recent_drops(minutes=35)
     sent_count = 0
 
-    with open(DROPS_LOG, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                alert = json.loads(line)
-                priority = alert.get('priority', 'medium').lower()
+    for alert in recent_drops:
+        priority = alert.get('priority', 'medium').lower()
 
-                if priority not in IMMEDIATE_PRIORITIES:
-                    continue
+        if priority not in IMMEDIATE_PRIORITIES:
+            continue
 
-                ts_str = alert.get('timestamp', '')
-                if ts_str:
-                    ts = datetime.fromisoformat(ts_str)
-                    if ts < cutoff:
-                        continue
+        alert_id = make_alert_id(alert)
+        if already_sent(alert_id):
+            continue
 
-                alert_id = make_alert_id(alert)
-                if already_sent(alert_id):
-                    continue
-
-                subject, body_html, body_text = format_immediate_email(alert)
-                email_ok = send_email(subject, body_html, body_text, extra_recipients=None)
-                # SMS fires independently — don't gate on email success
-                send_sms_alert(alert)
-                if email_ok:
-                    mark_sent(alert_id, 'immediate')
-                    sent_count += 1
-                else:
-                    log.error(f"Email failed for {alert_id} but SMS attempted independently")
-
-            except json.JSONDecodeError:
-                continue
+        subject, body_html, body_text = format_immediate_email(alert)
+        email_ok = send_email(subject, body_html, body_text, extra_recipients=None)
+        # SMS fires independently — don't gate on email success
+        send_sms_alert(alert)
+        if email_ok:
+            mark_sent(alert_id, 'immediate')
+            sent_count += 1
+        else:
+            log.error(f"Email failed for {alert_id} but SMS attempted independently")
 
     if sent_count:
         log.info(f"Sent {sent_count} immediate alert emails via Resend")
 
 # ── Send daily digest ─────────────────────────────────────────────────────────
 def send_daily_digest():
-    if not os.path.exists(DROPS_LOG):
-        log.info("No drops log found — skipping digest")
-        return
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    alerts = []
-
-    with open(DROPS_LOG, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                alert = json.loads(line)
-                ts_str = alert.get('timestamp', '')
-                if ts_str:
-                    ts = datetime.fromisoformat(ts_str)
-                    if ts > cutoff:
-                        alerts.append(alert)
-            except json.JSONDecodeError:
-                continue
+    alerts = db.get_recent_drops(hours=24)
 
     subject, body_html, body_text = format_digest_email(alerts)
     if send_email(subject, body_html, body_text, extra_recipients=None):

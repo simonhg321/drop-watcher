@@ -34,6 +34,7 @@ def tmp_env(tmp_path):
     os.environ['DW_LOG_DIR'] = str(tmp_path / 'logs')
     os.environ['DW_WWW_DIR'] = str(tmp_path / 'www')
     os.environ['DW_ENV_FILE'] = str(tmp_path / '.env')
+    os.environ['DW_DB'] = str(tmp_path / 'data' / 'test.db')
 
     for d in ['config', 'data', 'logs', 'www']:
         (tmp_path / d).mkdir()
@@ -41,15 +42,17 @@ def tmp_env(tmp_path):
     # Write empty .env
     (tmp_path / '.env').write_text('')
 
-    # Reload paths module with new env vars
+    # Reload paths and db modules with new env vars
     import importlib
     import paths
     importlib.reload(paths)
+    import db
+    db.DB_PATH = os.environ['DW_DB']
 
     yield tmp_path
 
     # Cleanup env vars
-    for k in ['DW_CODE_DIR', 'DW_CONFIG_DIR', 'DW_DATA_DIR', 'DW_LOG_DIR', 'DW_WWW_DIR', 'DW_ENV_FILE']:
+    for k in ['DW_CODE_DIR', 'DW_CONFIG_DIR', 'DW_DATA_DIR', 'DW_LOG_DIR', 'DW_WWW_DIR', 'DW_ENV_FILE', 'DW_DB']:
         os.environ.pop(k, None)
     importlib.reload(paths)
 
@@ -167,6 +170,8 @@ class TestSignupAPI:
         import importlib
         import paths
         importlib.reload(paths)
+        import db
+        db.DB_PATH = os.environ['DW_DB']
 
         # Must reload watcher_signup after paths
         if 'watcher_signup' in sys.modules:
@@ -255,14 +260,9 @@ class TestSignupAPI:
         id1 = resp1.get_json()['id']
 
         # Verify first watch
-        import paths
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
-        token = None
-        for w in watchers:
-            if w['id'] == id1:
-                token = w['verify_token']
-                break
+        import db
+        w = db.get_watcher_by_id(id1)
+        token = w['verify_token']
         assert token is not None
 
         # Verify
@@ -278,9 +278,8 @@ class TestSignupAPI:
         assert resp2.status_code == 201
 
         # Check both watches share the same unsubscribe token
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
-        tokens = set(w['unsubscribe_token'] for w in watchers if w['email'] == 'multi@example.com')
+        watchers = db.get_watchers_by_email('multi@example.com')
+        tokens = set(w['unsubscribe_token'] for w in watchers)
         assert len(tokens) == 1, "All watches for same email should share one token"
 
     @patch('watcher_signup.send_confirmation_email', return_value=True)
@@ -297,12 +296,11 @@ class TestSignupAPI:
         })
 
         # Get verify token from first watch
-        import paths
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
+        import db
+        watchers = db.get_watchers_by_email('verify@example.com')
         token = None
         for w in watchers:
-            if w['email'] == 'verify@example.com' and w.get('verify_token'):
+            if w.get('verify_token'):
                 token = w['verify_token']
                 break
 
@@ -312,9 +310,8 @@ class TestSignupAPI:
         assert resp.status_code == 200
 
         # Both should now be active
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
-        active = [w for w in watchers if w['email'] == 'verify@example.com' and w['active']]
+        watchers = db.get_watchers_by_email('verify@example.com')
+        active = [w for w in watchers if w['active']]
         assert len(active) == 2
 
     @patch('watcher_signup.send_verification_email', return_value=True)
@@ -326,22 +323,17 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'unsub@example.com',
         })
 
-        import paths
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
+        import db
+        watchers = db.get_watchers_by_email('unsub@example.com')
         for w in watchers:
-            if w['email'] == 'unsub@example.com':
-                w['active'] = True
-        with open(paths.WATCHERS_JSON, 'w') as f:
-            json.dump(watchers, f)
+            db.update_watcher(w['id'], active=True)
 
         unsub_token = watchers[0]['unsubscribe_token']
         resp = client.get(f'/api/unsubscribe/{unsub_token}')
         assert resp.status_code == 200
 
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
-        active = [w for w in watchers if w['email'] == 'unsub@example.com' and w['active']]
+        watchers = db.get_watchers_by_email('unsub@example.com')
+        active = [w for w in watchers if w['active']]
         assert len(active) == 0
 
     @patch('watcher_signup.send_verification_email', return_value=True)
@@ -353,13 +345,14 @@ class TestSignupAPI:
         })
         wid = resp.get_json()['id']
 
-        resp = client.delete(f'/api/my-watch/{wid}')
+        # Need token for auth
+        import db
+        w = db.get_watcher_by_id(wid)
+        token = w['unsubscribe_token']
+        resp = client.delete(f'/api/my-watch/{wid}?token={token}')
         assert resp.status_code == 200
 
-        import paths
-        with open(paths.WATCHERS_JSON) as f:
-            watchers = json.load(f)
-        assert not any(w['id'] == wid for w in watchers)
+        assert db.get_watcher_by_id(wid) is None
 
     def test_resend_link_no_leak(self, client):
         """Resend-link returns 200 even for unknown emails (no email enumeration)."""
@@ -432,17 +425,14 @@ class TestAlertMatching:
         k2 = cooldown_key('w002', 'https://example.com', ['damascus'])
         assert k1 != k2
 
-    def test_prune_sent_removes_old(self):
-        """prune_sent removes entries older than 24h."""
-        from per_user_alerter import prune_sent
-        now = datetime.now(timezone.utc)
-        sent = {
-            'old_key': (now - timedelta(hours=25)).isoformat(),
-            'new_key': (now - timedelta(hours=1)).isoformat(),
-        }
-        pruned = prune_sent(sent)
-        assert 'old_key' not in pruned
-        assert 'new_key' in pruned
+    def test_cooldown_expires(self, tmp_env):
+        """Cooldown entries expire after the configured hours."""
+        import db
+        # Mark a cooldown now
+        db.mark_cooldown('test-ck', recipient='test@example.com')
+        assert db.is_cooldown_active('test-ck', hours=6)
+        # Check with 0 hours — should not be active (already expired)
+        assert not db.is_cooldown_active('test-ck', hours=0)
 
     def test_inactive_watcher_skipped(self, sample_watchers, sample_drops):
         """Inactive (unverified) watchers don't get alerts."""
@@ -504,10 +494,12 @@ class TestAIInterpreter:
 
     @patch('anthropic.Anthropic')
     def test_log_api_usage(self, mock_anthropic, tmp_env):
-        """log_api_usage writes token counts to api_usage.jsonl."""
+        """log_api_usage writes token counts to SQLite."""
         import importlib
         import paths
         importlib.reload(paths)
+        import db
+        db.DB_PATH = os.environ['DW_DB']
 
         if 'agents.ai_interpreter' in sys.modules:
             del sys.modules['agents.ai_interpreter']
@@ -520,13 +512,10 @@ class TestAIInterpreter:
         from agents.ai_interpreter import log_api_usage
         log_api_usage('analyze_page', 'KnifeJoy', mock_message)
 
-        assert os.path.exists(paths.API_USAGE_JSONL)
-        with open(paths.API_USAGE_JSONL) as f:
-            entry = json.loads(f.readline())
-        assert entry['caller'] == 'analyze_page'
-        assert entry['site'] == 'KnifeJoy'
-        assert entry['input_tokens'] == 1500
-        assert entry['output_tokens'] == 300
+        summary = db.get_api_usage_summary()
+        assert summary['total_calls'] == 1
+        assert summary['total_in'] == 1500
+        assert summary['total_out'] == 300
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -599,53 +588,50 @@ class TestSSRF:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class TestFileIO:
-    """Test atomic writes and missing file handling."""
+    """Test SQLite database operations."""
 
-    def test_missing_watchers_returns_empty(self, tmp_env):
-        """load_watchers returns [] when file doesn't exist."""
-        from per_user_alerter import load_watchers
-        import paths
-        # Ensure file doesn't exist
-        if os.path.exists(paths.WATCHERS_JSON):
-            os.remove(paths.WATCHERS_JSON)
-        result = load_watchers()
+    def test_empty_db_returns_empty(self, tmp_env):
+        """get_active_watchers returns [] on fresh db."""
+        import db
+        result = db.get_active_watchers()
         assert result == []
 
-    def test_missing_sent_returns_empty(self, tmp_env):
-        """load_sent returns {} when file doesn't exist."""
-        from per_user_alerter import load_sent
-        result = load_sent()
-        assert result == {}
+    def test_add_and_read_watcher(self, tmp_env):
+        """add_watcher + get_watcher_by_id round-trip."""
+        import db
+        watcher = {
+            'id': 'test1', 'email': 'x@example.com', 'url': 'https://example.com',
+            'keywords': 'test', 'name': '', 'priority': 'high', 'phone': '',
+            'sms_approved': False, 'sms_verify_code': None, 'sms_verify_expires': None,
+            'active': True, 'verify_token': None,
+            'unsubscribe_token': 'tok-123', 'created': '2026-01-01T00:00:00',
+            'last_alert': None, 'alert_count': 0,
+        }
+        db.add_watcher(watcher)
+        loaded = db.get_watcher_by_id('test1')
+        assert loaded is not None
+        assert loaded['email'] == 'x@example.com'
 
-    def test_atomic_write_watchers(self, tmp_env):
-        """save_watchers writes atomically via tmp+replace."""
-        import importlib
-        import paths
-        importlib.reload(paths)
-        # Reload per_user_alerter so it picks up new paths
-        if 'per_user_alerter' in sys.modules:
-            del sys.modules['per_user_alerter']
-        from per_user_alerter import save_watchers, load_watchers
-        watchers = [{'id': 'test1', 'email': 'x@example.com', 'active': True}]
-        save_watchers(watchers)
+    def test_cooldown_tracking(self, tmp_env):
+        """Cooldown key can be checked and marked."""
+        import db
+        assert not db.is_cooldown_active('test-key', hours=6)
+        db.mark_cooldown('test-key', recipient='test@example.com')
+        assert db.is_cooldown_active('test-key', hours=6)
 
-        # File should exist and be valid JSON
-        loaded = load_watchers()
-        assert len(loaded) == 1
-        assert loaded[0]['id'] == 'test1'
-
-        # No .tmp file should remain
-        assert not os.path.exists(paths.WATCHERS_JSON + '.tmp')
-
-    def test_corrupt_sent_returns_empty(self, tmp_env):
-        """Corrupt sent file returns empty dict."""
-        from per_user_alerter import load_sent
-        import paths
-        sent_path = os.path.join(paths.DATA_DIR, 'per_user_sent.json')
-        with open(sent_path, 'w') as f:
-            f.write('NOT VALID JSON{{{')
-        result = load_sent()
-        assert result == {}
+    def test_drop_round_trip(self, tmp_env):
+        """add_drop + get_recent_drops round-trip."""
+        import db
+        drop = {
+            'source': 'Test', 'url': 'https://example.com',
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'priority': 'high', 'page_summary': 'Test drop',
+            'notable_items': ['Item 1'], 'alert_worthy': True,
+        }
+        db.add_drop(drop)
+        drops = db.get_recent_drops(hours=1)
+        assert len(drops) == 1
+        assert drops[0]['source'] == 'Test'
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

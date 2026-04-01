@@ -16,7 +16,7 @@ from collections import defaultdict
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 import paths
-DROPS_LOG   = paths.DROPS_JSONL
+import db
 ALERTS_HTML = paths.ALERTS_HTML
 HOURS_BACK  = 48
 
@@ -37,32 +37,17 @@ PRIORITY_LABEL = {
 }
 
 def load_recent_alerts(hours=48):
-    if not os.path.exists(DROPS_LOG):
-        return []
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    all_drops = db.get_recent_drops(hours=hours)
     raw = []
-
-    with open(DROPS_LOG, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                alert = json.loads(line)
-                # Skip bare keyword-only alerts with no AI enrichment
-                if (not alert.get('notable_items')
-                        and not alert.get('drop_announcement', {}).get('detected')
-                        and not alert.get('page_summary')):
-                    continue
-                ts_str = alert.get('timestamp', '')
-                if not ts_str:
-                    continue
-                ts = datetime.fromisoformat(ts_str)
-                if ts > cutoff:
-                    raw.append(alert)
-            except (json.JSONDecodeError, ValueError):
-                continue
+    for alert in all_drops:
+        # Skip bare keyword-only alerts with no AI enrichment
+        if (not alert.get('notable_items')
+                and not alert.get('drop_announcement', {}).get('detected')
+                and not alert.get('page_summary')):
+            continue
+        if not alert.get('timestamp'):
+            continue
+        raw.append(alert)
 
     # ── Dedup: one entry per source per day, best priority wins ───────────────
     # For Reddit: group by source + hour (posts change faster)

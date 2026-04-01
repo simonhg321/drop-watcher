@@ -17,6 +17,7 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 
 import paths
+import db as _db
 
 # Import data loaders from existing generators
 from generate_traffic import (
@@ -34,27 +35,11 @@ PUBLIC_STATS_HTML = os.path.join(paths.WWW_DIR, 'stats.html')
 # ── Safe data helpers (no PII) ──────────────────────────────────────────────
 
 def count_ai_calls():
-    """Count AI calls by line-counting ai_calls.jsonl. Never loads prompts."""
-    total = 0
-    today_count = 0
-    today_prefix = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-
-    if not os.path.exists(paths.AI_CALLS_JSONL):
-        return {'total': 0, 'today': 0}
-
-    try:
-        with open(paths.AI_CALLS_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                total += 1
-                if line[:15].find(today_prefix) >= 0:
-                    today_count += 1
-    except Exception:
-        pass
-
-    return {'total': total, 'today': today_count}
+    """Count AI calls from SQLite."""
+    return {
+        'total': _db.count_ai_calls(),
+        'today': _db.count_ai_calls(today_only=True),
+    }
 
 
 def safe_referrer_domains(ga_refs):

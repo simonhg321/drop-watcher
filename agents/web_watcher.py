@@ -33,11 +33,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 import paths
+import db
 load_dotenv(paths.ENV_FILE)
 
 # ── Add agents dir to path so we can import ai_interpreter ───────────────────
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
-import fcntl
 from ai_interpreter import analyze_page, analyze_user_page
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -125,90 +125,51 @@ STALE_THRESHOLD = 3     # after 3 identical "not found", slow down
 STALE_INTERVAL = 3600   # throttle to hourly (seconds)
 
 
-# ── Item deduplication ────────────────────────────────────────────────────────
-SEEN_ITEMS_FILE = paths.SEEN_ITEMS_JSON
-SEEN_CONTENT_FILE = paths.SEEN_CONTENT_JSON
-CONTENT_DEDUP_HOURS = 4  # suppress same-content alerts from same source for 4 hours
-
-def load_seen_content():
-    if os.path.exists(SEEN_CONTENT_FILE):
-        with open(SEEN_CONTENT_FILE) as f:
-            return json.load(f)
-    return {}
-
-def save_seen_content(seen):
-    with open(SEEN_CONTENT_FILE, 'w') as f:
-        json.dump(seen, f)
-
-def is_content_seen(source, summary, seen_content):
-    """Return True if we've alerted on very similar content from this source recently."""
-    import time
-    key = f"{source}:{hashlib.md5(summary.encode()).hexdigest()[:8]}"
-    last_seen = seen_content.get(key, 0)
-    return (time.time() - last_seen) < CONTENT_DEDUP_HOURS * 3600
-
-def mark_content_seen(source, summary, seen_content):
-    import time
-    key = f"{source}:{hashlib.md5(summary.encode()).hexdigest()[:8]}"
-    seen_content[key] = time.time()
-    cutoff = time.time() - CONTENT_DEDUP_HOURS * 3600 * 2
-    return {k: v for k, v in seen_content.items() if v > cutoff}
+# ── Item deduplication (via SQLite) ───────────────────────────────────────────
+CONTENT_DEDUP_HOURS = 4
 DEDUP_HOURS = 24
 
-def load_seen_items():
-    if not os.path.exists(SEEN_ITEMS_FILE):
-        return {}
-    try:
-        with open(SEEN_ITEMS_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
+def content_key(source, summary):
+    return f"{source}:{hashlib.md5(summary.encode()).hexdigest()[:8]}"
 
-def save_seen_items(seen):
-    with open(SEEN_ITEMS_FILE, 'w') as f:
-        json.dump(seen, f)
+def is_content_seen(source, summary, _unused=None):
+    key = content_key(source, summary)
+    return db.is_content_seen(key, hours=CONTENT_DEDUP_HOURS)
+
+def mark_content_seen(source, summary, _unused=None):
+    key = content_key(source, summary)
+    db.mark_content_seen(key)
+    return _unused  # kept for API compat
 
 def item_key(source, item):
-    """Fingerprint a notable item per source."""
     raw = f"{source}:{item[:80].lower()}"
     return hashlib.md5(raw.encode()).hexdigest()
 
-def filter_new_items(source, notable_items, seen):
-    """Return only items not seen in the last DEDUP_HOURS."""
-    now = time.time()
+def filter_new_items(source, notable_items, _unused=None):
     new_items = []
     for item in notable_items:
         key = item_key(source, item)
-        last_seen = seen.get(key, 0)
-        if now - last_seen > DEDUP_HOURS * 3600:
+        if not db.is_item_seen(key, hours=DEDUP_HOURS):
             new_items.append(item)
     return new_items
 
-def mark_items_seen(source, notable_items, seen):
-    """Record items as seen right now."""
-    now = time.time()
+def mark_items_seen(source, notable_items, _unused=None):
     for item in notable_items:
         key = item_key(source, item)
-        seen[key] = now
-    # Prune old entries (older than 48h)
-    cutoff = now - 48 * 3600
-    seen = {k: v for k, v in seen.items() if v > cutoff}
-    return seen
+        db.mark_item_seen(key)
+    return _unused
 
 # ── Alert writer ──────────────────────────────────────────────────────────────
 def write_alert(settings, alert):
-    log_path = paths.DROPS_JSONL
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-    with open(log_path, 'a') as f:
-        f.write(json.dumps(alert) + '\n')
+    db.add_drop(alert)
 
-    log.info(f"🔥 ALERT: {alert['source']}")
+    log.info(f"ALERT: {alert['source']}")
     if alert.get('notable_items'):
         for item in alert['notable_items']:
-            log.info(f"   → {item}")
+            log.info(f"   -> {item}")
     if alert.get('drop_announcement', {}).get('detected'):
         drop = alert['drop_announcement']
-        log.info(f"   🔥 DROP: {drop.get('maker')} — {drop.get('description')} — {drop.get('timing')}")
+        log.info(f"   DROP: {drop.get('maker')} -- {drop.get('description')} -- {drop.get('timing')}")
 
 # ── Permissive SSL adapter ────────────────────────────────────────────────────
 class PermissiveSSLAdapter(HTTPAdapter):
@@ -270,21 +231,14 @@ def domain_from_url(url):
 
 def load_user_sites(source_domains):
     """Load unique URLs from active watchers that aren't already in sources.yaml."""
-    if not os.path.exists(paths.WATCHERS_JSON):
-        return {}
     try:
-        with open(paths.WATCHERS_JSON) as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
-            watchers = json.load(f)
-            fcntl.flock(f, fcntl.LOCK_UN)
+        watchers = db.get_active_watchers()
     except Exception as e:
-        log.warning(f"Could not load watchers.json for user sites: {e}")
+        log.warning(f"Could not load watchers for user sites: {e}")
         return {}
 
     user_sites = {}  # url -> {url, keywords: set, name}
     for w in watchers:
-        if not w.get('active'):
-            continue
         url = w.get('url', '').strip()
         if not url:
             continue
@@ -322,8 +276,6 @@ def run():
 
     page_cache    = {}
     failure_count = {}
-    seen_items    = load_seen_items()
-    seen_content  = load_seen_content()
 
     websites = [s for s in sources.get('websites', []) if s.get('enabled', True)]
 
@@ -382,18 +334,16 @@ def run():
                     log.info(f"{name} — makers found on baseline, running AI analysis...")
                     result = analyze_page(name, url, text, makers_list)
                     if result and result.get('alert_worthy'):
-                        new_items = filter_new_items(name, result.get('notable_items', []), seen_items)
+                        new_items = filter_new_items(name, result.get('notable_items', []))
                         if new_items or not result.get('notable_items'):
                             result['notable_items'] = new_items
                             result['agent'] = 'web_watcher'
                             result['source'] = name
                             result['event'] = 'baseline_stock_found'
-                            # Baseline events never fire CRITICAL — we haven't confirmed real availability yet
                             if result.get('priority') == 'critical':
                                 result['priority'] = 'high'
                             write_alert(settings, result)
-                            seen_items = mark_items_seen(name, new_items, seen_items)
-                            save_seen_items(seen_items)
+                            mark_items_seen(name, new_items)
                         else:
                             log.info(f"{name} — all notable items already seen, suppressing alert")
                 continue
@@ -421,21 +371,19 @@ def run():
                 continue
 
             if result.get('alert_worthy'):
-                new_items = filter_new_items(name, result.get('notable_items', []), seen_items)
+                new_items = filter_new_items(name, result.get('notable_items', []))
                 if new_items or not result.get('notable_items'):
                     result['notable_items'] = new_items
                     result['agent'] = 'web_watcher'
                     result['source'] = name
                     result['event'] = 'page_changed'
                     summary = result.get('page_summary', '') + result.get('drop_announcement', {}).get('description', '')
-                    if is_content_seen(name, summary, seen_content):
+                    if is_content_seen(name, summary):
                         log.info(f"{name} — content unchanged since last alert, suppressing duplicate")
                         continue
                     write_alert(settings, result)
-                    seen_content = mark_content_seen(name, summary, seen_content)
-                    save_seen_content(seen_content)
-                    seen_items = mark_items_seen(name, new_items, seen_items)
-                    save_seen_items(seen_items)
+                    mark_content_seen(name, summary)
+                    mark_items_seen(name, new_items)
                 else:
                     log.info(f"{name} — all notable items already seen, suppressing alert")
             else:
@@ -517,20 +465,18 @@ def run():
             if result.get('alert_worthy'):
                 stale_watch_count[uurl] = 0  # reset — found something
                 summary = result.get('page_summary', '')
-                if is_content_seen(uname, summary, seen_content):
+                if is_content_seen(uname, summary):
                     log.info(f"{uname} — content unchanged since last alert, suppressing")
                     continue
-                new_items = filter_new_items(uname, result.get('notable_items', []), seen_items)
+                new_items = filter_new_items(uname, result.get('notable_items', []))
                 if new_items or not result.get('notable_items'):
                     result['notable_items'] = new_items
                     result['agent'] = 'web_watcher'
                     result['source'] = uname
                     result['event'] = 'user_watch_alert'
                     write_alert(settings, result)
-                    seen_content = mark_content_seen(uname, summary, seen_content)
-                    save_seen_content(seen_content)
-                    seen_items = mark_items_seen(uname, new_items, seen_items)
-                    save_seen_items(seen_items)
+                    mark_content_seen(uname, summary)
+                    mark_items_seen(uname, new_items)
                 else:
                     log.info(f"{uname} — all items already seen, suppressing")
             else:

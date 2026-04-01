@@ -23,6 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import sys
 sys.path.insert(0, BASE_DIR)
 import paths
+import db as _db
 load_dotenv(paths.ENV_FILE)
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -35,19 +36,10 @@ MODEL = 'claude-haiku-4-5-20251001'
 
 # ── Token usage logging ────────────────────────────────────────────────────
 def log_api_usage(caller, site_name, message):
-    """Append one line to api_usage.jsonl after every Anthropic call."""
+    """Log token usage to SQLite after every Anthropic call."""
     try:
-        entry = {
-            'ts': datetime.now(timezone.utc).isoformat(),
-            'caller': caller,
-            'site': site_name,
-            'model': MODEL,
-            'input_tokens': message.usage.input_tokens,
-            'output_tokens': message.usage.output_tokens,
-        }
-        os.makedirs(os.path.dirname(paths.API_USAGE_JSONL), exist_ok=True)
-        with open(paths.API_USAGE_JSONL, 'a') as f:
-            f.write(json.dumps(entry) + '\n')
+        _db.log_api_usage(caller, site_name, MODEL,
+                          message.usage.input_tokens, message.usage.output_tokens)
     except Exception as e:
         log.warning(f"Could not log API usage: {e}")
 
@@ -73,19 +65,9 @@ def clean_ai_json(raw):
 
 
 def log_ai_call(caller, site_name, url, prompt_snippet, response_json):
-    """Log full AI interaction to ai_calls.jsonl — what we sent, what came back."""
+    """Log full AI interaction to SQLite."""
     try:
-        entry = {
-            'ts': datetime.now(timezone.utc).isoformat(),
-            'caller': caller,
-            'site': site_name,
-            'url': url,
-            'prompt_snippet': prompt_snippet[:1000],
-            'response': response_json,
-        }
-        os.makedirs(os.path.dirname(paths.AI_CALLS_JSONL), exist_ok=True)
-        with open(paths.AI_CALLS_JSONL, 'a') as f:
-            f.write(json.dumps(entry) + '\n')
+        _db.log_ai_call(caller, site_name, url, prompt_snippet, response_json)
     except Exception as e:
         log.warning(f"Could not log AI call: {e}")
 

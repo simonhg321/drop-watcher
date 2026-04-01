@@ -14,7 +14,6 @@ Cooldown is per watcher per URL per matched keyword set, not per watcher globall
 HGR
 """
 
-import fcntl
 import hashlib
 import html as html_mod
 import json
@@ -24,7 +23,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 import paths
-WATCHERS_FILE = paths.WATCHERS_JSON
+import db
+
 COOLDOWN_HOURS = 6
 DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with cron)
 
@@ -36,57 +36,6 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-LOCK_FILE = WATCHERS_FILE + '.lock'
-
-# Track what we've already alerted per watcher — persists across runs
-SENT_FILE = os.path.join(paths.DATA_DIR, 'per_user_sent.json')
-
-
-def load_watchers():
-    if not os.path.exists(WATCHERS_FILE):
-        return []
-    with open(WATCHERS_FILE) as f:
-        fcntl.flock(f, fcntl.LOCK_SH)
-        data = json.load(f)
-        fcntl.flock(f, fcntl.LOCK_UN)
-        return data
-
-
-def save_watchers(watchers):
-    lock_fd = open(LOCK_FILE, 'w')
-    fcntl.flock(lock_fd, fcntl.LOCK_EX)
-    try:
-        tmp = WATCHERS_FILE + '.tmp'
-        with open(tmp, 'w') as f:
-            json.dump(watchers, f, indent=2)
-        os.replace(tmp, WATCHERS_FILE)
-    finally:
-        fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        lock_fd.close()
-
-
-def load_sent():
-    """Load sent tracking: {cooldown_key: iso_timestamp}"""
-    try:
-        with open(SENT_FILE) as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-
-def save_sent(sent):
-    os.makedirs(os.path.dirname(SENT_FILE), exist_ok=True)
-    tmp = SENT_FILE + '.tmp'
-    with open(tmp, 'w') as f:
-        json.dump(sent, f, indent=2)
-    os.replace(tmp, SENT_FILE)
-
-
-def prune_sent(sent):
-    """Remove entries older than 24h to keep file small."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-    return {k: v for k, v in sent.items() if v > cutoff}
-
 
 def cooldown_key(watcher_id, drop_url, matches):
     """Unique key per watcher + drop URL + matched keywords."""
@@ -97,23 +46,7 @@ def cooldown_key(watcher_id, drop_url, matches):
 
 def load_recent_drops():
     """Read drops from last DROPS_WINDOW_MINUTES minutes."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=DROPS_WINDOW_MINUTES)).isoformat()
-    drops = []
-    try:
-        with open(paths.DROPS_JSONL) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    d = json.loads(line)
-                except Exception:
-                    continue
-                if (d.get('timestamp') or '') >= cutoff:
-                    drops.append(d)
-    except FileNotFoundError:
-        pass
-    return drops
+    return db.get_recent_drops(minutes=DROPS_WINDOW_MINUTES)
 
 
 def domain_from_url(url):
@@ -199,8 +132,7 @@ def build_alert_email(watcher, matches, drop):
 
 
 def run():
-    watchers = load_watchers()
-    active = [w for w in watchers if w.get('active')]
+    active = db.get_active_watchers()
     log.info(f"Checking {len(active)} active watchers against recent drops")
 
     if not active:
@@ -214,12 +146,7 @@ def run():
         log.info("No recent drops. Done.")
         return
 
-    sent = load_sent()
-    sent = prune_sent(sent)
-    changed = False
-    sent_changed = False
     now = datetime.now(timezone.utc)
-    cooldown_cutoff = (now - timedelta(hours=COOLDOWN_HOURS)).isoformat()
 
     # Group watchers by email to avoid duplicate emails
     email_alerts = {}  # email -> list of (watcher, matches, drop)
@@ -250,8 +177,7 @@ def run():
 
             # Check per-URL-per-keyword cooldown
             ck = cooldown_key(wid, drop_url, matches)
-            last_sent = sent.get(ck, '')
-            if last_sent > cooldown_cutoff:
+            if db.is_cooldown_active(ck, hours=COOLDOWN_HOURS):
                 log.info(f"[{wid}] Cooldown active for {drop_domain} / {matches}")
                 continue
 
@@ -281,19 +207,13 @@ def run():
 
             if result:
                 # Mark cooldown for THIS watcher's match only
-                sent[ck] = now.isoformat()
-                sent_changed = True
-                watcher['last_alert'] = now.isoformat()
-                watcher['alert_count'] = watcher.get('alert_count', 0) + 1
-                changed = True
+                db.mark_cooldown(ck, recipient=email)
+                db.update_watcher(watcher['id'],
+                    last_alert=now.isoformat(),
+                    alert_count=watcher.get('alert_count', 0) + 1)
                 log.info(f"Alert sent to {email} for {drop.get('source', '')}")
             else:
                 log.error(f"Failed to send to {email}")
-
-    if changed:
-        save_watchers(watchers)
-    if sent_changed:
-        save_sent(sent)
 
     log.info("Done.")
 
