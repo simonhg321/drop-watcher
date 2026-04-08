@@ -35,7 +35,6 @@ import db
 load_dotenv(paths.ENV_FILE, override=True)
 
 RESEND_API_KEY   = os.environ.get('RESEND_API_KEY')
-API_ADMIN_SECRET = os.environ.get('API_ADMIN_SECRET', '')
 FROM_ADDRESS     = 'Drop Watcher <info@instockornot.club>'
 RESEND_API_URL   = 'https://api.resend.com/emails'
 BASE_URL         = 'https://instockornot.club'
@@ -452,13 +451,15 @@ def stop_watching(watch_id):
     target = db.get_watcher_by_id(watch_id)
     if not target:
         return jsonify({'error': 'not found'}), 404
-    if target.get('unsubscribe_token') != token:
+    import hmac
+    if not hmac.compare_digest(target.get('unsubscribe_token', ''), token):
         return jsonify({'error': 'unauthorized'}), 403
     db.delete_watcher(watch_id)
     log.info(f"Watcher removed: {watch_id}")
     return jsonify({'status': 'removed'})
 
 @app.route('/api/my-watch/<token>', methods=['GET'])
+@limiter.limit("10 per minute")
 def my_watch(token):
     w = db.get_watcher_by_unsub_token(token)
     if not w:
@@ -475,6 +476,7 @@ def my_watch(token):
 
 
 @app.route('/api/my-alerts/<token>', methods=['GET'])
+@limiter.limit("10 per minute")
 def my_alerts(token):
     import re
     watcher = db.get_watcher_by_unsub_token(token)
@@ -774,38 +776,6 @@ def check_url():
     if warning:
         resp['warning'] = warning
     return jsonify(resp)
-
-
-@app.route('/api/watchers', methods=['GET'])
-def list_watchers():
-    """Admin endpoint — requires API_ADMIN_SECRET header."""
-    if not API_ADMIN_SECRET or request.headers.get('X-Admin-Secret') != API_ADMIN_SECRET:
-        return jsonify({'error': 'unauthorized'}), 403
-    watchers = db.get_all_watchers()
-    active   = [w for w in watchers if w.get('active')]
-    pending  = [w for w in watchers if not w.get('active')]
-    emails   = list(set(w.get('email', '').lower() for w in watchers))
-
-    return jsonify({
-        'total': len(watchers),
-        'active_count': len(active),
-        'pending_count': len(pending),
-        'unique_emails': len(emails),
-        'watchers': [{
-            'id': w.get('id'),
-            'email': w.get('email'),
-            'name': w.get('name'),
-            'url': w.get('url'),
-            'keywords': w.get('keywords'),
-            'priority': w.get('priority'),
-            'active': bool(w.get('active')),
-            'phone': bool(w.get('phone')),
-            'sms_approved': bool(w.get('sms_approved')),
-            'created': w.get('created'),
-            'last_alert': w.get('last_alert'),
-            'alert_count': w.get('alert_count', 0),
-        } for w in watchers]
-    }), 200
 
 
 if __name__ == '__main__':

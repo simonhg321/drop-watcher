@@ -111,7 +111,7 @@ def check_web_watcher():
 def check_apache():
     import requests
     try:
-        r = requests.get('https://127.0.0.1/', timeout=5, verify=False, headers={'Host': 'instockornot.club'})
+        r = requests.get('https://instockornot.club/', timeout=5)
         if r.status_code == 200:
             return True, "ok"
         return False, f"status {r.status_code}"

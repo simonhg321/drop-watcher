@@ -234,11 +234,21 @@ def add_watcher(watcher_dict):
         })
 
 
+WATCHER_UPDATABLE_FIELDS = {
+    'keywords', 'priority', 'phone', 'name',
+    'sms_approved', 'sms_verify_code', 'sms_verify_expires',
+    'active', 'verify_token',
+    'last_alert', 'alert_count', 'consecutive_not_found',
+}
+
+
 def update_watcher(watcher_id, **fields):
     """Update specific fields on a watcher. Pass field=value pairs."""
     if not fields:
         return
-    # Map Python bools to int for SQLite
+    bad = set(fields) - WATCHER_UPDATABLE_FIELDS
+    if bad:
+        raise ValueError(f"Cannot update field(s): {bad}")
     for k, v in fields.items():
         if isinstance(v, bool):
             fields[k] = 1 if v else 0
@@ -252,6 +262,9 @@ def update_watchers_by_email(email, **fields):
     """Update fields on ALL watchers for a given email."""
     if not fields:
         return
+    bad = set(fields) - WATCHER_UPDATABLE_FIELDS
+    if bad:
+        raise ValueError(f"Cannot update field(s): {bad}")
     for k, v in fields.items():
         if isinstance(v, bool):
             fields[k] = 1 if v else 0

@@ -64,9 +64,13 @@ echo ""
 echo -e "${BOLD}── PYTHON CODE → ~/drop-watcher/ ──${RESET}"
 for f in \
   alerter.py \
+  db.py \
   discord_logger.py \
   generate_alerts.py \
+  generate_dashboard.py \
+  generate_public_stats.py \
   generate_security.py \
+  generate_simon_status.py \
   generate_traffic.py \
   morning_briefer.py \
   paths.py \

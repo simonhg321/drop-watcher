@@ -47,3 +47,9 @@ Screenshot*.png
 # Scraped data — local only
 INCOMING/
 bin/slurp_breadcrumbs.sh
+
+# Media
+dropwatcher.mp3
+
+# Sandbox / temp artifacts
+bin/tmp/

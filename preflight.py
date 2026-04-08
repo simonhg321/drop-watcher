@@ -640,7 +640,7 @@ def write_html_status():
         with open(STATUS_HTML, 'w') as f:
             f.write(html)
         ok(f"Status page written to {STATUS_HTML}")
-        ok(f"View at https://instockornot.club/status.html")
+        ok(f"View at https://instockornot.club/stats/status.html")
         tally('pass')
     except PermissionError:
         err(f"Cannot write to {STATUS_HTML} — run with sudo or fix permissions")

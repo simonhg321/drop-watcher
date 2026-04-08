@@ -133,7 +133,7 @@
   <a href="/watchlist.html">Watch</a>
   <a href="#" class="active">My Alerts</a>
   <a href="/stats.html">Stats</a>
-  <button id="sauceBtn" style="margin-left:auto;background:none;border:1px solid var(--ember);color:var(--ember);padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">WITH SAUCE</button>
+  <button id="sauceBtn" style="margin-left:auto;background:none;border:1px solid var(--ash);color:var(--ash);padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">WITH SAUCE</button>
   <a href="/get-my-link.html" style="background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
 </nav>
 
@@ -148,12 +148,12 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const token  = params.get('token');
-let dw_sauce = true;
+let dw_sauce = false;
 
 document.getElementById('sauceBtn').addEventListener('click', () => {
   dw_sauce = !dw_sauce;
   const btn = document.getElementById('sauceBtn');
-  btn.textContent = dw_sauce ? 'WITH SAUCE' : 'WITHOUT SAUCE';
+  btn.textContent = dw_sauce ? 'WITHOUT SAUCE' : 'WITH SAUCE';
   btn.style.borderColor = dw_sauce ? 'var(--ember)' : 'var(--ash)';
   btn.style.color = dw_sauce ? 'var(--ember)' : 'var(--ash)';
 });
