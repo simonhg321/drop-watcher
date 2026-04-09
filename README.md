@@ -73,6 +73,10 @@ ELv2 — see [LICENSE](LICENSE). Free for personal and community use. Commercial
 
 ---
 
+**Simon Gibson (HGR)** is currently pursuing the **[GIAC Strategic Planning, Policy, and Leadership (GSTRT)](https://www.giac.org/certifications/strategic-planning-policy-leadership-gstrt/)** certification — cyber security program strategy, policy, and executive leadership.
+
+---
+
 *Built across 23 sessions with Claude (Anthropic) as co-pilot — architecture, debugging, and the occasional argument about git stashes. Claude did half. I did the half that mattered.*
 
 **SGH**
