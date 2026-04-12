@@ -109,7 +109,17 @@ def check_web_watcher():
 
 
 def check_apache():
-    import requests
+    import requests, time
+    for attempt in range(3):
+        try:
+            r = requests.get('https://instockornot.club/', timeout=5)
+            if r.status_code == 200:
+                return True, "ok"
+        except Exception:
+            pass
+        if attempt < 2:
+            time.sleep(5)
+    # all 3 failed — return last error
     try:
         r = requests.get('https://instockornot.club/', timeout=5)
         if r.status_code == 200:
