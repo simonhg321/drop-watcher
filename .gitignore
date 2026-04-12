@@ -37,6 +37,7 @@ HANDOFF.md
 
 
 # Local dev
+data/
 dev/
 .claude/
 .zshrc
