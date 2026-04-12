@@ -1,19 +1,13 @@
 # Drop Watcher — instockornot.club
 # HGR
 
-# Public pages are open to everyone, including AI crawlers.
-# Everything else is blocked. We don't enumerate what's private.
-
 User-agent: *
-Allow: /index.html
-Allow: /watchlist.html
-Allow: /alerts.html
-Allow: /privacy.html
-Allow: /hgr.html
-Allow: /sms-optin.html
-Allow: /what-we-watch.html
-Allow: /terms.html
-Allow: /sitemap.xml
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /stats/
+Disallow: /my-alerts.html
+Disallow: /watcher_status.html
+Disallow: /emergency.html
+Disallow: /og-card.html
 
 Sitemap: https://instockornot.club/sitemap.xml
