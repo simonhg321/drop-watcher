@@ -29,6 +29,9 @@ COOLDOWN_HOURS = 6
 DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with cron)
 
 from alerter import send_email
+import nkd
+
+NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -73,6 +76,17 @@ def build_alert_email(watcher, matches, drop):
     safe_notable = [html_mod.escape(n) for n in notable[:5]]
     priority     = html_mod.escape(drop.get('priority', 'medium'))
 
+    nkd_html = ''
+    nkd_text_line = ''
+    if NKD_ENABLED:
+        nkd_token = nkd.make_token(watcher['id'], url)
+        nkd_url = f"https://instockornot.club/nkd.html?t={nkd_token}"
+        nkd_html = f'''
+      <p style="margin: 16px 0 0;">
+        <a href="{nkd_url}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;">🔪 I Scored One →</a>
+      </p>'''
+        nkd_text_line = f"\nDid you score one? Tell us: {nkd_url}\n"
+
     notable_html = ''
     if safe_notable:
         items = ''.join(f'<li style="color:#e8e8e8;margin:4px 0">{n}</li>' for n in safe_notable)
@@ -109,6 +123,7 @@ def build_alert_email(watcher, matches, drop):
       <p style="margin: 16px 0 0;">
         <a href="https://instockornot.club/my-alerts.html?token={unsub_token}" style="background: #e67e22; color: white; padding: 10px 20px; text-decoration: none; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;">My Alerts Dashboard</a>
       </p>
+      {nkd_html}
 
       <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
       <p style="color: #444; font-size: 11px;">
@@ -125,6 +140,7 @@ def build_alert_email(watcher, matches, drop):
         f"Summary: {drop.get('page_summary', '')}\n\n"
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
+        f"{nkd_text_line}"
         f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
     )
 

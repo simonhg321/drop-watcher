@@ -119,6 +119,18 @@ CREATE TABLE IF NOT EXISTS pageviews (
     ts TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_pageviews_ts ON pageviews(ts);
+
+CREATE TABLE IF NOT EXISTS nkd_scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    watcher_id TEXT NOT NULL,
+    drop_url TEXT NOT NULL,
+    scored_at TEXT NOT NULL,
+    note TEXT DEFAULT '',
+    image_url TEXT DEFAULT '',
+    show_on_wall INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_nkd_scores_wall ON nkd_scores(show_on_wall, scored_at);
+CREATE INDEX IF NOT EXISTS idx_nkd_scores_watcher ON nkd_scores(watcher_id);
 """
 
 

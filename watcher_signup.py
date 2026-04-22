@@ -778,5 +778,70 @@ def check_url():
     return jsonify(resp)
 
 
+# ── NKD (New Knife Day) — conversion tracking ────────────────────────────────
+
+import nkd
+
+
+@app.route('/api/nkd/<token>', methods=['GET'])
+@limiter.limit("30 per hour")
+def nkd_info(token):
+    """Validate a NKD token and return watcher/drop context for the landing page."""
+    data = nkd.verify_token(token)
+    if not data:
+        return jsonify({'ok': False, 'msg': 'Link expired or invalid.'}), 400
+
+    watcher = db.get_watcher_by_id(data['w'])
+    if not watcher:
+        return jsonify({'ok': False, 'msg': 'Watcher not found.'}), 404
+
+    already = nkd.already_scored(data['w'], data['d'])
+
+    return jsonify({
+        'ok': True,
+        'name': (watcher.get('name') or '').strip() or None,
+        'keywords': watcher.get('keywords', ''),
+        'drop_url': data['u'],
+        'already_scored': already,
+    })
+
+
+@app.route('/api/nkd/<token>', methods=['POST'])
+@limiter.limit("10 per hour")
+def nkd_submit(token):
+    """Record a score. Body: {note, image_url, show_on_wall, drop_url}."""
+    data = nkd.verify_token(token)
+    if not data:
+        return jsonify({'ok': False, 'msg': 'Link expired or invalid.'}), 400
+
+    body = request.get_json(silent=True) or {}
+    note = (body.get('note') or '').strip()
+    image_url = (body.get('image_url') or '').strip()
+    show_on_wall = 1 if body.get('show_on_wall') else 0
+
+    if image_url:
+        if len(image_url) > 500 or not image_url.startswith(('http://', 'https://')):
+            return jsonify({'ok': False, 'msg': 'Image URL must be http(s) and under 500 chars.'}), 400
+
+    if nkd.already_scored(data['w'], data['d']):
+        return jsonify({'ok': False, 'msg': 'Already recorded. Thanks!'}), 409
+
+    nkd.record_score(
+        watcher_id=data['w'],
+        drop_url=data['u'],
+        note=note,
+        image_url=image_url,
+        show_on_wall=show_on_wall,
+    )
+    return jsonify({'ok': True})
+
+
+@app.route('/api/nkd/wall', methods=['GET'])
+@limiter.limit("60 per hour")
+def nkd_wall():
+    """Public wins wall — only show_on_wall=1 entries."""
+    return jsonify({'ok': True, 'entries': nkd.get_wall_entries(limit=50)})
+
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5001, debug=False)
