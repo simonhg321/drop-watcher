@@ -126,6 +126,10 @@ def build_alert_email(watcher, matches, drop):
       {nkd_html}
 
       <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
+      <p style="color: #888; font-size: 12px;">
+        Still want these alerts?
+        <a href="https://instockornot.club/api/ack/{unsub_token}" style="color: #27ae60; text-decoration: underline;">Keep this watch alive →</a>
+      </p>
       <p style="color: #444; font-size: 11px;">
         <a href="https://instockornot.club/api/unsubscribe/{unsub_token}" style="color: #444;">Unsubscribe</a> · instockornot.club
       </p>
@@ -141,6 +145,7 @@ def build_alert_email(watcher, matches, drop):
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"{nkd_text_line}"
+        f"Keep this watch alive: https://instockornot.club/api/ack/{unsub_token}\n"
         f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
     )
 

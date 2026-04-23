@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS watchers (
     created TEXT NOT NULL,
     last_alert TEXT,
     alert_count INTEGER DEFAULT 0,
-    consecutive_not_found INTEGER DEFAULT 0
+    consecutive_not_found INTEGER DEFAULT 0,
+    last_acked TEXT,
+    ageout_email_sent TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_watchers_email ON watchers(email);
 CREATE INDEX IF NOT EXISTS idx_watchers_unsub_token ON watchers(unsubscribe_token);
@@ -139,6 +141,18 @@ CREATE INDEX IF NOT EXISTS idx_nkd_scores_watcher ON nkd_scores(watcher_id);
 def _init_db(conn):
     """Create tables if they don't exist."""
     conn.executescript(SCHEMA)
+    _migrate(conn)
+
+
+def _migrate(conn):
+    """Add columns added after initial schema. Idempotent."""
+    cols = {r['name'] for r in conn.execute("PRAGMA table_info(watchers)").fetchall()}
+    for col, ddl in (
+        ('last_acked',        'ALTER TABLE watchers ADD COLUMN last_acked TEXT'),
+        ('ageout_email_sent', 'ALTER TABLE watchers ADD COLUMN ageout_email_sent TEXT'),
+    ):
+        if col not in cols:
+            conn.execute(ddl)
 
 
 @contextmanager
@@ -251,6 +265,7 @@ WATCHER_UPDATABLE_FIELDS = {
     'sms_approved', 'sms_verify_code', 'sms_verify_expires',
     'active', 'verify_token',
     'last_alert', 'alert_count', 'consecutive_not_found',
+    'last_acked', 'ageout_email_sent',
 }
 
 

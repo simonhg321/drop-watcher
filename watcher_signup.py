@@ -608,6 +608,28 @@ def track_pageview():
     return '', 204
 
 
+@app.route('/api/ack/<token>', methods=['GET'])
+@limiter.limit("20 per minute")
+def ack_watch(token):
+    """Keep-alive click from an alert email — marks user engaged, cancels any pending age-out."""
+    w = db.get_watcher_by_unsub_token(token)
+    if not w:
+        return jsonify({'error': 'Not found'}), 404
+
+    email = w.get('email', '').lower()
+    now = datetime.now(timezone.utc).isoformat()
+    db.update_watchers_by_email(email, last_acked=now, ageout_email_sent=None)
+    log.info(f"Ack from {email} — cleared pending age-out")
+
+    return """
+            <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                <h1 style="color:#27ae60">DROP WATCHER</h1>
+                <p style="font-size:18px;margin-top:24px">✓ Watch kept alive.</p>
+                <p style="color:#888;font-size:13px">Thanks — we'll keep sending you alerts.</p>
+                <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
+            </body></html>""", 200
+
+
 @app.route('/api/unsubscribe/<token>', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def unsubscribe(token):
