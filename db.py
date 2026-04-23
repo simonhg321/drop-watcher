@@ -301,6 +301,19 @@ def update_watchers_by_email(email, **fields):
         db.execute(f"UPDATE watchers SET {set_clause} WHERE email=?", values)
 
 
+def revive_aged_out(email, now_iso):
+    """Reactivate watches this email lost to age-out. Returns count revived.
+    Only touches rows where ageout_email_sent IS NOT NULL — i.e. we nudged them.
+    Unsubscribed or unverified watches (ageout_email_sent IS NULL) are untouched."""
+    with get_db() as db:
+        cur = db.execute("""
+            UPDATE watchers SET active=1
+            WHERE email=? AND active=0 AND ageout_email_sent IS NOT NULL
+              AND (last_acked IS NULL OR last_acked < ageout_email_sent)
+        """, (email.lower(),))
+        return cur.rowcount
+
+
 def delete_watcher(watcher_id):
     with get_db() as db:
         db.execute("DELETE FROM watchers WHERE id=?", (watcher_id,))

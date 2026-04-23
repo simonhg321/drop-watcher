@@ -618,8 +618,14 @@ def ack_watch(token):
 
     email = w.get('email', '').lower()
     now = datetime.now(timezone.utc).isoformat()
+    # Reactivate only watches that age-out turned off. ageout_email_sent IS NOT NULL
+    # distinguishes age-out victims from unsubscribes or unverified signups.
+    revived = db.revive_aged_out(email, now)
     db.update_watchers_by_email(email, last_acked=now, ageout_email_sent=None)
-    log.info(f"Ack from {email} — cleared pending age-out")
+    if revived:
+        log.info(f"Ack from {email} — revived {revived} aged-out watch(es)")
+    else:
+        log.info(f"Ack from {email} — cleared pending age-out")
 
     return """
             <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
