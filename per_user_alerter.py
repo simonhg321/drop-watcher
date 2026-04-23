@@ -233,6 +233,29 @@ def run():
                     last_alert=now.isoformat(),
                     alert_count=watcher.get('alert_count', 0) + 1)
                 log.info(f"Alert sent to {email} for {drop.get('source', '')}")
+
+                # SMS fan-out — only sms_approved watchers, only high/critical priority.
+                # Per-URL-per-keyword cooldown above already prevents spam.
+                if (watcher.get('sms_approved')
+                        and (watcher.get('phone') or '').strip()
+                        and drop.get('priority') in ('high', 'critical')):
+                    try:
+                        from sms_alerter import format_sms, _send_twilio_sms
+                        body = format_sms(
+                            {'source': drop.get('source', '')},
+                            email=email,
+                            keywords=','.join(matches),
+                            token=watcher.get('unsubscribe_token'),
+                        )
+                        phone = watcher['phone'].strip()
+                        if not phone.startswith('+'):
+                            phone = '+1' + re.sub(r'\D', '', phone)
+                        if _send_twilio_sms(phone, body):
+                            log.info(f"SMS sent to {phone} for {email}")
+                        else:
+                            log.error(f"SMS failed to {phone} for {email}")
+                    except Exception as e:
+                        log.error(f"SMS fan-out exception for {email}: {e}")
             else:
                 log.error(f"Failed to send to {email}")
 
