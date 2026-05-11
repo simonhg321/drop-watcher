@@ -1,0 +1,38 @@
+{{!< default}}
+
+<div class="author-page">
+    <header class="author-header">
+        {{#if primary_author.profile_image}}
+            <img class="author-avatar" src="{{primary_author.profile_image}}" alt="{{primary_author.name}}">
+        {{/if}}
+        <h1 class="author-name">{{primary_author.name}}</h1>
+        {{#if primary_author.bio}}
+            <p class="author-bio">{{primary_author.bio}}</p>
+        {{/if}}
+    </header>
+
+    <div class="post-feed">
+        {{#foreach posts}}
+        <article class="post-card">
+            <a class="post-card-link" href="{{url}}">
+                <h2 class="post-card-title">{{title}}</h2>
+                {{#if custom_excerpt}}
+                    <p class="post-card-excerpt">{{custom_excerpt}}</p>
+                {{else if excerpt}}
+                    <p class="post-card-excerpt">{{excerpt words="30"}}</p>
+                {{/if}}
+                <div class="post-card-meta">
+                    {{#if primary_tag}}
+                        <span class="post-card-tag">{{primary_tag.name}}</span>
+                    {{/if}}
+                    <span>{{date format="DD MMM YYYY"}}</span>
+                    <span class="sep">/</span>
+                    <span>{{reading_time}}</span>
+                </div>
+            </a>
+        </article>
+        {{/foreach}}
+    </div>
+
+    {{pagination}}
+</div>

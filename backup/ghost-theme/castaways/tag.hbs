@@ -1,0 +1,38 @@
+{{!< default}}
+
+<header class="tag-header">
+    <h1>{{tag.name}}</h1>
+    {{#if tag.description}}
+        <p>{{tag.description}}</p>
+    {{/if}}
+    <span class="tag-count">{{tag.count.posts}} {{plural tag.count.posts empty="posts" singular="post" plural="posts"}}</span>
+</header>
+
+<div class="post-feed">
+    {{#foreach posts}}
+    <article class="post-card {{#if feature_image}}post-card-has-image{{/if}}">
+        <a class="post-card-link" href="{{url}}">
+            {{#if feature_image}}
+            <div class="post-card-image-wrap">
+                <img class="post-card-image" src="{{feature_image}}" alt="{{title}}" loading="lazy">
+            </div>
+            {{/if}}
+            <div class="post-card-body">
+                <h2 class="post-card-title">{{title}}</h2>
+                {{#if custom_excerpt}}
+                    <p class="post-card-excerpt">{{custom_excerpt}}</p>
+                {{else if excerpt}}
+                    <p class="post-card-excerpt">{{excerpt words="30"}}</p>
+                {{/if}}
+                <div class="post-card-meta">
+                    <span>{{date format="DD MMM YYYY"}}</span>
+                    <span class="sep">/</span>
+                    <span>{{reading_time}}</span>
+                </div>
+            </div>
+        </a>
+    </article>
+    {{/foreach}}
+</div>
+
+{{pagination}}

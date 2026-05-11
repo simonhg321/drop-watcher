@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A protocol for sovereign personal identity. Prove your work. Own your proof.">
+<title>Proof of Human Work — Option B</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    /* Warm off-white — like high-end print on screen */
+    background: #F5F0E8;
+    color: #1A1614;
+    font-family: "Georgia", "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  .page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 28px 100px;
+  }
+
+  /* ── Hero ─────────────────────────────────────────── */
+  .hero {
+    padding: 80px 0 72px;
+    text-align: left;
+    border-bottom: 2px solid #1A1614;
+    margin-bottom: 56px;
+  }
+
+  .eyebrow {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #8B7355;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 7vw, 62px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    margin-bottom: 18px;
+    color: #0F0E0C;
+    font-style: italic;
+  }
+  h1 strong { font-style: normal; font-weight: 700; }
+
+  .subtitle {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 14px;
+    color: #6B5E4A;
+    margin-bottom: 28px;
+    line-height: 1.6;
+    max-width: 420px;
+    letter-spacing: 0.01em;
+  }
+
+  .tagline {
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    color: #8B7355;
+    background: transparent;
+    border: 1px solid #C4B49A;
+    padding: 5px 12px;
+    display: inline-block;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Section headings ─────────────────────────────── */
+  h2 {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #8B7355;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  h2::after {
+    content: ''; flex: 1;
+    height: 1px;
+    background: #C4B49A;
+  }
+
+  section { margin-bottom: 64px; }
+
+  /* ── Problem ──────────────────────────────────────── */
+  .problem-body p { margin-bottom: 18px; color: #2A2420; }
+  .problem-body p:last-child { margin-bottom: 0; }
+  .em { font-weight: 700; color: #0F0E0C; }
+  .gold { color: #7A5C1E; font-weight: 700; }
+
+  .solution-bridge {
+    margin-top: 28px !important;
+    padding: 24px 24px 24px 20px;
+    border-left: 3px solid #7A5C1E;
+    background: rgba(122,92,30,0.04);
+    color: #2A2420 !important;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  /* ── Guarantees ───────────────────────────────────── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid #C4B49A;
+  }
+  @media (max-width: 580px) { .cards { grid-template-columns: 1fr; } }
+
+  .card {
+    padding: 24px 20px;
+    border-right: 1px solid #C4B49A;
+  }
+  .card:last-child { border-right: none; }
+  .card-icon { font-size: 20px; margin-bottom: 10px; display: block; }
+  .card-name {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 12px; font-weight: 700; color: #1A1614;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .card-desc {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 13px; color: #6B5E4A; line-height: 1.6;
+  }
+
+  /* ── Steps ────────────────────────────────────────── */
+  .steps { display: flex; flex-direction: column; }
+  .step {
+    display: flex; gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid #DDD4C4;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-n {
+    font-family: "Courier New", monospace;
+    font-size: 12px; color: #C4B49A;
+    width: 24px; flex-shrink: 0; padding-top: 2px;
+  }
+  .step-title {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 15px; font-weight: 700; color: #0F0E0C; margin-bottom: 4px;
+  }
+  .step-desc {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 13px; color: #6B5E4A; line-height: 1.6;
+  }
+
+  /* ── Build tracker ────────────────────────────────── */
+  .track { display: flex; flex-direction: column; gap: 0; border: 1px solid #C4B49A; }
+  .row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #DDD4C4;
+  }
+  .row:last-child { border-bottom: none; }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%; flex-shrink: 0;
+  }
+  .dot.done   { background: #2D6A4F; }
+  .dot.active { background: #7A5C1E; animation: blink 2s ease-in-out infinite; }
+  .dot.next   { background: #C4B49A; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .row-label {
+    font-family: -apple-system, "Inter", sans-serif;
+    flex: 1; font-size: 14px; font-weight: 500; color: #1A1614;
+  }
+  .row-note {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 11px; color: #8B7355; margin-top: 2px; display: block;
+  }
+  .badge {
+    font-family: "Courier New", monospace;
+    font-size: 10px; padding: 2px 7px;
+    border: 1px solid currentColor; letter-spacing: 0.06em;
+  }
+  .b-done   { color: #2D6A4F; }
+  .b-active { color: #7A5C1E; }
+  .b-next   { color: #8B7355; }
+
+  /* ── Quote ────────────────────────────────────────── */
+  .quote {
+    border-left: 3px solid #7A5C1E;
+    padding: 18px 22px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #4A3D2E;
+    font-style: italic;
+    margin: 0 0 24px;
+    background: rgba(122,92,30,0.04);
+  }
+  .qattr {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-style: normal; font-size: 11px; color: #8B7355;
+    margin-top: 8px; display: block; letter-spacing: 0.04em;
+  }
+  .why-body p { margin-bottom: 16px; color: #2A2420; }
+
+  /* ── About ────────────────────────────────────────── */
+  .about-card {
+    display: flex; gap: 20px; align-items: flex-start;
+    border: 1px solid #C4B49A;
+    padding: 28px;
+  }
+  .avatar {
+    width: 48px; height: 48px;
+    background: #1A1614;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, sans-serif;
+    font-size: 16px; font-weight: 700; color: #F5F0E8;
+    flex-shrink: 0;
+  }
+  .aname {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 16px; font-weight: 700; color: #0F0E0C; margin-bottom: 3px;
+  }
+  .atitle {
+    font-family: "Courier New", monospace;
+    font-size: 10px; color: #8B7355; letter-spacing: 0.08em; margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .abio {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 13px; color: #6B5E4A; line-height: 1.6;
+  }
+
+  /* ── Footer ───────────────────────────────────────── */
+  .footer {
+    text-align: center;
+    padding-top: 28px;
+    border-top: 2px solid #1A1614;
+  }
+  .flinks { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+  .flink {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 12px; color: #8B7355; text-decoration: none;
+    transition: color 0.2s; letter-spacing: 0.04em;
+  }
+  .flink:hover { color: #1A1614; }
+  .fnote {
+    font-family: "Courier New", monospace;
+    font-size: 10px; color: #C4B49A; letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 0 18px 80px; }
+    .hero { padding: 56px 0 52px; }
+    .about-card { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <div class="eyebrow">The Castaways · May 2026</div>
+    <h1><strong>Proof of Human Work</strong></h1>
+    <p class="subtitle">A protocol for sovereign personal identity.
+    Prove your work. Own your proof. Trust no platform.</p>
+    <span class="tagline">PHW v0.1 — DRAFT SPEC</span>
+  </div>
+
+  <section>
+    <h2>The Problem</h2>
+    <div class="problem-body">
+      <p>The internet was built assuming you are who you say you are.
+      That assumption was convenient. It was never true.
+      <span class="gold">And AI broke it permanently.</span></p>
+      <p>Anonymity eliminated the cost of bad-faith identity. The result
+      was predictable: coordinated inauthentic behavior, manufactured
+      consensus, personas built to deceive and disappear. We treated
+      it as a nuisance. It was a structural warning.
+      <span class="em">Generative AI removed the last constraint.</span>
+      Bad-faith identity now operates at machine scale — no marginal
+      cost, no human in the loop, no upper bound. You cannot distinguish
+      the real from the synthetic at volume. We need a correction mechanism
+      built into the infrastructure, not bolted on after the fact.</p>
+      <p>For thirty years, your identity lived on their servers.
+      Your email provider, your employer, your bank — they held the proof.
+      You got a login. When you left your job, you lost your healthcare,
+      your email, your professional network, and every credential tied
+      to that address — all at once, on someone else's timeline.
+      Your LinkedIn endorsements belong to LinkedIn.
+      Your GitHub history belongs to GitHub.
+      The company folds and the proof disappears.
+      <span class="gold">You never owned any of it.</span>
+      You just rented access to your own story.</p>
+      <p>Now generative AI floods the world with machine-produced output
+      indistinguishable from human work at scale.
+      In the old era, human work was the baseline.
+      In this era, it is the signal.
+      <span class="em">The solution is not complicated — it is simple,
+      elegant, and cryptographically sound. That is exactly what makes it powerful.</span></p>
+      <p class="solution-bridge">
+      PHW gives you a room of your own — a private space to hang your
+      human identity, one you are in complete control of, that no platform
+      can enter, revoke, or sell. A coat rack on your wall, in your house,
+      with locks only you hold.
+      You hang on it what you choose — your medical records, your banking,
+      your professional credentials, your verified moments of real human effort.
+      Nobody else touches the hooks.
+      When you walk into any room — a job application, a Substack comment,
+      a Teams meeting, a collector platform, a border crossing —
+      you reach back to your coat rack, pull what you need,
+      and present it as a signed cryptographic proof.
+      Not a screenshot. Not a platform's word for it.
+      <span class="gold">A token that says: this is true, I hold the evidence,
+      and you can verify it without knowing anything else about me.</span>
+      That is how you filter the signal out of the noise.
+      That is how you assert a real, verified human identity
+      in a world that has forgotten what one looks like.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Three Guarantees</h2>
+    <div class="cards">
+      <div class="card">
+        <span class="card-icon">🔒</span>
+        <div class="card-name">Privacy</div>
+        <div class="card-desc">Your raw data never leaves your device unless you explicitly release it. Verifiers see hashes, not originals.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">⚡</span>
+        <div class="card-name">Truth</div>
+        <div class="card-desc">Every assertion is cryptographically bound to evidence you hold. You cannot forge a PHW token without the key.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">✓</span>
+        <div class="card-name">Proof</div>
+        <div class="card-desc">Any verifier can confirm the assertion without seeing the underlying data. The proof is portable and self-contained.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-n">01</div>
+        <div>
+          <div class="step-title">You gather evidence</div>
+          <div class="step-desc">A photo, a document, a transaction — anything that proves a unit of real human work. It lives in your Identity Layer, encrypted, local.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-n">02</div>
+        <div>
+          <div class="step-title">Your Filter Layer decides what to share</div>
+          <div class="step-desc">You set the rules: what to disclose to which verifier, for how long, one-time or recurring. The default is deny-all.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-n">03</div>
+        <div>
+          <div class="step-title">A signed Assertion Bundle is generated</div>
+          <div class="step-desc">Your evidence is hashed and cryptographically signed. The bundle contains only what you approved — no raw data, no leakage.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-n">04</div>
+        <div>
+          <div class="step-title">Any verifier can check it</div>
+          <div class="step-desc">The token is portable. No account required, no platform dependency. Ed25519 signatures make it self-verifiable offline — forever.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Building — Next Two Weeks</h2>
+    <div class="track">
+      <div class="row"><div class="dot done"></div><div class="row-label">PHW v0.1 Protocol Specification<span class="row-note">Full RFC-format spec — 12 sections, 1,000 lines</span></div><span class="badge b-done">SHIPPED</span></div>
+      <div class="row"><div class="dot done"></div><div class="row-label">Proof of Acquisition (PoA) v0.1<span class="row-note">First PHW credential type — knife &amp; collector drops</span></div><span class="badge b-done">SHIPPED</span></div>
+      <div class="row"><div class="dot active"></div><div class="row-label">Identity Layer — The Vault<span class="row-note">Extend the encrypted Vault with PHW credential schema</span></div><span class="badge b-active">IN PROGRESS</span></div>
+      <div class="row"><div class="dot active"></div><div class="row-label">Filter Layer — The Algorithm<span class="row-note">Rules engine: context-aware disclosure, consent log</span></div><span class="badge b-active">IN PROGRESS</span></div>
+      <div class="row"><div class="dot next"></div><div class="row-label">PHW v0.2 — Ed25519 Migration<span class="row-note">Self-verifying tokens, Portability Contract satisfied</span></div><span class="badge b-next">NEXT</span></div>
+      <div class="row"><div class="dot next"></div><div class="row-label">PoA → PHW Upgrade<span class="row-note">Wrap Drop Watcher attestations in the full PHW format</span></div><span class="badge b-next">NEXT</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why Now</h2>
+    <div class="quote">
+      "We've shifted from retrieval computing — data sits in a center, you go get it — to generative computing — tokens are produced at inference time, at scale, indistinguishable from human output."
+      <span class="qattr">— Jensen Huang, SCSP, 2025</span>
+    </div>
+    <div class="why-body">
+      <p>In the retrieval era, human work was the background. Everything on the internet was produced by a person. The question was not "is this human?" — it obviously was.</p>
+      <p>In the generative era, machine output is the background. Human work is now the signal. A signal with no mechanism to identify itself is indistinguishable from noise.</p>
+      <p><span class="em">PHW is the mechanism.</span> Machine tokens are now abundant and cheap. Human work tokens are scarce and cannot be faked. The protocol that makes them legible and portable is the most important piece of identity infrastructure that does not yet exist.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Who's Building This</h2>
+    <div class="about-card">
+      <div class="avatar">SG</div>
+      <div>
+        <div class="aname">Simon Gibson</div>
+        <div class="atitle">Founder, The Castaways · HGR</div>
+        <div class="abio">Security leader, builder, running a multi-agent AI organization on his home network in Spokane. The Castaways is the org. The Vault is the infrastructure. PHW is the protocol. Drop Watcher is the first application.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="flinks">
+      <a class="flink" href="https://instockornot.club/blog.html">Blog</a>
+      <span style="color:#C4B49A">·</span>
+      <a class="flink" href="/the_vault/spec.html">Full RFC Spec</a>
+      <span style="color:#C4B49A">·</span>
+      <a class="flink" href="https://instockornot.club">Drop Watcher</a>
+    </div>
+    <div class="fnote">The Castaways · May 2026 · PHW v0.1 DRAFT</div>
+  </footer>
+
+</div>
+</body>
+</html>

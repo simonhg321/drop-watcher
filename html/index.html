@@ -581,43 +581,51 @@
     <div class="stack-list">
       <div class="stack-item">
         <span class="stack-key">Language</span>
-        <span class="stack-val">Python 3.10</span>
+        <span class="stack-val">Python 3 + Go</span>
       </div>
       <div class="stack-item">
         <span class="stack-key">Infrastructure</span>
-        <span class="stack-val">Linode Nanode — Ubuntu 22.04 LTS</span>
+        <span class="stack-val">Linode — Ubuntu 22.04 LTS + Cloudflare</span>
       </div>
       <div class="stack-item">
-        <span class="stack-key">Process Management</span>
-        <span class="stack-val">supervisord</span>
+        <span class="stack-key">Database</span>
+        <span class="stack-val">SQLite — WAL mode, concurrent readers</span>
       </div>
       <div class="stack-item">
         <span class="stack-key">Web Server</span>
-        <span class="stack-val">Apache 2.4 — TLS</span>
+        <span class="stack-val">Apache 2.4 — TLS via Let's Encrypt</span>
       </div>
       <div class="stack-item">
         <span class="stack-key">API</span>
         <span class="stack-val">Flask + Gunicorn — rate-limited, CORS-locked</span>
       </div>
       <div class="stack-item">
-        <span class="stack-key">Email</span>
-        <span class="stack-val">Resend — SPF + DKIM + DMARC</span>
-      </div>
-      <div class="stack-item">
         <span class="stack-key">AI</span>
         <span class="stack-val">Claude Haiku — page analysis and drop detection</span>
       </div>
       <div class="stack-item">
-        <span class="stack-key">Social Feeds</span>
-        <span class="stack-val">RSS Bridge — YouTube Data API</span>
+        <span class="stack-key">Email</span>
+        <span class="stack-val">Resend — SPF + DKIM + DMARC</span>
       </div>
       <div class="stack-item">
-        <span class="stack-key">Source Control</span>
-        <span class="stack-val">GitHub — simonhg321/drop-watcher</span>
+        <span class="stack-key">SMS</span>
+        <span class="stack-val">Twilio — A2P 10DLC verified</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Feeds</span>
+        <span class="stack-val">Reddit RSS + Discord webhook</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Process Management</span>
+        <span class="stack-val">supervisord + cron</span>
       </div>
       <div class="stack-item">
         <span class="stack-key">Monitoring</span>
         <span class="stack-val">Self-healing watchdog — auto-restarts on failure</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-key">Source</span>
+        <span class="stack-val">GitHub — simonhg321/drop-watcher</span>
       </div>
     </div>
   </section>

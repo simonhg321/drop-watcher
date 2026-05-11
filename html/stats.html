@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="120">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>Live Stats — Drop Watcher</title>
+  <meta name="description" content="Live stats from Drop Watcher — active watches, drops detected, AI pages analyzed, traffic, and security.">
+  <meta property="og:title" content="Drop Watcher — Live Stats">
+  <meta property="og:description" content="Real-time platform stats. You Sleep. We Watch. You Score.">
+  <meta property="og:image" content="https://instockornot.club/og-image.jpg">
+  <meta property="og:url" content="https://instockornot.club/stats.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://instockornot.club/stats.html">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 1rem; max-width: 960px; margin: 0 auto; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 8vw, 3rem); color: var(--white); letter-spacing: 0.05em; }
+    h1 span { color: var(--ember); }
+    .subtitle { color: var(--ash); font-size: 0.7rem; letter-spacing: 0.2em; margin-bottom: 1rem; line-height: 1.6; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 1.5rem; }
+
+    /* Nav */
+    .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 0; display: flex; align-items: center; gap: 32px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo span { color: var(--ember); }
+    .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }
+    .stat-card { background: var(--black); padding: 1.2rem 0.5rem; text-align: center; }
+    .stat-label { font-size: 0.55rem; letter-spacing: 0.15em; color: var(--ash); margin-top: 0.3rem; }
+    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.4rem, 5vw, 2rem); color: var(--white); }
+    .stat-sub { font-size: 0.55rem; color: var(--ash); margin-top: 0.2rem; }
+
+    /* Section heads */
+    .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.1em; color: var(--ash); margin: 2rem 0 1rem; }
+
+    /* Bar chart */
+    .bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--iron); padding-bottom: 4px; margin-bottom: 2rem; overflow: hidden; }
+    .bar-chart-hourly { height: 80px; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; height: 100%; justify-content: flex-end; }
+    .bar-col-sm { min-width: 0; }
+    .bar { background: linear-gradient(to top, var(--ember), var(--flame)); width: 100%; min-height: 2px; transition: height 0.3s; }
+    .bar-sm { width: 80%; }
+    .bar-value { font-size: 0.55rem; color: var(--silver); margin-bottom: 4px; white-space: nowrap; }
+    .bar-label { font-size: 0.5rem; color: var(--ash); margin-top: 4px; white-space: nowrap; }
+
+    /* Panels grid */
+    .panels { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .panel { border: 1px solid var(--iron); overflow-x: auto; }
+    .panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.1em; color: var(--ember); padding: 0.75rem 1rem; background: var(--steel); border-bottom: 1px solid var(--iron); }
+    .panel-body { padding: 0; }
+
+    /* Data tables */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+    .data-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; border-bottom: 1px solid var(--iron); white-space: nowrap; }
+    .data-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid rgba(42,42,42,0.5); color: var(--silver); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--steel); }
+    .num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .empty-cell { color: var(--ash); text-align: center; padding: 1rem !important; }
+
+    /* Desktop */
+    @media (min-width: 700px) {
+      .hero-grid { grid-template-columns: repeat(6, 1fr); }
+      .snap-grid { grid-template-columns: repeat(4, 1fr); }
+      .tri-grid { grid-template-columns: repeat(3, 1fr); }
+      .panels { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Footer */
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--iron); color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    footer a { color: var(--ash); text-decoration: none; }
+    footer a:hover { color: var(--flame); }
+    .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>LIVE <span>STATS</span></h1>
+  <p class="subtitle">WHAT DROP WATCHER IS DOING RIGHT NOW</p>
+  <div class="flame-line"></div>
+
+  <nav class="dw-nav">
+    <a href="/" class="logo">DROP <span>WATCHER</span></a>
+    <a href="/">Home</a>
+    <a href="/what-we-watch.html">What We Watch</a>
+    <a href="/watchlist.html">Watch</a>
+    <a href="/stats.html" class="active">Stats</a>
+  </nav>
+
+  
+    <div class="stats-grid hero-grid">
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--flame)">64</div>
+        <div class="stat-label">ACTIVE WATCHES</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">4.3K</div>
+        <div class="stat-label">DROPS DETECTED</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">61</div>
+        <div class="stat-label">DROPS TODAY</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">22.1K</div>
+        <div class="stat-label">PAGES ANALYZED</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">26</div>
+        <div class="stat-label">SMS ALERTS SENT</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:#2ecc71">0</div>
+        <div class="stat-label">THREATS BLOCKED</div>
+      </div>
+    </div>
+
+  
+        <div class="section-head">7-DAY VISITORS</div>
+        <div class="bar-chart">
+              <div class="bar-col">
+                <div class="bar-value">193</div>
+                <div class="bar" style="height:56%"></div>
+                <div class="bar-label">05-04</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">189</div>
+                <div class="bar" style="height:55%"></div>
+                <div class="bar-label">05-05</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">227</div>
+                <div class="bar" style="height:66%"></div>
+                <div class="bar-label">05-06</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">199</div>
+                <div class="bar" style="height:58%"></div>
+                <div class="bar-label">05-07</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">295</div>
+                <div class="bar" style="height:87%"></div>
+                <div class="bar-label">05-08</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">339</div>
+                <div class="bar" style="height:100%"></div>
+                <div class="bar-label">05-09</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">224</div>
+                <div class="bar" style="height:66%"></div>
+                <div class="bar-label">05-10</div>
+              </div></div>
+
+  
+        <div class="section-head">LAST 24 HOURS</div>
+        <div class="bar-chart bar-chart-hourly">
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:21%"></div>
+                <div class="bar-label">05</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:68%"></div>
+                <div class="bar-label">06</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:43%"></div>
+                <div class="bar-label">07</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:34%"></div>
+                <div class="bar-label">08</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:59%"></div>
+                <div class="bar-label">09</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">10</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:40%"></div>
+                <div class="bar-label">11</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">12</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:28%"></div>
+                <div class="bar-label">13</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:37%"></div>
+                <div class="bar-label">14</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:50%"></div>
+                <div class="bar-label">15</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">16</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:18%"></div>
+                <div class="bar-label">17</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:25%"></div>
+                <div class="bar-label">18</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:50%"></div>
+                <div class="bar-label">19</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:25%"></div>
+                <div class="bar-label">20</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:15%"></div>
+                <div class="bar-label">21</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:43%"></div>
+                <div class="bar-label">22</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:46%"></div>
+                <div class="bar-label">23</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:100%"></div>
+                <div class="bar-label">00</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:40%"></div>
+                <div class="bar-label">01</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:37%"></div>
+                <div class="bar-label">02</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">03</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:25%"></div>
+                <div class="bar-label">04</div>
+              </div></div>
+
+  
+    <div class="section-head">TODAY</div>
+    <div class="stats-grid snap-grid">
+      <div class="stat-card">
+        <div class="stat-value">63</div>
+        <div class="stat-label">UNIQUE VISITORS</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">1.2K</div>
+        <div class="stat-label">REQUESTS</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">285.9 MB</div>
+        <div class="stat-label">BANDWIDTH</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">9</div>
+        <div class="stat-label">COUNTRIES</div>
+      </div>
+    </div>
+
+  
+    <div class="section-head">WHERE THEY COME FROM</div>
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">TOP COUNTRIES</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>COUNTRY</th><th>REQUESTS</th></tr></thead>
+            <tbody><tr><td>US</td><td class="num-cell">1226</td></tr><tr><td>NL</td><td class="num-cell">14</td></tr><tr><td>DE</td><td class="num-cell">3</td></tr><tr><td>SE</td><td class="num-cell">2</td></tr><tr><td>DK</td><td class="num-cell">1</td></tr><tr><td>IE</td><td class="num-cell">1</td></tr><tr><td>PH</td><td class="num-cell">1</td></tr><tr><td>SG</td><td class="num-cell">1</td></tr><tr><td>T1</td><td class="num-cell">1</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">TOP REFERRERS</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>SOURCE</th><th>HITS</th></tr></thead>
+            <tbody><tr><td colspan="2" class="empty-cell">No referrers yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  
+    <div class="section-head">BEHIND THE SCENES</div>
+    <div class="stats-grid tri-grid">
+      <div class="stat-card">
+        <div class="stat-value">20</div>
+        <div class="stat-label">AI CALLS TODAY</div>
+        <div class="stat-sub">22.1K total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">$0.79</div>
+        <div class="stat-label">API COST TODAY</div>
+        <div class="stat-sub">$75.83 total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">SMS ALERTS TODAY</div>
+        <div class="stat-sub">26 total</div>
+      </div>
+    </div>
+
+  
+    <div class="section-head">SECURITY</div>
+    <div class="stats-grid tri-grid">
+      <div class="stat-card">
+        <div class="stat-value" style="color:#e74c3c">5</div>
+        <div class="stat-label">THREATS DETECTED</div>
+        <div class="stat-sub">last 24h</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">5</div>
+        <div class="stat-label">SCANNERS BLOCKED</div>
+        <div class="stat-sub">unique IPs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">7</div>
+        <div class="stat-label">BAD BOT TYPES</div>
+        <div class="stat-sub">patterns matched</div>
+      </div>
+    </div>
+
+  <footer>
+    <div>UPDATED 2026-05-11 04:50 UTC — AUTO-REFRESHES EVERY 2 MIN</div>
+    <a href="/">INSTOCKORNOT.CLUB</a>
+    <div class="hgr">HGR</div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,79 @@
+{{!< default}}
+
+{{#post}}
+<article class="post-full">
+    {{#if feature_image}}
+    <figure class="post-full-image">
+        <img src="{{feature_image}}" alt="{{title}}">
+    </figure>
+    {{/if}}
+
+    <header class="post-full-header">
+        <h1 class="post-full-title">{{title}}</h1>
+        <div class="post-full-meta">
+            {{#if primary_tag}}
+                <a class="post-full-tag" href="{{primary_tag.url}}">{{primary_tag.name}}</a>
+                <span class="sep">/</span>
+            {{/if}}
+            {{date format="DD MMM YYYY"}}
+            <span class="sep">/</span>
+            {{reading_time}}
+        </div>
+        {{#if primary_author}}
+        <div class="post-full-byline">
+            {{#if primary_author.profile_image}}
+                <img class="post-full-byline-avatar" src="{{primary_author.profile_image}}" alt="{{primary_author.name}}">
+            {{/if}}
+            <span class="post-full-byline-name"><a href="{{primary_author.url}}">{{primary_author.name}}</a></span>
+        </div>
+        {{/if}}
+    </header>
+
+    <section class="post-full-content">
+        {{content}}
+    </section>
+
+    <footer class="post-full-footer">
+        <div class="post-share">
+            <span class="post-share-label">Share</span>
+            <a class="post-share-link post-share-x" href="https://x.com/intent/tweet?text={{encode title}}&url={{url absolute="true"}}" target="_blank" rel="noopener">X</a>
+            <a class="post-share-link post-share-fb" href="https://www.facebook.com/sharer/sharer.php?u={{url absolute="true"}}" target="_blank" rel="noopener">Facebook</a>
+            <a class="post-share-link post-share-li" href="https://www.linkedin.com/shareArticle?mini=true&url={{url absolute="true"}}&title={{encode title}}" target="_blank" rel="noopener">LinkedIn</a>
+            <button class="post-share-link post-share-copy" onclick="navigator.clipboard.writeText('{{url absolute="true"}}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy Link',2000)">Copy Link</button>
+        </div>
+
+        {{#if tags}}
+        <div class="post-tags">
+            {{#foreach tags}}
+                <a class="post-tag" href="{{url}}">{{name}}</a>
+            {{/foreach}}
+        </div>
+        {{/if}}
+    </footer>
+
+    <section class="post-comments">
+        {{comments mode="dark"}}
+    </section>
+
+    {{#get "posts" filter="id:-{{id}}+tag:{{primary_tag.slug}}" limit="3"}}
+        {{#if posts.length}}
+        <aside class="post-related">
+            <h3 class="post-related-title">More like this</h3>
+            <div class="post-related-feed">
+                {{#foreach posts}}
+                <a class="post-related-card" href="{{url}}">
+                    {{#if feature_image}}
+                    <img class="post-related-image" src="{{feature_image}}" alt="{{title}}" loading="lazy">
+                    {{/if}}
+                    <h4 class="post-related-card-title">{{title}}</h4>
+                    <span class="post-related-meta">{{date format="DD MMM YYYY"}}</span>
+                </a>
+                {{/foreach}}
+            </div>
+        </aside>
+        {{/if}}
+    {{/get}}
+
+    <a class="post-back" href="{{@site.url}}">All Posts</a>
+</article>
+{{/post}}

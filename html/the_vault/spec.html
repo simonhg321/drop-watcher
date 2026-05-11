@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof of Human Work (PHW) v0.1</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, "SF Mono", "Menlo", monospace;
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 32px 24px 80px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  @media (prefers-color-scheme: light) {
+    body { background: #f6f8fa; color: #1f2328; }
+  }
+</style>
+</head>
+<body>
+<pre>
+                   PROOF OF HUMAN WORK (PHW)
+                   Protocol Specification
+                       Version 0.1
+
+                     The Castaways / The Vault
+                          May 5, 2026
+
+                     Author: Simon Gibson
+                     Status: DRAFT
+
+
+Abstract
+
+   This document defines the Proof of Human Work (PHW) protocol,
+   a method for sovereign personal identity. PHW allows any person
+   to manage their own identity data, assert credentials selectively,
+   and prove authenticity cryptographically — without relying on any
+   platform, algorithm, or third party.
+
+   Three guarantees:
+
+     Privacy:  Your raw data never leaves your device unless you
+               explicitly release it.
+
+     Truth:    Every assertion is cryptographically bound to
+               evidence you hold.
+
+     Proof:    Any verifier can confirm the assertion without
+               seeing the underlying data.
+
+   PHW is the parent protocol. The Proof of Acquisition (PoA)
+   specification is one application built on it. Any credential
+   type — professional, physical, behavioral — can be expressed
+   as a PHW assertion.
+
+
+1.  Problem Statement
+
+   The internet was built assuming you are who you say you are.
+   That assumption was convenient. It was never true. And AI
+   broke it permanently.
+
+   For thirty years, identity online worked by proxy: your email
+   provider verified your address; your employer verified your
+   title; your bank verified your income. The data lived on their
+   servers. You got a login. The platform held the proof.
+
+   This model had two failure modes that coexisted without
+   resolving:
+
+     Failure 1 — Concentration:
+       Your identity is scattered across platforms you do not
+       control. When a platform shuts down, your credentials
+       disappear. When a platform is breached, your data leaks.
+       When a platform changes its terms, your access is revoked.
+       You never owned any of it.
+
+     Failure 2 — Unverifiability:
+       Anyone can claim anything. Screenshots are trivially forged.
+       LinkedIn endorsements are social not cryptographic.
+       A resume is a document with no chain of custody.
+       &quot;Trust me&quot; is not a protocol.
+
+   For three decades, the cost of Failure 1 and Failure 2 was
+   tolerable because human output was the baseline. Everything
+   on the internet was produced by a person. The question was
+   not &quot;is this human?&quot; — it obviously was. The question was
+   &quot;which human, and should I trust them?&quot;
+
+   Generative AI ended that era in 2023.
+
+   Jensen Huang described the shift precisely: computing has
+   moved from a retrieval model — data sits in a center, you
+   query it, you get it back — to a generative model — tokens
+   are produced at inference time, at scale, indistinguishable
+   from human output. In the retrieval era, human work was the
+   background. In the generative era, machine output is the
+   background. Human work is now the signal.
+
+   A signal that has no way to identify itself is just noise.
+
+   PHW inverts the failure modes:
+
+     Against Failure 1 — Concentration:
+       The proof lives with you, not them. Your Identity Layer
+       is local, encrypted, user-keyed. Assertions are portable
+       tokens you hold. The protocol survives any platform
+       shutdown.
+
+     Against Failure 2 — Unverifiability:
+       Every assertion is cryptographically bound to evidence.
+       A verifier checks a signature, not a screenshot. You
+       cannot forge a PHW token without the signing key.
+
+   PHW is not a new identity platform. It is a protocol. The
+   specification defines the data formats, signing procedures,
+   and verification flows. Any implementation — a mobile app,
+   a browser extension, a command-line tool, a server — that
+   follows the spec produces interoperable PHW assertions.
+
+
+2.  Terminology
+
+   Human Work Unit (HWU)
+      A discrete, verifiable act of human effort or identity,
+      bound to a cryptographic attestation. Examples: receiving
+      a physical item (PoA), earning a credential, completing
+      a task, asserting a professional claim.
+
+   Claimant
+      The person asserting a HWU. The Claimant holds the raw
+      evidence and controls the Identity Layer.
+
+   Assertion Bundle
+      The signed, portable output of the PHW protocol. Contains
+      hashed representations of evidence fields, metadata, and
+      a cryptographic signature. Never contains raw evidence
+      by default.
+
+   Identity Layer
+      The Claimant&#x27;s local, encrypted store of raw identity
+      data. The Claimant holds the encryption key. No cloud
+      dependency required. The Identity Layer is the source
+      of truth for all assertions.
+
+   Filter Layer
+      The outbound gate that decides what to assert, to whom,
+      and for how long. The Filter Layer applies the Claimant&#x27;s
+      disclosure rules before any Assertion Bundle is generated.
+      It is the algorithmic firewall between raw identity data
+      and the outside world.
+
+   Verifier
+      Any party that checks an Assertion Bundle. Verifiers
+      receive only what is in the bundle — no raw data, no
+      identity layer access, no side channel.
+
+   Portability Contract
+      The protocol guarantee that a valid Assertion Bundle
+      remains verifiable independent of any server or platform.
+      In v0.1, verification requires calling the issuing
+      server. In v0.2+, Ed25519 signatures make every bundle
+      self-verifying.
+
+   Credential
+      A specific assertion type. Three kinds:
+        IS:   &quot;I am X&quot; — identity assertions (name, employer,
+              nationality, membership)
+        HAS:  &quot;I have Y&quot; — possession assertions (acquired a
+              physical item, holds a document, owns an account)
+        DID:  &quot;I did Z&quot; — behavioral assertions (completed a
+              task, attended an event, shipped a product)
+
+   Attestation
+      The cryptographic proof that a credential claim is
+      truthful. An attestation binds the claim to a specific
+      piece of evidence without revealing the evidence itself.
+
+   Selective Disclosure
+      The property that a Claimant can include or exclude
+      specific fields from an Assertion Bundle. A verifier
+      sees only what the Claimant chose to reveal. Excluded
+      fields are absent from the bundle, not redacted.
+
+   Acquisition Window
+      For time-bounded credentials, the period during which
+      a valid assertion can be created. Inherited from PoA.
+      Default: 24 hours from the anchoring event.
+
+
+3.  Why Now — The Generative Inflection Point
+
+   PHW is not a novel concept. Cryptographic identity has been
+   theorized since the 1980s. PGP shipped in 1991. W3C
+   Verifiable Credentials has existed since 2019. The question
+   is not why does PHW exist — it is why does PHW matter now,
+   in 2026, more than it ever has before.
+
+   The answer is Jensen Huang&#x27;s observation about computing
+   architecture.
+
+   In the retrieval era, computing was organized around storage:
+   you had data in a center, users came to get it, and the
+   system was fundamentally a database with a network in front
+   of it. The economic value of software was in organizing and
+   delivering what already existed. The limiting resource was
+   bandwidth and query speed. Human work was the raw material
+   that filled the database.
+
+   Generative computing inverts this. The limiting resource is
+   no longer bandwidth — it is inference. The system does not
+   retrieve; it produces. The output is not a document that
+   existed — it is a token sequence generated on demand,
+   indistinguishable from what a person would have written.
+
+   In retrieval computing, proving human origin was trivially
+   easy: the document was in the database because a person put
+   it there. Provenance was structural, not cryptographic.
+
+   In generative computing, proving human origin requires a
+   protocol. The token sequence exists because an inference
+   engine produced it — unless someone can prove otherwise.
+   The burden of proof has reversed. You are machine-generated
+   by default until proven human.
+
+   PHW is the proof.
+
+   The timing argument in three sentences: machine tokens are
+   now abundant and cheap. Human work tokens are scarce and
+   cannot be faked. The protocol that makes human work tokens
+   legible and portable is worth building now, before the
+   signal is completely buried in the noise.
+
+   A PHW token is the blue checkmark that generative AI
+   killed and cryptography can resurrect — except this time
+   it is issued by the Claimant, not the platform, and
+   verifiable by anyone, not just by X (formerly Twitter).
+
+
+4.  Protocol Overview
+
+   The PHW protocol has five phases. Each phase can be
+   implemented independently; the phases compose into a
+   complete sovereignty stack.
+
+   Phase 1: Evidence Acquisition
+      The Claimant collects raw evidence of a work unit or
+      identity claim. Evidence types include:
+        - Physical: photo, scan, document
+        - Digital: transaction record, signed message, log
+        - Behavioral: event attendance, task completion
+        - Biometric: signature, voice print (future)
+      Raw evidence enters the Identity Layer. It does not
+      leave unless the Claimant initiates an export.
+
+   Phase 2: Local Storage (Identity Layer)
+      Evidence is hashed and stored in the Identity Layer
+      (Section 5). The raw evidence may be retained
+      locally or discarded — the hash is what matters
+      for later assertion. The hash is encrypted at rest.
+
+   Phase 3: Selective Assertion (Filter Layer)
+      When the Claimant wants to assert a credential,
+      the Filter Layer applies the Claimant&#x27;s disclosure
+      rules (Section 8). The output is a list of fields
+      approved for inclusion in the Assertion Bundle.
+      Fields not approved are absent from the bundle.
+
+   Phase 4: Proof Generation
+      The approved fields are assembled into an Assertion
+      Bundle (Section 6). The bundle is signed using
+      HMAC-SHA256 (v0.1) or Ed25519 (v0.2+). The signed
+      token is returned to the Claimant and optionally
+      submitted to a verifier endpoint.
+
+   Phase 5: Verification
+      A Verifier checks the Assertion Bundle by calling
+      the verification endpoint (v0.1) or by verifying
+      the Ed25519 signature locally against the Claimant&#x27;s
+      published public key (v0.2+). The Verifier receives
+      a valid/invalid result plus the fields the Claimant
+      chose to disclose. No raw data, no Identity Layer
+      access.
+
+
+5.  Identity Layer
+
+   The Identity Layer is the Claimant&#x27;s local, encrypted
+   store of identity data and evidence hashes. It is the
+   source of truth for all PHW assertions.
+
+   5.1  Storage Requirements
+
+        MUST be stored locally on the Claimant&#x27;s device.
+        MUST be encrypted at rest using a key held by the
+        Claimant, not the issuing server.
+        MAY be synced to a second device at the Claimant&#x27;s
+        option. Sync is outside the scope of this spec.
+        MUST NOT be synced to a third-party cloud without
+        explicit, informed Claimant consent.
+
+   5.2  Reference Implementation
+
+        The Vault (~/castaways), shipped April 2026, is
+        the reference implementation of the Identity Layer.
+        It uses:
+          - SQLite database (~/.vault/vault.db)
+          - Fernet symmetric encryption (Python cryptography
+            library)
+          - Claimant-held passphrase derived key (PBKDF2)
+
+   5.3  Schema
+
+        The Identity Layer stores one record per credential:
+
+        {
+          &quot;id&quot;:              &lt;uuid&gt;,
+          &quot;credential_type&quot;: &quot;IS&quot; | &quot;HAS&quot; | &quot;DID&quot;,
+          &quot;claim&quot;:           &lt;string, human-readable&gt;,
+          &quot;evidence_hash&quot;:   &lt;hex string, SHA-256&gt;,
+          &quot;context&quot;:         &lt;string, optional&gt;,
+          &quot;issued_at&quot;:       &lt;string, ISO 8601 UTC&gt;,
+          &quot;expires_at&quot;:      &lt;string, ISO 8601 UTC | null&gt;,
+          &quot;nonce&quot;:           &lt;hex string, 16 bytes&gt;,
+          &quot;flags&quot;:           &lt;object, optional metadata&gt;
+        }
+
+        Fields:
+
+          id              UUID v4. Stable identifier for
+                          this credential record.
+
+          credential_type IS, HAS, or DID (Section 2).
+
+          claim           Human-readable description of the
+                          credential. Not included in signed
+                          bundles by default (human readable
+                          claims are PII-adjacent).
+
+          evidence_hash   SHA-256 of the raw evidence. The
+                          evidence itself may or may not be
+                          retained; the hash is permanent.
+
+          context         Optional free-text context. Not
+                          signed. Informational only.
+
+          issued_at       When this credential record was
+                          created in the Identity Layer.
+
+          expires_at      Optional expiry. Null means no
+                          expiry. Implementations SHOULD
+                          warn Claimants of approaching
+                          expiry.
+
+          nonce           Random 16 bytes generated at
+                          record creation. Prevents replay
+                          of identical evidence hashes
+                          across assertions.
+
+          flags           Optional key-value metadata.
+                          Reserved for implementation use.
+                          Examples: {&quot;verified&quot;: true},
+                          {&quot;source&quot;: &quot;drop-watcher&quot;}.
+
+   5.4  Key Management
+
+        The Claimant holds the encryption key. If the key
+        is lost, the Identity Layer contents are unrecoverable.
+        Implementations SHOULD provide key backup guidance
+        (mnemonic phrase, hardware token) but MUST NOT
+        escrow keys without explicit, revocable consent.
+
+
+6.  Assertion Mechanism
+
+   An Assertion Bundle is the signed, portable output of the
+   PHW protocol. It is what the Claimant shares with Verifiers.
+
+   6.1  Bundle Format
+
+        {
+          &quot;version&quot;:         &quot;0.1&quot;,
+          &quot;type&quot;:            &quot;proof-of-human-work&quot;,
+          &quot;credential_type&quot;: &quot;IS&quot; | &quot;HAS&quot; | &quot;DID&quot;,
+          &quot;issuer&quot;:          &lt;string&gt;,
+          &quot;subject_id&quot;:      &lt;string, opaque&gt;,
+          &quot;evidence_hash&quot;:   &lt;hex string, SHA-256&gt;,
+          &quot;issued_at&quot;:       &lt;string, ISO 8601 UTC&gt;,
+          &quot;expires_at&quot;:      &lt;string, ISO 8601 UTC | null&gt;,
+          &quot;nonce&quot;:           &lt;hex string, 16 bytes&gt;,
+          &quot;disclosed&quot;:       &lt;object, selective fields&gt;,
+          &quot;anchor&quot;:          &lt;object, optional&gt;
+        }
+
+        Fields:
+
+          version          MUST be &quot;0.1&quot; for this spec.
+
+          type             MUST be &quot;proof-of-human-work&quot;.
+
+          credential_type  IS, HAS, or DID.
+
+          issuer           The issuing server or DID of the
+                           issuing Claimant. In v0.1, this
+                           is the PHW server URL. In v0.2+,
+                           this is a DID.
+
+          subject_id       Opaque identifier for the Claimant.
+                           Does not contain or reveal PII.
+                           Equivalent to watcher_id in PoA.
+
+          evidence_hash    SHA-256 of the raw evidence, as
+                           stored in the Identity Layer.
+
+          issued_at        Time the bundle was created.
+
+          expires_at       Optional expiry. Null = no expiry.
+
+          nonce            Random 16 bytes. Prevents replay.
+
+          disclosed        A JSON object of fields the
+                           Claimant chose to disclose via
+                           the Filter Layer. Schema varies
+                           by credential_type. Examples:
+                             IS: {&quot;employer&quot;: &quot;Castaways&quot;}
+                             HAS: {&quot;drop_url&quot;: &quot;...&quot;}
+                             DID: {&quot;task&quot;: &quot;shipped v0.1&quot;}
+                           The Verifier sees only what is
+                           in this object.
+
+          anchor           Optional. For time-bounded
+                           credentials: the anchoring event
+                           timestamp and type. Inherited from
+                           PoA (alert_ts). Enables Acquisition
+                           Window validation.
+
+   6.2  Canonical Signing Input
+
+        The signing input is constructed by concatenating
+        bundle fields in canonical order, separated by
+        newlines:
+
+          sign_input = join(&quot;\n&quot;, [
+            version,
+            credential_type,
+            issuer,
+            subject_id,
+            evidence_hash,
+            issued_at,
+            expires_at or &quot;null&quot;,
+            nonce,
+            json_canonical(disclosed),
+            anchor.ts or &quot;null&quot;
+          ])
+
+        json_canonical() is RFC 8785 (JSON Canonicalization
+        Scheme) applied to the disclosed object.
+
+   6.3  Signing (v0.1 — HMAC-SHA256)
+
+          signature = HMAC-SHA256(server_secret, sign_input)
+          token = base64url(bundle_json) + &quot;.&quot; + hex(signature)
+
+        server_secret is the 32-byte key held by the issuing
+        PHW server. In v0.1, only the server can verify.
+
+   6.4  Signing (v0.2+ — Ed25519)
+
+          signature = Ed25519Sign(claimant_private_key, sign_input)
+          token = base64url(bundle_json) + &quot;.&quot; + base64url(signature)
+
+        The Claimant&#x27;s public key is published at a well-known
+        URI:
+          /.well-known/phw-pubkey.json
+
+        This enables self-sovereign verification: any party
+        with the Claimant&#x27;s public key can verify the token
+        without calling any server.
+
+   6.5  Selective Disclosure
+
+        The Filter Layer controls what enters the `disclosed`
+        object. Fields not approved by the Filter Layer are
+        absent from the bundle — they are not present in a
+        redacted form, they simply do not exist. A Verifier
+        cannot distinguish between &quot;Claimant chose not to
+        disclose&quot; and &quot;field does not exist.&quot;
+
+   6.6  Revocation
+
+        In v0.1, revocation is server-side: the issuing server
+        maintains a revocation list indexed by nonce. A Verifier
+        MUST check the revocation list on every verification
+        call.
+
+        In v0.2+, revocation uses short-lived tokens. Tokens
+        expire within a configurable window (default: 30 days).
+        Long-lived credentials issue refreshable tokens on
+        demand. This eliminates the need for a live revocation
+        API.
+
+
+7.  Portability Contract
+
+   The Portability Contract is a protocol-level guarantee,
+   not a feature. Compliant implementations MUST honor it.
+
+   7.1  The Guarantee
+
+        A valid PHW Assertion Bundle issued by a compliant
+        implementation MUST remain verifiable for the life
+        of the credential, regardless of whether the issuing
+        server is reachable.
+
+   7.2  v0.1 Limitations
+
+        In v0.1 (HMAC-SHA256), verification requires calling
+        the issuing server. This violates the Portability
+        Contract in the event of server downtime. v0.1 is
+        explicitly labeled MVP. Implementations using v0.1
+        SHOULD display a warning: &quot;This credential requires
+        online verification.&quot;
+
+   7.3  v0.2 Fulfillment
+
+        Ed25519 signing makes every bundle self-verifying.
+        The Claimant&#x27;s public key, once published and cached,
+        enables offline verification. The Portability Contract
+        is fully satisfied in v0.2+.
+
+        The v0.2 migration path:
+          1. Claimant generates an Ed25519 keypair
+          2. Public key published at /.well-known/phw-pubkey.json
+          3. New bundles signed with Ed25519
+          4. Old HMAC bundles remain valid until they expire
+             or are explicitly revoked
+
+   7.4  User-Held Bundles
+
+        A Claimant SHOULD store a copy of every Assertion
+        Bundle locally. If the issuing server disappears,
+        the Claimant retains their proof. Verifiers who
+        cache Assertion Bundles also retain the ability
+        to verify past assertions.
+
+   7.5  Platform Independence Principle
+
+        PHW explicitly prohibits the following design pattern
+        in v0.2+ compliant implementations:
+
+          &quot;Verification requires an account on our platform.&quot;
+
+        A Verifier MUST be able to verify a PHW token with
+        only:
+          - The token itself
+          - The Claimant&#x27;s public key (public, freely available)
+          - A compliant PHW verification library (open source)
+
+        No accounts. No API keys. No fees.
+
+
+8.  Filter Layer
+
+   The Filter Layer is the Claimant&#x27;s outbound gate. It sits
+   between the Identity Layer (raw data) and the outside world
+   (Verifiers, platforms, requesters). Nothing leaves the
+   Identity Layer without passing through the Filter Layer.
+
+   8.1  Purpose
+
+        The Filter Layer enforces the Privacy guarantee.
+        It answers the question: given this Verifier and
+        this context, what am I willing to disclose?
+
+   8.2  Disclosure Rules
+
+        Rules are evaluated in priority order. Each rule
+        specifies:
+          - Verifier context (who is asking)
+          - Credential type filter (IS / HAS / DID)
+          - Allowed fields (what to include in `disclosed`)
+          - Expiry (how long this grant is valid)
+          - Limit (one-time vs recurring)
+
+        Example rules:
+
+          Rule 1 (priority 1):
+            verifier_type = &quot;employer&quot;
+            credential_type = &quot;IS&quot;
+            allow: [&quot;employer&quot;, &quot;title&quot;, &quot;tenure&quot;]
+            deny: [&quot;location&quot;, &quot;purchases&quot;, &quot;health&quot;]
+            expiry: 30 days
+            limit: recurring
+
+          Rule 2 (priority 2):
+            verifier_type = &quot;collector_platform&quot;
+            credential_type = &quot;HAS&quot;
+            allow: [&quot;drop_url&quot;, &quot;has_photo&quot;, &quot;has_tracking&quot;,
+                    &quot;location_approx&quot;]
+            deny: [&quot;tracking_hash&quot;, &quot;photo_hash&quot;]
+            expiry: null
+            limit: one-time
+
+          Rule 3 (priority 99 — default deny):
+            verifier_type = &quot;*&quot;
+            allow: []
+            deny: [&quot;*&quot;]
+
+        The default rule is deny-all. Nothing is disclosed
+        unless a higher-priority rule explicitly permits it.
+
+   8.3  Consent Log
+
+        Every Filter Layer evaluation — whether it results
+        in disclosure or denial — MUST be logged locally:
+
+        {
+          &quot;timestamp&quot;:       &lt;ISO 8601&gt;,
+          &quot;verifier&quot;:        &lt;string&gt;,
+          &quot;credential_id&quot;:   &lt;uuid&gt;,
+          &quot;decision&quot;:        &quot;allow&quot; | &quot;deny&quot;,
+          &quot;disclosed_fields&quot;: [&lt;field_names&gt;],
+          &quot;rule_matched&quot;:    &lt;rule_id&gt;
+        }
+
+        The Claimant can audit exactly who asked for what,
+        what was granted, and when. The consent log is
+        stored in the Identity Layer and is not disclosed
+        to Verifiers.
+
+   8.4  Relationship to The Algorithm
+
+        The Filter Layer IS the Vault&#x27;s Algorithm layer
+        (The Vault architecture, layer 4), specified as a
+        protocol. The reference implementation will live in
+        ~/castaways/vault.py. The rules engine is the
+        programmable layer that turns the Vault from a
+        store into a gateway.
+
+   8.5  Inbound Filtering
+
+        The Filter Layer also applies inbound: algorithmic
+        content (feeds, recommendations, unsolicited contact)
+        can be filtered against a blocklist of machine-
+        generated signals. This is the &quot;filter incoming algo
+        out&quot; half of the protocol. Specification for inbound
+        filtering is deferred to v0.3.
+
+
+9.  Privacy Considerations
+
+   9.1  Evidence Privacy
+
+        Raw evidence (photos, documents, tracking numbers)
+        is stored in the Identity Layer and never included
+        in Assertion Bundles. The bundle contains a SHA-256
+        hash of the evidence. A Verifier cannot reconstruct
+        the evidence from the hash.
+
+   9.2  Selective Disclosure
+
+        The `disclosed` object contains only what the Filter
+        Layer approved. A Verifier learns only what is in
+        that object. Fields absent from the bundle reveal
+        nothing — their absence is indistinguishable from
+        non-existence.
+
+   9.3  Subject Identity
+
+        The `subject_id` field is an opaque identifier. It
+        does not contain or encode any PII. Different
+        credential types MAY use different subject_ids
+        for the same Claimant (unlinkability). This is
+        a RECOMMENDED practice for high-sensitivity
+        credential types.
+
+   9.4  Geolocation (inherited from PoA)
+
+        Where location is included in `disclosed`, it MUST
+        be truncated to 2 decimal places (approximately
+        1.1 km precision). Full-precision coordinates MUST
+        NOT appear in any Assertion Bundle.
+
+   9.5  Consent Receipts
+
+        Implementations SHOULD provide the Claimant with a
+        human-readable receipt after every successful
+        assertion:
+
+          &quot;On [date], you disclosed [field list] to [verifier].
+           This grant expires [date | never]. [Revoke link]&quot;
+
+   9.6  Data Minimization
+
+        Implementations MUST NOT include fields in the
+        `disclosed` object that are not explicitly listed
+        in the matching Filter Layer rule. Excess disclosure
+        is a protocol violation, not a misconfiguration.
+
+
+10. Security Considerations
+
+   10.1  HMAC Limitations (v0.1)
+
+         HMAC-SHA256 is symmetric. Only the server that holds
+         the secret can verify the signature. If the server
+         is compromised, all previously issued tokens are
+         unverifiable as trustworthy. v0.1 is acceptable for
+         a single-platform MVP. Implementations MUST NOT
+         deploy v0.1 as a production sovereign identity system.
+
+   10.2  Ed25519 Migration (v0.2)
+
+         Ed25519 asymmetric signing eliminates the server-
+         compromise risk. The private key is held by the
+         Claimant. Compromise of the issuing server does not
+         retroactively compromise issued tokens. Ed25519
+         migration is the single most important security
+         upgrade between v0.1 and v0.2.
+
+   10.3  Nonce and Replay Protection
+
+         Each bundle includes a random 16-byte nonce. Verifiers
+         SHOULD maintain a nonce cache scoped to the token
+         expiry window. A token with a previously-seen nonce
+         MUST be rejected. After expiry, timestamp validation
+         provides sufficient replay protection.
+
+   10.4  Key Rotation
+
+         Claimants SHOULD rotate Ed25519 keypairs periodically.
+         Old public keys MUST remain published and valid for
+         the lifetime of tokens they signed. Key rotation
+         invalidates future assertions; it does not retroactively
+         invalidate past ones.
+
+   10.5  Side-Channel: Assertion Frequency
+
+         The frequency and timing of assertions can reveal
+         behavioral patterns even without the assertion
+         content. Implementations that aggregate assertion
+         metadata SHOULD be treated as a surveillance risk.
+         Claimants SHOULD be aware that assertion volume is
+         observable by Verifiers.
+
+   10.6  Filter Layer Bypass
+
+         A malicious implementation could allow the Filter
+         Layer to be bypassed. Implementations MUST treat
+         Filter Layer rules as mandatory policy, not optional
+         configuration. Open-source implementations are
+         strongly preferred; proprietary Filter Layers cannot
+         be audited for bypass vulnerabilities.
+
+   10.7  Hash Preimage Resistance
+
+         SHA-256 is used for evidence hashing. A Verifier
+         who independently holds the raw evidence (e.g.,
+         knows the tracking number) CAN confirm it matches
+         the hash. This is a known property, not a
+         vulnerability: the hash proves possession of the
+         pre-image, and the pre-image is not secret to
+         parties who already have it.
+
+
+11. Standardization Roadmap
+
+   The PHW specification follows the same path as the Proof
+   of Acquisition (PoA) and is designed to graduate to formal
+   standards over time.
+
+   11.1  Phase 1 — De Facto (2026)
+
+         Ship PHW as an implementation inside The Vault and
+         Drop Watcher. Gain real-world adoption in collector
+         communities (PoA as first credential type). Publish
+         this spec as a public document. No formal submission
+         yet. Let the protocol prove itself.
+
+         Precedent: JSON Web Tokens (RFC 7519) shipped as
+         a de facto standard for three years before IETF
+         ratification.
+
+   11.2  Phase 2 — Parallel Standards Tracks (2027)
+
+         Submit PHW as an IETF Internet-Draft to the Security
+         Area (SEC). This spec is formatted to IETF conventions
+         and is ready for I-D submission with minor changes.
+         Timeline: 12-18 months from submission to RFC.
+
+         Simultaneously, submit the Assertion Bundle as a
+         W3C Verifiable Credentials credential type to the
+         VC Working Group. An Assertion Bundle is a VC:
+           - Claimant = Subject
+           - PHW server/DID = Issuer
+           - Verifier = Verifier
+
+         The disclosed object maps directly to VC claims.
+
+   11.3  Phase 3 — C2PA Integration
+
+         Propose the PHW photo evidence layer as a C2PA
+         assertion type. C2PA (Coalition for Content
+         Provenance and Authenticity: Adobe, Microsoft,
+         BBC, Intel) solves &quot;prove this photo is real.&quot;
+         PHW solves &quot;prove this receipt is real.&quot; The chain:
+
+           C2PA assertion: &quot;this photo is authentic&quot;
+           PHW HAS assertion: &quot;I received this item&quot;
+           Combined: &quot;this authentic photo proves I got it&quot;
+
+         Submitted as a C2PA content assertion extension.
+
+   11.4  Recommended Strategy
+
+         Phase 1: Ship it. Build adoption. The de facto
+         standard is more powerful than the official one
+         that nobody uses.
+
+         Phase 2: Standards bodies follow adoption. Do not
+         ask them to bless an idea; show them a deployed
+         protocol with real users.
+
+         Phase 3: Let the standards bring the network
+         effects. Federation happens when two implementations
+         want to interoperate and have a common spec to
+         reference.
+
+
+12. References
+
+   [RFC 2104]    Krawczyk, H., Bellare, M., and R. Canetti,
+                 &quot;HMAC: Keyed-Hashing for Message
+                 Authentication&quot;, RFC 2104, February 1997.
+
+   [RFC 6234]    Eastlake 3rd, D. and T. Hansen, &quot;US Secure
+                 Hash Algorithms (SHA and SHA-based HMAC and
+                 HKDF)&quot;, RFC 6234, May 2011.
+
+   [RFC 7519]    Jones, M., Bradley, J., and N. Sakimura,
+                 &quot;JSON Web Token (JWT)&quot;, RFC 7519, May 2015.
+
+   [RFC 8037]    Liusvaara, I., &quot;CFRG Elliptic Curves and
+                 Key Representations for Jose&quot;, RFC 8037,
+                 January 2017.
+
+   [RFC 8785]    Rundgren, A., Jordan, B., and S. Erdtman,
+                 &quot;JSON Canonicalization Scheme (JCS)&quot;,
+                 RFC 8785, June 2020.
+
+   [VC-DATA]     Sporny, M. et al., &quot;Verifiable Credentials
+                 Data Model 1.1&quot;, W3C Recommendation, 2022.
+                 https://www.w3.org/TR/vc-data-model/
+
+   [C2PA]        Coalition for Content Provenance and
+                 Authenticity, &quot;C2PA Specification&quot;, v1.3,
+                 2024. https://c2pa.org/specifications/
+
+   [HUANG-2025]  Huang, J., &quot;The Next Wave of AI&quot;, Special
+                 Competitive Studies Project (SCSP) keynote,
+                 2025. Retrieval-to-generative computing
+                 transition; tokenization as economic unit.
+
+   [POA-0.1]     Gibson, S., &quot;Proof of Acquisition (PoA)
+                 Protocol Specification, Version 0.1&quot;,
+                 The Castaways / Drop Watcher, April 2026.
+                 ~/castaways/docs/proof-of-acquisition.txt
+
+
+Appendix A.  Relationship to Proof of Acquisition (PoA)
+
+   PoA is a PHW application. The mapping is direct:
+
+     PHW concept          PoA equivalent
+     ─────────────────────────────────────────────────
+     Claimant             Watcher (watcher_id)
+     Credential type      HAS (acquired a physical item)
+     Evidence             photo + tracking number
+     Identity Layer       (not yet implemented in PoA v0.1)
+     Filter Layer         (not yet implemented in PoA v0.1)
+     Assertion Bundle     PoA attestation token
+     Issuer               PoA Server (Iron Man)
+     subject_id           watcher_id
+     anchor               alert_ts
+
+   PoA v0.1 is a manually-specified subset of PHW. Upgrading
+   PoA to PHW v0.2 means:
+     1. Adding an Identity Layer to the Drop Watcher backend
+     2. Wrapping the PoA signing flow in the PHW Assertion
+        Bundle format
+     3. Migrating to Ed25519 (satisfying the Portability
+        Contract)
+
+   Any PoA token can be expressed as a valid PHW HAS assertion
+   with no information loss.
+
+
+Appendix B.  Assertion Bundle Examples
+
+   B.1  IS Credential (professional identity)
+
+   {
+     &quot;version&quot;: &quot;0.1&quot;,
+     &quot;type&quot;: &quot;proof-of-human-work&quot;,
+     &quot;credential_type&quot;: &quot;IS&quot;,
+     &quot;issuer&quot;: &quot;https://vault.typhoon/phw&quot;,
+     &quot;subject_id&quot;: &quot;s_7f2b&quot;,
+     &quot;evidence_hash&quot;: &quot;d4e5f6...64 hex chars...ab3c&quot;,
+     &quot;issued_at&quot;: &quot;2026-05-05T09:00:00Z&quot;,
+     &quot;expires_at&quot;: &quot;2026-11-05T09:00:00Z&quot;,
+     &quot;nonce&quot;: &quot;1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d&quot;,
+     &quot;disclosed&quot;: {
+       &quot;employer&quot;: &quot;The Castaways&quot;,
+       &quot;title&quot;: &quot;Founder&quot;,
+       &quot;tenure_years&quot;: 1
+     },
+     &quot;anchor&quot;: null
+   }
+
+   B.2  HAS Credential (PoA acquisition)
+
+   {
+     &quot;version&quot;: &quot;0.1&quot;,
+     &quot;type&quot;: &quot;proof-of-human-work&quot;,
+     &quot;credential_type&quot;: &quot;HAS&quot;,
+     &quot;issuer&quot;: &quot;https://instockornot.club/phw&quot;,
+     &quot;subject_id&quot;: &quot;w_8f3a&quot;,
+     &quot;evidence_hash&quot;: &quot;a1b2c3...64 hex chars...def0&quot;,
+     &quot;issued_at&quot;: &quot;2026-04-22T18:30:00Z&quot;,
+     &quot;expires_at&quot;: null,
+     &quot;nonce&quot;: &quot;7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d&quot;,
+     &quot;disclosed&quot;: {
+       &quot;drop_url&quot;: &quot;https://bladehq.com/item/Spyderco-PM2&quot;,
+       &quot;has_photo&quot;: true,
+       &quot;has_tracking&quot;: true,
+       &quot;location_approx&quot;: &quot;Spokane, WA area&quot;
+     },
+     &quot;anchor&quot;: {
+       &quot;type&quot;: &quot;drop_alert&quot;,
+       &quot;ts&quot;: &quot;2026-04-22T14:00:00Z&quot;
+     }
+   }
+
+   B.3  DID Credential (task completion)
+
+   {
+     &quot;version&quot;: &quot;0.1&quot;,
+     &quot;type&quot;: &quot;proof-of-human-work&quot;,
+     &quot;credential_type&quot;: &quot;DID&quot;,
+     &quot;issuer&quot;: &quot;https://vault.typhoon/phw&quot;,
+     &quot;subject_id&quot;: &quot;s_7f2b&quot;,
+     &quot;evidence_hash&quot;: &quot;8c9d0e...64 hex chars...1f2a&quot;,
+     &quot;issued_at&quot;: &quot;2026-05-05T09:15:00Z&quot;,
+     &quot;expires_at&quot;: null,
+     &quot;nonce&quot;: &quot;9b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4d&quot;,
+     &quot;disclosed&quot;: {
+       &quot;task&quot;: &quot;Shipped PHW v0.1 specification&quot;,
+       &quot;output_url&quot;: &quot;https://castaways/docs/phw&quot;,
+       &quot;completed_at&quot;: &quot;2026-05-05&quot;
+     },
+     &quot;anchor&quot;: null
+   }
+
+
+Appendix C.  Filter Layer Rule Schema
+
+   {
+     &quot;id&quot;:              &lt;uuid&gt;,
+     &quot;priority&quot;:        &lt;integer, lower = higher priority&gt;,
+     &quot;verifier_match&quot;:  &lt;string | &quot;*&quot;&gt;,
+     &quot;credential_type&quot;: &quot;IS&quot; | &quot;HAS&quot; | &quot;DID&quot; | &quot;*&quot;,
+     &quot;allow&quot;:           [&lt;field_names&gt; | &quot;*&quot;],
+     &quot;deny&quot;:            [&lt;field_names&gt; | &quot;*&quot;],
+     &quot;expiry_seconds&quot;:  &lt;integer | null&gt;,
+     &quot;limit&quot;:           &quot;one-time&quot; | &quot;recurring&quot;,
+     &quot;active&quot;:          &lt;boolean&gt;
+   }
+
+   Evaluation order:
+     1. Sort rules by priority (ascending)
+     2. Find first rule where verifier_match and
+        credential_type match the request
+     3. Apply allow/deny to the Identity Layer fields
+     4. Return the filtered field set to the bundle
+        construction step
+
+   If no rule matches: deny all (implicit Rule 99).
+   If allow = [&quot;*&quot;]: disclose all non-denied fields.
+   If deny = [&quot;*&quot;]: disclose nothing.
+
+
+Appendix D.  Verification Flow Diagram
+
+   Claimant         Identity Layer    Filter Layer    Verifier
+      |                   |                |              |
+      |  evidence in      |                |              |
+      |------------------&gt;|                |              |
+      |                   |  hash + store  |              |
+      |                   |                |              |
+      |  assert request   |                |              |
+      |------------------------------------&gt;              |
+      |                   |                |              |
+      |                   |  apply rules   |              |
+      |                   |---------------&gt;|              |
+      |                   |                |              |
+      |                   |  approved fields              |
+      |                   |&lt;---------------|              |
+      |                   |                |              |
+      |  [build + sign Assertion Bundle]   |              |
+      |                   |                |              |
+      |  token            |                |              |
+      |&lt;-----------------------------------.              |
+      |                   |                |              |
+      |  shares token                      |              |
+      |--------------------------------------------------------&gt;|
+      |                   |                |              |
+      |                   |                | GET /verify  |
+      |                   |                |&lt;-------------|
+      |                   |                |              |
+      |                   |                | valid/fields |
+      |                   |                |-------------&gt;|
+      |                   |                |              |
+
+
+                         END OF DOCUMENT
+</pre>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>Drop Watcher — Security</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body {
+      background: var(--black); color: var(--white);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+    }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.5rem 2rem; border-bottom: 1px solid var(--iron);
+    }
+    nav a.logo {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem;
+      letter-spacing: 3px; text-decoration: none; color: var(--white);
+    }
+    nav a.logo span { color: var(--ember); }
+    nav .nav-links { display: flex; gap: 1.5rem; }
+    nav .nav-links a {
+      color: var(--ash); text-decoration: none; font-size: 0.75rem;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    nav .nav-links a:hover { color: var(--white); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem;
+      letter-spacing: 4px; margin-bottom: 0.3rem;
+    }
+    h1 span { color: var(--ember); }
+    .updated { font-size: 0.7rem; color: var(--ash); margin-bottom: 2rem; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 0.8rem; margin-bottom: 2rem;
+    }
+    .stat {
+      background: var(--steel); border: 1px solid var(--iron);
+      padding: 1rem; text-align: center;
+    }
+    .stat .num {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--ember);
+    }
+    .stat .label {
+      font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--ash); margin-top: 0.2rem;
+    }
+
+    .panel {
+      background: var(--steel); border: 1px solid var(--iron);
+      padding: 1.2rem; margin-bottom: 1rem;
+    }
+    .panel.threat { border-left: 3px solid var(--ember); }
+    .panel h2 {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem;
+      letter-spacing: 2px; margin-bottom: 0.5rem; color: var(--white);
+    }
+    .panel-sub {
+      font-size: 0.7rem; color: var(--ash); margin-bottom: 0.8rem;
+    }
+    .badge {
+      background: var(--ember); color: var(--white); font-size: 0.7rem;
+      padding: 0.15rem 0.5rem; vertical-align: middle; letter-spacing: 0;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    tr { border-bottom: 1px solid var(--iron); }
+    tr.header { color: var(--ash); font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; }
+    td { padding: 0.4rem 0.5rem; font-size: 0.8rem; }
+    .ip { color: var(--silver); font-family: 'Share Tech Mono', monospace; }
+    .num-cell { text-align: right; color: var(--white); }
+    .ua-cell { color: var(--ash); font-size: 0.7rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .path-cell { color: var(--flame); font-size: 0.75rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .s404 { color: var(--ember); }
+    .threat-flag { color: var(--ember); font-weight: bold; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    footer {
+      text-align: center; padding: 2rem 0; border-top: 1px solid var(--iron); margin-top: 2rem;
+    }
+    footer .hgr {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem;
+      color: var(--ember); letter-spacing: 3px;
+    }
+    footer .sub { font-size: 0.65rem; color: var(--ash); margin-top: 0.3rem; }
+
+    @media (max-width: 700px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      .two-col { grid-template-columns: 1fr; }
+      .container { padding: 1.5rem 1rem 3rem; }
+      h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <div class="nav-links">
+    <a href="/stats/dashboard.html">DASHBOARD</a>
+    <a href="/stats/simon.html">DEEP DIVE</a>
+    <a href="/stats/traffic.html">TRAFFIC</a>
+    <a href="/stats/security.html">SECURITY</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/alerts.html">ALERTS</a>
+    <a href="/">HOME</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h1>SECURITY <span>REPORT</span></h1>
+  <div class="updated">Last 24h &mdash; generated 2026-05-11 04:50 UTC</div>
+
+  
+    <div class="stats-grid">
+      <div class="stat"><div class="num">984</div><div class="label">Requests (24h)</div></div>
+      <div class="stat"><div class="num">313</div><div class="label">Unique IPs</div></div>
+      <div class="stat"><div class="num">252.8 MB</div><div class="label">Bandwidth</div></div>
+      <div class="stat"><div class="num" style="color:var(--ember)">5</div><div class="label">Threats</div></div>
+      <div class="stat"><div class="num">29</div><div class="label">Scanner Hits</div></div>
+      <div class="stat"><div class="num">7</div><div class="label">Bad UA Types</div></div>
+    </div>
+
+  
+
+  
+    <div class="panel threat">
+      <h2>SCANNERS <span class="badge">5</span></h2>
+      <p class="panel-sub">IPs probing known attack paths (wp-admin, .env, phpMyAdmin, etc.)</p>
+      <table><tr><td class="ip">108.162.245.173</td><td class="num-cell">3</td><td class="path-cell">/api/v1/docs, /api/v1/posts</td></tr>
+<tr><td class="ip">172.68.22.212</td><td class="num-cell">3</td><td class="path-cell">/api/v1/docs, /api/v1/orgs, /api/v1/posts?limit=200&render=html</td></tr>
+<tr><td class="ip">172.71.146.61</td><td class="num-cell">2</td><td class="path-cell">/api/v1/, /api/v1/posts</td></tr>
+<tr><td class="ip">172.68.10.93</td><td class="num-cell">2</td><td class="path-cell">/wp-admin/install.php?step=1</td></tr>
+<tr><td class="ip">24.144.124.171</td><td class="num-cell">2</td><td class="path-cell">/.env</td></tr>
+</table>
+    </div>
+
+  
+    <div class="panel">
+      <h2>BAD USER AGENTS</h2>
+      <p class="panel-sub">Known scrapers, bots, and empty UAs</p>
+      <table><tr><td class="ua-cell">go-http-client</td><td class="num-cell">13 IPs</td></tr>
+<tr><td class="ua-cell">python-requests</td><td class="num-cell">10 IPs</td></tr>
+<tr><td class="ua-cell">curl/</td><td class="num-cell">8 IPs</td></tr>
+<tr><td class="ua-cell">empty</td><td class="num-cell">4 IPs</td></tr>
+<tr><td class="ua-cell">bytespider</td><td class="num-cell">4 IPs</td></tr>
+<tr><td class="ua-cell">ahrefs</td><td class="num-cell">2 IPs</td></tr>
+<tr><td class="ua-cell">zgrab</td><td class="num-cell">1 IPs</td></tr>
+</table>
+    </div>
+
+  <div class="two-col">
+    
+    <div class="panel">
+      <h2>TOP IPs</h2>
+      <table>
+        <tr class="header"><td>IP</td><td>Reqs</td><td>404s</td><td>Bytes</td></tr>
+        <tr><td class="ip">172.68.22.212 <span class="threat-flag">!</span></td><td class="num-cell">117</td><td class="num-cell"><span class="s404">1</span></td><td class="num-cell">914.1 KB</td></tr>
+<tr><td class="ip">108.162.245.173 <span class="threat-flag">!</span></td><td class="num-cell">97</td><td class="num-cell">0</td><td class="num-cell">584.1 KB</td></tr>
+<tr><td class="ip">108.162.245.172</td><td class="num-cell">94</td><td class="num-cell">0</td><td class="num-cell">647.2 KB</td></tr>
+<tr><td class="ip">172.68.22.213</td><td class="num-cell">59</td><td class="num-cell">0</td><td class="num-cell">422.7 KB</td></tr>
+<tr><td class="ip">162.158.42.194</td><td class="num-cell">58</td><td class="num-cell">0</td><td class="num-cell">260.8 KB</td></tr>
+<tr><td class="ip">162.158.42.193</td><td class="num-cell">51</td><td class="num-cell">0</td><td class="num-cell">375.0 KB</td></tr>
+<tr><td class="ip">172.71.146.60</td><td class="num-cell">18</td><td class="num-cell">0</td><td class="num-cell">159.4 KB</td></tr>
+<tr><td class="ip">104.22.17.145</td><td class="num-cell">18</td><td class="num-cell">0</td><td class="num-cell">81.6 KB</td></tr>
+<tr><td class="ip">172.71.146.61 <span class="threat-flag">!</span></td><td class="num-cell">17</td><td class="num-cell">0</td><td class="num-cell">110.9 KB</td></tr>
+<tr><td class="ip">172.68.55.102</td><td class="num-cell">16</td><td class="num-cell">0</td><td class="num-cell">67.2 KB</td></tr>
+<tr><td class="ip">172.68.55.103</td><td class="num-cell">14</td><td class="num-cell">0</td><td class="num-cell">52.6 KB</td></tr>
+<tr><td class="ip">104.22.17.144</td><td class="num-cell">13</td><td class="num-cell">0</td><td class="num-cell">66.4 KB</td></tr>
+<tr><td class="ip">104.22.101.221</td><td class="num-cell">13</td><td class="num-cell">0</td><td class="num-cell">56.9 KB</td></tr>
+<tr><td class="ip">172.69.134.32</td><td class="num-cell">10</td><td class="num-cell">0</td><td class="num-cell">40.3 KB</td></tr>
+<tr><td class="ip">172.69.134.33</td><td class="num-cell">8</td><td class="num-cell">0</td><td class="num-cell">43.1 KB</td></tr>
+<tr><td class="ip">108.162.237.125</td><td class="num-cell">6</td><td class="num-cell">0</td><td class="num-cell">29.3 KB</td></tr>
+<tr><td class="ip">172.68.94.141</td><td class="num-cell">5</td><td class="num-cell">0</td><td class="num-cell">463.3 KB</td></tr>
+<tr><td class="ip">172.71.151.84</td><td class="num-cell">5</td><td class="num-cell">0</td><td class="num-cell">54.9 KB</td></tr>
+<tr><td class="ip">172.71.158.122</td><td class="num-cell">5</td><td class="num-cell">0</td><td class="num-cell">20.1 KB</td></tr>
+<tr><td class="ip">172.71.159.112</td><td class="num-cell">5</td><td class="num-cell">0</td><td class="num-cell">21.2 KB</td></tr>
+<tr><td class="ip">104.22.17.88</td><td class="num-cell">4</td><td class="num-cell">0</td><td class="num-cell">19.2 KB</td></tr>
+<tr><td class="ip">172.70.126.216</td><td class="num-cell">4</td><td class="num-cell">0</td><td class="num-cell">19.2 KB</td></tr>
+<tr><td class="ip">104.22.20.116</td><td class="num-cell">4</td><td class="num-cell">0</td><td class="num-cell">20.0 KB</td></tr>
+<tr><td class="ip">64.62.197.32</td><td class="num-cell">4</td><td class="num-cell"><span class="s404">2</span></td><td class="num-cell">23.9 KB</td></tr>
+<tr><td class="ip">172.68.94.154</td><td class="num-cell">3</td><td class="num-cell">0</td><td class="num-cell">521.7 KB</td></tr>
+
+      </table>
+    </div>
+    <div>
+      
+    <div class="panel">
+      <h2>STATUS CODES</h2>
+      <table><tr><td style="color:#27ae60">200</td><td class="num-cell">678</td></tr>
+<tr><td style="color:#27ae60">201</td><td class="num-cell">16</td></tr>
+<tr><td style="color:#27ae60">204</td><td class="num-cell">49</td></tr>
+<tr><td style="color:var(--flame)">301</td><td class="num-cell">3</td></tr>
+<tr><td style="color:var(--flame)">302</td><td class="num-cell">3</td></tr>
+<tr><td style="color:var(--flame)">304</td><td class="num-cell">145</td></tr>
+<tr><td style="color:var(--ember)">400</td><td class="num-cell">4</td></tr>
+<tr><td style="color:var(--ember)">403</td><td class="num-cell">30</td></tr>
+<tr><td style="color:var(--ember)">404</td><td class="num-cell">52</td></tr>
+<tr><td style="color:var(--ember)">405</td><td class="num-cell">3</td></tr>
+<tr><td style="color:var(--ember)">422</td><td class="num-cell">1</td></tr>
+</table>
+    </div>
+      
+    <div class="panel">
+      <h2>TOP 404 SOURCES</h2>
+      <p class="panel-sub">IPs generating the most 404s</p>
+      <table><tr><td class="ip">108.162.245.235</td><td class="num-cell">3</td></tr>
+<tr><td class="ip">108.162.245.121</td><td class="num-cell">3</td></tr>
+<tr><td class="ip">172.70.208.119</td><td class="num-cell">3</td></tr>
+</table>
+    </div>
+    </div>
+  </div>
+
+  
+    <div class="panel">
+      <h2>TOP PATHS</h2>
+      <table><tr><td class="path-cell">/</td><td class="num-cell">195</td></tr>
+<tr><td class="path-cell">/blog/members/api/member/</td><td class="num-cell">67</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/content/settings/?key=37877b95b50a8d9dc5ea22</td><td class="num-cell">65</td></tr>
+<tr><td class="path-cell">/blog/the-castle-the-mice-and-the-starship/</td><td class="num-cell">58</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/content/newsletters/?limit=100&key=37877b95b</td><td class="num-cell">47</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/content/tiers/?limit=100&include=monthly_pri</td><td class="num-cell">47</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/admin/users/me/?include=roles</td><td class="num-cell">35</td></tr>
+<tr><td class="path-cell">/blog/members/api/comments/counts/?ids=69fe1578a6f1beb010757</td><td class="num-cell">16</td></tr>
+<tr><td class="path-cell">/blog/members/api/comments/post/69fe1578a6f1beb010757255/?li</td><td class="num-cell">16</td></tr>
+<tr><td class="path-cell">/blog/ghost/auth-frame/</td><td class="num-cell">16</td></tr>
+<tr><td class="path-cell">/favicon.ico</td><td class="num-cell">16</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/admin/site/</td><td class="num-cell">12</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/admin/images/upload/</td><td class="num-cell">12</td></tr>
+<tr><td class="path-cell">/blog/</td><td class="num-cell">11</td></tr>
+<tr><td class="path-cell">/blog/ghost/</td><td class="num-cell">10</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/admin/settings/?group=site%2Ctheme%2Cprivate</td><td class="num-cell">10</td></tr>
+<tr><td class="path-cell">/wp-admin/install.php?step=1</td><td class="num-cell">10</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/admin/comments/post/69fe1578a6f1beb010757255</td><td class="num-cell">9</td></tr>
+<tr><td class="path-cell">/robots.txt</td><td class="num-cell">8</td></tr>
+<tr><td class="path-cell">/blog/ghost/api/admin/authentication/setup/</td><td class="num-cell">7</td></tr>
+</table>
+    </div>
+
+</div>
+
+<footer>
+  <div class="hgr">HGR</div>
+  <div class="sub">instockornot.club</div>
+</footer>
+
+</body>
+</html>

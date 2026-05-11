@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="{{@site.locale}}">
+<head>
+    <title>{{meta_title}}</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="{{asset "css/screen.css"}}" />
+    {{ghost_head}}
+</head>
+<body class="{{body_class}}">
+
+    {{#is "post"}}
+    <div class="reading-progress" id="reading-progress"></div>
+    {{/is}}
+
+    <header class="site-header">
+        <div class="site-title"><a href="{{@site.url}}">{{@site.title}}</a></div>
+        <nav class="site-nav">
+            {{navigation}}
+        </nav>
+    </header>
+
+    <main class="site-main">
+        {{{body}}}
+    </main>
+
+    <footer class="site-footer">
+        <a href="{{@site.url}}">{{@site.title}}</a> &copy; {{date format="YYYY"}}
+    </footer>
+
+    {{#is "post"}}
+    <script>
+    (function() {
+        var bar = document.getElementById('reading-progress');
+        if (!bar) return;
+        var content = document.querySelector('.post-full-content');
+        if (!content) return;
+        window.addEventListener('scroll', function() {
+            var rect = content.getBoundingClientRect();
+            var total = content.scrollHeight;
+            var scrolled = Math.max(0, -rect.top);
+            var pct = Math.min(100, (scrolled / (total - window.innerHeight)) * 100);
+            bar.style.width = pct + '%';
+        });
+    })();
+    </script>
+    {{/is}}
+
+{{ghost_foot}}
+</body>
+</html>

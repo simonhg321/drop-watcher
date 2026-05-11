@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>The Wins Wall — What users scored | Drop Watcher</title>
+  <meta name="description" content="Real scores from Drop Watcher users. Posts users opted into sharing publicly.">
+  <meta property="og:title" content="The Wins Wall — Drop Watcher">
+  <meta property="og:description" content="Real scores from real users.">
+  <meta property="og:url" content="https://instockornot.club/wall.html">
+  <link rel="canonical" href="https://instockornot.club/wall.html">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a; --ember: #c0392b; --flame: #e67e22; --ash: #888; --silver: #d0d0d0; --white: #f0f0f0; --green: #27ae60; }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 2rem; min-height: 100vh; }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: var(--white); letter-spacing: 0.05em; }
+    h1 span { color: var(--green); }
+    .sub { color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 0.5rem; text-transform: uppercase; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--green), var(--flame), var(--green), transparent); margin: 1rem 0 2rem; }
+    .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 0; display: flex; align-items: center; gap: 32px; margin-bottom: 2rem; flex-wrap: wrap; }
+    .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo span { color: var(--ember); }
+    .dw-nav a:not(.logo) { font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .card { background: var(--steel); border: 1px solid var(--iron); padding: 1.25rem; }
+    .card img { width: 100%; max-height: 300px; object-fit: cover; margin-bottom: 1rem; }
+    .card .who { color: var(--green); font-size: 0.75rem; letter-spacing: 0.15em; margin-bottom: 0.5rem; text-transform: uppercase; }
+    .card .when { color: var(--ash); font-size: 0.7rem; margin-bottom: 0.75rem; }
+    .card .note { color: var(--silver); font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.75rem; white-space: pre-wrap; }
+    .card .src { color: var(--flame); font-size: 0.75rem; word-break: break-all; }
+    .card .src a { color: var(--flame); text-decoration: none; }
+    .empty { color: var(--ash); padding: 3rem 1rem; text-align: center; border: 1px dashed var(--iron); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="dw-nav">
+      <a class="logo" href="/">DROP <span>WATCHER</span></a>
+      <a href="/alerts.html">Alerts</a>
+      <a href="/wall.html" class="active">Wall</a>
+      <a href="/stats.html">Stats</a>
+      <a href="/watchlist.html">Add a Watch</a>
+    </nav>
+
+    <h1>The <span>Wins</span> Wall</h1>
+    <div class="sub">Real scores. Real users. Opt-in only.</div>
+    <div class="flame-line"></div>
+
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="empty" style="display:none">No wins posted yet. Be the first — click the NKD button in your next alert.</div>
+  </div>
+
+<script>
+function timeAgo(iso) {
+  const d = new Date(iso.replace(' ', 'T') + 'Z');
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function isImage(url) {
+  return /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(url || '');
+}
+
+async function load() {
+  try {
+    const r = await fetch('/api/nkd/wall');
+    const d = await r.json();
+    const grid = document.getElementById('grid');
+    if (!d.ok || !d.entries.length) { document.getElementById('empty').style.display = 'block'; return; }
+    grid.innerHTML = d.entries.map(e => {
+      const img = e.image_url && isImage(e.image_url) ? `<img src="${esc(e.image_url)}" alt="score" loading="lazy">` : '';
+      const link = e.image_url && !isImage(e.image_url) ? `<div class="src"><a href="${esc(e.image_url)}" target="_blank" rel="noopener">View post →</a></div>` : '';
+      const src = e.drop_url ? `<div class="src"><a href="${esc(e.drop_url)}" target="_blank" rel="noopener nofollow">Source ↗</a></div>` : '';
+      return `<div class="card">
+        ${img}
+        <div class="who">${esc(e.display_name)}</div>
+        <div class="when">${esc(timeAgo(e.scored_at))}</div>
+        ${e.note ? `<div class="note">${esc(e.note)}</div>` : ''}
+        ${link}
+        ${src}
+      </div>`;
+    }).join('');
+  } catch (err) {
+    document.getElementById('empty').style.display = 'block';
+    document.getElementById('empty').textContent = 'Could not load — try again in a moment.';
+  }
+}
+load();
+</script>
+</body>
+</html>

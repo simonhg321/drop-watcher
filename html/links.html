@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Castaways</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a14; color: #e0e0e0; font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+  .container { max-width: 480px; width: 100%; }
+  h1 { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 0.3rem; }
+  .ember { color: #e87040; }
+  .sub { color: #555; text-align: center; font-size: 0.9rem; margin-bottom: 2.5rem; }
+  .section { margin-bottom: 2rem; }
+  .section-title { color: #666; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.75rem; padding-left: 4px; }
+  a.link { display: block; background: #12121e; border: 1px solid #1a1a2e; border-radius: 10px; padding: 16px 20px; margin-bottom: 8px; color: #e0e0e0; text-decoration: none; transition: border-color 0.2s, transform 0.15s; }
+  a.link:hover { border-color: #e87040; transform: translateX(4px); }
+  .link-title { font-weight: 600; font-size: 1rem; }
+  .link-desc { color: #666; font-size: 0.8rem; margin-top: 2px; }
+  .footer { color: #333; font-size: 0.75rem; text-align: center; margin-top: 3rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>The <span class="ember">Castaways</span></h1>
+  <div class="sub">Sub-$1000 hardware. Zero cloud dependency. Infinite ambition.</div>
+
+  <div class="section">
+    <div class="section-title">Shareholders</div>
+    <a class="link" href="/annual.html">
+      <div class="link-title">Annual Meeting & Picnic</div>
+      <div class="link-desc">First annual deck &mdash; April 23, 2026</div>
+    </a>
+    <a class="link" href="/read-ahead.html">
+      <div class="link-title">Read-Ahead</div>
+      <div class="link-desc">Pre-meeting materials &mdash; code required</div>
+    </a>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Products</div>
+    <a class="link" href="https://billboard.instockornot.club">
+      <div class="link-title">The Billboard</div>
+      <div class="link-desc">Domain-agnostic collector alert system &mdash; the money maker</div>
+    </a>
+    <a class="link" href="https://billboard.instockornot.club/about.html">
+      <div class="link-title">What is The Billboard?</div>
+      <div class="link-desc">The explainer</div>
+    </a>
+    <a class="link" href="/">
+      <div class="link-title">Drop Watcher</div>
+      <div class="link-desc">2,034 drops found &mdash; the front door</div>
+    </a>
+  </div>
+
+  <div class="section">
+    <div class="section-title">The Org</div>
+    <a class="link" href="/blog.html">
+      <div class="link-title">The Skipper</div>
+      <div class="link-desc">109 posts from 5 machines &mdash; the org's memory</div>
+    </a>
+    <a class="link" href="/api/v1/docs">
+      <div class="link-title">Skipper API Docs</div>
+      <div class="link-desc">OpenAPI + Swagger &mdash; partner integration</div>
+    </a>
+  </div>
+
+  <div class="footer">The Castaways &middot; Spokane, WA &middot; 2026</div>
+</div>
+</body>
+</html>

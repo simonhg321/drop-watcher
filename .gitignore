@@ -9,6 +9,7 @@ logs/
 
 # User data (PII + tokens)
 config/watchers.json
+html/.htpasswd-etb
 
 # Python
 __pycache__/

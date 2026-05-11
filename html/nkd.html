@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>NKD — You scored one! | Drop Watcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a; --ember: #c0392b; --flame: #e67e22; --ash: #888; --silver: #d0d0d0; --white: #f0f0f0; --green: #27ae60; }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 2rem; min-height: 100vh; }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: var(--white); letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    h1 .nkd { color: var(--green); }
+    .sub { color: var(--ash); font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 2rem; text-transform: uppercase; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--green), var(--flame), var(--green), transparent); margin: 1rem 0 2rem; }
+    .card { background: var(--steel); border: 1px solid var(--iron); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card .label { color: var(--ash); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .card .value { color: var(--white); font-size: 0.95rem; word-break: break-all; }
+    label { display: block; margin-bottom: 0.5rem; color: var(--ash); font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; }
+    textarea, input[type=url] { width: 100%; background: var(--black); color: var(--white); border: 1px solid var(--iron); padding: 0.75rem; font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; margin-bottom: 1.25rem; }
+    textarea { min-height: 90px; resize: vertical; }
+    .checkbox { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; color: var(--silver); font-size: 0.85rem; }
+    .checkbox input { width: 18px; height: 18px; accent-color: var(--green); }
+    button { background: var(--green); color: white; border: none; padding: 0.85rem 1.75rem; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+    button:hover { filter: brightness(1.1); }
+    button:disabled { background: var(--iron); cursor: not-allowed; }
+    .error { color: var(--ember); padding: 1rem; border: 1px solid var(--ember); margin-bottom: 1rem; }
+    .success { color: var(--green); padding: 1rem; border: 1px solid var(--green); margin-bottom: 1rem; text-align: center; font-size: 1.2rem; }
+    .hidden { display: none; }
+    a { color: var(--flame); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🔪 <span class="nkd">NKD</span></h1>
+    <div class="sub">New Knife Day — You Scored One</div>
+    <div class="flame-line"></div>
+
+    <div id="loading" class="card"><div class="label">Loading</div><div class="value">Verifying your link…</div></div>
+
+    <div id="invalid" class="card hidden">
+      <div class="error">This link is expired or invalid. If you think that's wrong, just email <a href="mailto:info@instockornot.club">info@instockornot.club</a>.</div>
+    </div>
+
+    <div id="already" class="card hidden">
+      <div class="success">Already logged. Enjoy the blade. 🔪</div>
+      <p style="text-align:center;margin-top:1rem"><a href="/wall.html">See the wins wall →</a></p>
+    </div>
+
+    <form id="form" class="hidden" onsubmit="return submitForm(event)">
+      <div class="card">
+        <div class="label">Score</div>
+        <div class="value" id="drop-url">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Keywords you were watching</div>
+        <div class="value" id="keywords">—</div>
+      </div>
+
+      <label for="note">Tell us about it (optional)</label>
+      <textarea id="note" name="note" maxlength="2000" placeholder="What did you score? What made it worth watching?"></textarea>
+
+      <label for="image_url">Photo or IG link (optional)</label>
+      <input type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://instagram.com/p/… or any public image URL">
+
+      <div class="checkbox">
+        <input type="checkbox" id="show_on_wall" name="show_on_wall">
+        <label for="show_on_wall" style="margin:0;letter-spacing:0.05em;text-transform:none;font-size:0.85rem;color:var(--silver)">Show on the public wins wall</label>
+      </div>
+
+      <button type="submit" id="submit-btn">Record My Score</button>
+    </form>
+
+    <div id="thanks" class="hidden">
+      <div class="success">🔪 Locked in. Thanks for telling us.</div>
+      <p style="text-align:center;margin-top:1rem"><a href="/wall.html">See the wins wall →</a></p>
+    </div>
+  </div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
+
+function show(id) {
+  ['loading','invalid','already','form','thanks'].forEach(i => document.getElementById(i).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+async function load() {
+  if (!token) { show('invalid'); return; }
+  try {
+    const r = await fetch('/api/nkd/' + encodeURIComponent(token));
+    const d = await r.json();
+    if (!d.ok) { show('invalid'); return; }
+    if (d.already_scored) { show('already'); return; }
+    document.getElementById('drop-url').textContent = d.drop_url || '—';
+    document.getElementById('keywords').textContent = d.keywords || '—';
+    show('form');
+  } catch (e) { show('invalid'); }
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  const body = {
+    note: document.getElementById('note').value,
+    image_url: document.getElementById('image_url').value,
+    show_on_wall: document.getElementById('show_on_wall').checked,
+  };
+  try {
+    const r = await fetch('/api/nkd/' + encodeURIComponent(token), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (d.ok) { show('thanks'); }
+    else { alert(d.msg || 'Something went wrong.'); btn.disabled = false; }
+  } catch (err) { alert('Network error — try again.'); btn.disabled = false; }
+  return false;
+}
+
+load();
+</script>
+</body>
+</html>

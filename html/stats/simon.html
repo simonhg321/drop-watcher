@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="120">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>Simon Status — Drop Watcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 1rem; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 8vw, 3rem); color: var(--white); letter-spacing: 0.05em; }
+    h1 span { color: var(--ember); }
+    .subtitle { color: var(--ash); font-size: 0.7rem; letter-spacing: 0.2em; margin-bottom: 1rem; line-height: 1.6; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 1.5rem; }
+
+    .nav { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 0.75rem; letter-spacing: 0.2em; flex-wrap: wrap; }
+    .nav a { color: var(--ash); text-decoration: none; }
+    .nav a:hover { color: var(--flame); }
+    .nav a.active { color: var(--flame); border-bottom: 1px solid var(--flame); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }
+    .stat-card { background: var(--black); padding: 1.2rem 0.5rem; text-align: center; }
+    .stat-label { font-size: 0.55rem; letter-spacing: 0.15em; color: var(--ash); margin-top: 0.3rem; }
+    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.4rem, 5vw, 2rem); color: var(--white); }
+    .stat-sub { font-size: 0.55rem; color: var(--ash); margin-top: 0.2rem; }
+
+    .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.1em; color: var(--ash); margin: 2rem 0 1rem; }
+    .section-head .badge { font-size: 0.8rem; color: var(--flame); margin-left: 0.5rem; }
+
+    .panel { border: 1px solid var(--iron); margin-bottom: 2rem; overflow-x: auto; }
+    .panel-body { padding: 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
+    .data-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--ash); font-size: 0.55rem; letter-spacing: 0.15em; border-bottom: 1px solid var(--iron); white-space: nowrap; position: sticky; top: 0; background: var(--steel); }
+    .data-table td { padding: 0.35rem 0.75rem; border-bottom: 1px solid rgba(42,42,42,0.5); color: var(--silver); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--steel); }
+    .num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .path-cell { max-width: 55vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .kw-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--flame); }
+
+    @media (min-width: 700px) {
+      .hero-grid { grid-template-columns: repeat(6, 1fr); }
+      .path-cell { max-width: 350px; }
+      .kw-cell { max-width: 250px; }
+    }
+
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--iron); color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>SIMON <span>STATUS</span></h1>
+  <p class="subtitle">EVERYTHING — EYES ONLY</p>
+  <div class="flame-line"></div>
+
+  <nav class="nav">
+    <a href="/stats/dashboard.html">DASHBOARD</a>
+    <a href="/stats/simon.html" class="active">DEEP DIVE</a>
+    <a href="/stats/traffic.html">TRAFFIC</a>
+    <a href="/stats/security.html">SECURITY</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/alerts.html">ALERTS</a>
+    <a href="/">HOME</a>
+  </nav>
+
+  
+    <div class="stats-grid hero-grid">
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--flame)">64</div>
+        <div class="stat-label">ACTIVE WATCHES</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">19</div>
+        <div class="stat-label">PENDING</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">37</div>
+        <div class="stat-label">UNIQUE EMAILS</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">34</div>
+        <div class="stat-label">SMS READY</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">$0.79</div>
+        <div class="stat-label">API COST 24H</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">$75.83</div>
+        <div class="stat-label">API COST TOTAL</div>
+      </div>
+    </div>
+
+  
+    <div class="section-head">ACTIVE WATCHES <span class="badge">64</span></div>
+    <div class="panel">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>EMAIL</th><th>SITE</th><th>KEYWORDS</th><th>PRI</th><th>SMS</th><th>SINCE</th></tr></thead>
+          <tbody><tr>
+          <td>mrmecha@gmail.com</td>
+          <td class="path-cell" title="https://monkeyedge.com/">monkeyedge.com</td>
+          <td class="kw-cell">Strider, frag, mefp, SnG, SMF, hinderer</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-05-08</td>
+        </tr><tr>
+          <td>davidcspann@gmail.com</td>
+          <td class="path-cell" title="https://smkw.com/spyderco-native-chief-sprint-run-brown-4-08in-plain-satin-leaf/">smkw.com</td>
+          <td class="kw-cell">Native chief 15v sprint</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-05-01</td>
+        </tr><tr>
+          <td>davidcspann@gmail.com</td>
+          <td class="path-cell" title="https://smkw.com/spyderco-para-military-2-lightweight-sprint-run-brown-3-47in-plain-satin-clip-point/">smkw.com</td>
+          <td class="kw-cell">15v paramilitary 2 lightweight</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-05-01</td>
+        </tr><tr>
+          <td>phatramadan@rocketmail.com</td>
+          <td class="path-cell" title="https://www.pokemoncenter.com/category/tcg-cards?sort=launch_date%2Bdesc">www.pokemoncenter.com</td>
+          <td class="kw-cell">etb, booster, pack, poster, tin, ascended hero, pkc exclusive, destined rivals, prismatic</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-29</td>
+        </tr><tr>
+          <td>phatramadan@rocketmail.com</td>
+          <td class="path-cell" title="https://www.target.com/p/pok-233-mon-trading-card-game-mega-evolution-ascended-heroes-booster-bundle/-/A-95120834">www.target.com</td>
+          <td class="kw-cell">etb, booster, poster, tin, ascended hero, prismatic, pack, exclusive, box</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-29</td>
+        </tr><tr>
+          <td>davidcspann@gmail.com</td>
+          <td class="path-cell" title="https://www.knivesshipfree.com/spyderco-paramilitary-2-lightweight-sprint-run-compression-lock-brown-frn-cpm-15v-c81pbn15v2/?searchid=13252743&amp;search_query=Paramilitary+2+lightweight+">www.knivesshipfree.com</td>
+          <td class="kw-cell">Paramilitary 2 lightweight 15v</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-29</td>
+        </tr><tr>
+          <td>simonhg@gmail.com</td>
+          <td class="path-cell" title="https://www.knifeart.com/chrisreeve.html">www.knifeart.com</td>
+          <td class="kw-cell">SPD X CRK Inkosi Wave umnumzaan damascus</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-04-25</td>
+        </tr><tr>
+          <td>randyp2855@gmail.com</td>
+          <td class="path-cell" title="https://www.arizonacustomknives.com/knives-by-maker/fellhoelter-brian/?page=1&amp;availability=1&amp;price%5Bmin%5D=%240&amp;price%5Bmax%5D=%2420%2C000+&amp;limit=50&amp;sortBy=recently_added">www.arizonacustomknives.com</td>
+          <td class="kw-cell">Zirconium</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-21</td>
+        </tr><tr>
+          <td>randyp2855@gmail.com</td>
+          <td class="path-cell" title="https://recon1.com/collections/new-gear?sort_by=created-descending">recon1.com</td>
+          <td class="kw-cell">Fellhoelter</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-21</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://Target.com">Target.com</td>
+          <td class="kw-cell">Chaos rising</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-17</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://Walmart.com">Walmart.com</td>
+          <td class="kw-cell">Chaos rising</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-17</td>
+        </tr><tr>
+          <td>rjstackow@yahoo.com</td>
+          <td class="path-cell" title="https://www.amazon.com/gp/aw/d/B071Z5LBDP?psc=1&amp;ref=ppx_pop_mob_b_asin_title">www.amazon.com</td>
+          <td class="kw-cell">Price drop, discount, saving, 30 day lowest price</td>
+          <td style="color:#f1c40f;text-transform:uppercase;font-size:0.6rem">medium</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-04-12</td>
+        </tr><tr>
+          <td>randyp2855@gmail.com</td>
+          <td class="path-cell" title="https://monkeyedge.com/edc-holsters/writing-tools/?product_list_limit=all&amp;sort=newest&amp;page=1">monkeyedge.com</td>
+          <td class="kw-cell">Dragon</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-08</td>
+        </tr><tr>
+          <td>762x51@gmail.com</td>
+          <td class="path-cell" title="https://whitemountainknives.com/vosteed-porcupine-tislim-folding-knife-gray-titanium-handle-154cm-drop-point-plain-edge-satin-finish-a4801/">whitemountainknives.com</td>
+          <td class="kw-cell">ADD TO CART</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-04-07</td>
+        </tr><tr>
+          <td>762x51@gmail.com</td>
+          <td class="path-cell" title="https://whitemountainknives.com/vosteed-porcupine-tislim-folding-knife-acid-wash-gray-titanium-handle-s90v-drop-point-plain-edge-acid-wash-stonewash-finish-a4805/">whitemountainknives.com</td>
+          <td class="kw-cell">add to cart</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-04-07</td>
+        </tr><tr>
+          <td>simonhg@gmail.com</td>
+          <td class="path-cell" title="https://www.goldenstatemint.com/Silver-Bars/">www.goldenstatemint.com</td>
+          <td class="kw-cell">price below $80</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-04-01</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://www.academy.com/">www.academy.com</td>
+          <td class="kw-cell">Pokemon cards, TCG, booster packs, booster bundles, booster boxes, etb, collections</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-30</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://www.walmart.com/shop/deals/flash-deals?facet=retailer_type%3AMarketplace+Sellers+fulfilled+by+Walmart%7C%7Cretailer_type%3APro+Sellers">www.walmart.com</td>
+          <td class="kw-cell">Pokemon cards, drops, etb, TCG, booster bundle, booster box, sets</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-30</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://www.target.com/?TCID=PDS-319991062">www.target.com</td>
+          <td class="kw-cell">Pokemon cards, TCG, booster boxes, booster bundles, etb, sets</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-30</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://www.bestbuy.com/">www.bestbuy.com</td>
+          <td class="kw-cell">Pokemon cards, TCG, booster box, booster bundle, sets, etb</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-30</td>
+        </tr><tr>
+          <td>msummerwill@yahoo.com</td>
+          <td class="path-cell" title="https://www.samsclub.com/">www.samsclub.com</td>
+          <td class="kw-cell">Pokemon cards, TCG, booster box, booster bundles, sets, etbs</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-30</td>
+        </tr><tr>
+          <td>youve.reached.kyle.thompson@gmail.com</td>
+          <td class="path-cell" title="https://pvk.com/hawk-knives-talon-dlc-m390-blade-black-dunes-carbon-fiber-handle-scales/">pvk.com</td>
+          <td class="kw-cell">Add to cart</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-29</td>
+        </tr><tr>
+          <td>youve.reached.kyle.thompson@gmail.com</td>
+          <td class="path-cell" title="https://monkeyedge.com/chris-reeve-knives-folder-umnumzaan-tanto-monkey-edge-frag-pattern/">monkeyedge.com</td>
+          <td class="kw-cell">Add to cart</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-29</td>
+        </tr><tr>
+          <td>youve.reached.kyle.thompson@gmail.com</td>
+          <td class="path-cell" title="https://okluma.com/collections/frontpage/products/dc0">okluma.com</td>
+          <td class="kw-cell">Add to cart</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-29</td>
+        </tr><tr>
+          <td>sourgrass@gmail.com</td>
+          <td class="path-cell" title="https://www.selkirk.com/">www.selkirk.com</td>
+          <td class="kw-cell">Selkirk LABS Project Boomstik Paddle</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-29</td>
+        </tr><tr>
+          <td>simonhg@gmail.com</td>
+          <td class="path-cell" title="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w">store.ui.com</td>
+          <td class="kw-cell">&quot;coming soon&quot; &quot;add to cart&quot; &quot;in stock&quot; anything but sold out</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-28</td>
+        </tr><tr>
+          <td>gibson.simon1@gmail.com</td>
+          <td class="path-cell" title="https://southernedges.com/collections/chris-reeve-knives">southernedges.com</td>
+          <td class="kw-cell">chris reeves damascus</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-28</td>
+        </tr><tr>
+          <td>simonhg@gmail.com</td>
+          <td class="path-cell" title="https://southernedges.com/collections/chris-reeve-in-stock-products">southernedges.com</td>
+          <td class="kw-cell">in stock damascus</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-27</td>
+        </tr><tr>
+          <td>simonhg@gmail.com</td>
+          <td class="path-cell" title="https://monkeyedge.com/knives-tools/folders/">monkeyedge.com</td>
+          <td class="kw-cell">chris reeve damascus</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-27</td>
+        </tr><tr>
+          <td>115579521@qq.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/chris-reeve-umnumzaan-category">www.dlttrading.com</td>
+          <td class="kw-cell">&lt;span class=&quot;dropping-product-badge&quot;&gt;&lt;/span&gt;</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-24</td>
+        </tr><tr>
+          <td>kim@uandi.vc</td>
+          <td class="path-cell" title="https://www.davidyurman.com">www.davidyurman.com</td>
+          <td class="kw-cell">pearl ring, In stock, price below $600</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-23</td>
+        </tr><tr>
+          <td>bien.goofyfoot@gmail.com</td>
+          <td class="path-cell" title="https://www.bentoboxshop.com/">www.bentoboxshop.com</td>
+          <td class="kw-cell">Spyderco Stretch, stretch light weight, K390, Cpm 15v,  HAP40, Delica, Gayle Bradley</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-23</td>
+        </tr><tr>
+          <td>bien.goofyfoot@gmail.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/bark-river-bushcrafter-lt-3v">www.dlttrading.com</td>
+          <td class="kw-cell">Bark River Bushcrafter</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-23</td>
+        </tr><tr>
+          <td>simon@instockornot.club</td>
+          <td class="path-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/">mickstridercustomknives.com</td>
+          <td class="kw-cell">in stock</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-23</td>
+        </tr><tr>
+          <td>davidcspann@gmail.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/">www.dlttrading.com</td>
+          <td class="kw-cell">15v native chief Spyderco</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>davidcspann@gmail.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/spyderco-paramilitary-2-lightweight-brown-frn-15v-blade-sprint-run">www.dlttrading.com</td>
+          <td class="kw-cell">15v lightweight paramilitary 2</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>medel_andrew@yahoo.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/">www.dlttrading.com</td>
+          <td class="kw-cell">Ad20 ad22 ad20s shark atac</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>medel_andrew@yahoo.com</td>
+          <td class="path-cell" title="https://demkoknives.com/">demkoknives.com</td>
+          <td class="kw-cell">Ad20 AD20s ad22 shark atac</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>medel_andrew@yahoo.com</td>
+          <td class="path-cell" title="https://www.knifejoy.com/">www.knifejoy.com</td>
+          <td class="kw-cell">Demko ad20 AD20s ad22 shark atac</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>fabianskilandon@yahoo.com</td>
+          <td class="path-cell" title="https://www.knifejoy.com/collections/chris-reeve-knives">www.knifejoy.com</td>
+          <td class="kw-cell">Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic
+Design</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>fabianskilandon@yahoo.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/newest-arrivals">www.dlttrading.com</td>
+          <td class="kw-cell">Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic
+Sebenza</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>fabianskilandon@yahoo.com</td>
+          <td class="path-cell" title="https://riversedgecutlery.com/chris-reeve-knives/">riversedgecutlery.com</td>
+          <td class="kw-cell">Inkosi Insingo Glass Blasted Large Black Canvas Unique Graphic</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>mcintire104@gmail.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/">www.dlttrading.com</td>
+          <td class="kw-cell">Great Eastern Cutlery</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>msnknight@gmail.com</td>
+          <td class="path-cell" title="https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/">mickstridercustomknives.com</td>
+          <td class="kw-cell">SMF</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-22</td>
+        </tr><tr>
+          <td>gammonz@yahoo.com</td>
+          <td class="path-cell" title="https://monkeyedge.com/chris-reeve-knives-folder-umnumzaan-drop-point-monkey-edge-frag-pattern/">monkeyedge.com</td>
+          <td class="kw-cell">Umnumzaan</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-21</td>
+        </tr><tr>
+          <td>prakow@gmail.com</td>
+          <td class="path-cell" title="https://spyderco.com/products/para-military%C2%AE-2-lightweight-brown-cpm-15v%C2%AE-sprint-run%C2%AE">spyderco.com</td>
+          <td class="kw-cell">Paramilitary 2 15v brown lightweight</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-21</td>
+        </tr><tr>
+          <td>prakow@gmail.com</td>
+          <td class="path-cell" title="https://quietcarry.com/collections/the-shallows/products/the-quillpoint-blbusw-vanax-superclean">quietcarry.com</td>
+          <td class="kw-cell">Quiet carry the shallows black deep blue</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-21</td>
+        </tr><tr>
+          <td>prakow@gmail.com</td>
+          <td class="path-cell" title="https://www.bladehq.com/item--Spyderco-Paramilitary-2-C81PBN15V2--227840">www.bladehq.com</td>
+          <td class="kw-cell">Paramilitary 2 15v</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>justin_ver1.0@hotmail.com</td>
+          <td class="path-cell" title="https://www.collectorknives.net/product-category/great-eastern-cutlery/">www.collectorknives.net</td>
+          <td class="kw-cell">Great Easter cutlery</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>justin_ver1.0@hotmail.com</td>
+          <td class="path-cell" title="https://www.dlttrading.com/great-eastern-cutlery">www.dlttrading.com</td>
+          <td class="kw-cell">In stock and ready to ship</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>turbo91199@aol.com</td>
+          <td class="path-cell" title="https://kizerknives.com/collections/drop-bear-zero">kizerknives.com</td>
+          <td class="kw-cell">Drop bear 0, discount, sale, clearance</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>dawson798@gmail.com</td>
+          <td class="path-cell" title="https://maxaceknife.com/?product=uranus-2-0">maxaceknife.com</td>
+          <td class="kw-cell">Uranus 2.0 OTF.</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td>📱</td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>jeremyj3232@gmail.com</td>
+          <td class="path-cell" title="https://monkeyedge.com/new-exclusive/">monkeyedge.com</td>
+          <td class="kw-cell">Zaan, strider</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>bigbradley@live.com</td>
+          <td class="path-cell" title="https://maxaceknife.com/">maxaceknife.com</td>
+          <td class="kw-cell">Maxace</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-20</td>
+        </tr><tr>
+          <td>kenthinesley@gmail.com</td>
+          <td class="path-cell" title="https://www.caesars.com/reno/casino-promotions/tier-credit-multiplier">www.caesars.com</td>
+          <td class="kw-cell">10X Tier Credit Multiplier</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>kenthinesley@gmail.com</td>
+          <td class="path-cell" title="https://www.apmex.com/silver-price">www.apmex.com</td>
+          <td class="kw-cell">$90.00 USD,$91.00 USD,$92.00 USD,$93.00 USD,$94.00 USD,</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>kenthinesley@gmail.com</td>
+          <td class="path-cell" title="https://www.legacy.com/us/obituaries/local/california/malibu">www.legacy.com</td>
+          <td class="kw-cell">Dick Van Dyke</td>
+          <td style="color:#f1c40f;text-transform:uppercase;font-size:0.6rem">medium</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>kenthinesley@gmail.com</td>
+          <td class="path-cell" title="https://www.matthewwest.com/tour">www.matthewwest.com</td>
+          <td class="kw-cell">Roseville, CA, Sacramento, Reno, Medford</td>
+          <td style="color:#f1c40f;text-transform:uppercase;font-size:0.6rem">medium</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>kenthinesley@gmail.com</td>
+          <td class="path-cell" title="https://www.skillet.com/shows">www.skillet.com</td>
+          <td class="kw-cell">Sacramento, Reno, Roseville, CA, Medford</td>
+          <td style="color:#f1c40f;text-transform:uppercase;font-size:0.6rem">medium</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>simon@instockornot.club</td>
+          <td class="path-cell" title="https://southernedges.com/collections/strider-custom-knives">southernedges.com</td>
+          <td class="kw-cell">chris reeve damascus</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>mike.newborn@gmail.com</td>
+          <td class="path-cell" title="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w">store.ui.com</td>
+          <td class="kw-cell">add to cart</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>mike.newborn@gmail.com</td>
+          <td class="path-cell" title="https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-b">store.ui.com</td>
+          <td class="kw-cell">in stock add to cart</td>
+          <td style="color:#e74c3c;text-transform:uppercase;font-size:0.6rem">critical</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-17</td>
+        </tr><tr>
+          <td>simon@instockornot.club</td>
+          <td class="path-cell" title="https://www.africansportingcreations.com/grey-hippo-safari.html">www.africansportingcreations.com</td>
+          <td class="kw-cell">in stock</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-16</td>
+        </tr><tr>
+          <td>simon@instockornot.club</td>
+          <td class="path-cell" title="https://www.rickhindererknives.com/shop-knives/in-stock-knives/">www.rickhindererknives.com</td>
+          <td class="kw-cell">steel flame</td>
+          <td style="color:#e67e22;text-transform:uppercase;font-size:0.6rem">high</td>
+          <td></td>
+          <td style="color:var(--ash)">2026-03-15</td>
+        </tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">AI CALLS (LAST 30)</div>
+    <div class="panel">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>TIME</th><th>TYPE</th><th>SITE</th><th></th><th>PRI</th><th>FOUND</th><th>SUMMARY</th></tr></thead>
+          <tbody><tr>
+          <td style="white-space:nowrap">2026-05-10 22:45</td>
+          <td>page</td>
+          <td>Reddit r/bladesinstock</td>
+          <td></td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit post linking to a Microtech M (mini) Stitch in stock at NC Blade.</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Microtech M (Mini) Stitch - RAM-LOK, Black Smooth Aluminum, Stonewash M390 blade</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 22:45</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">A Reddit r/knife_swap listing for a used G&amp;G Hawk Talon knife (not a maker on the priority watchlist) being sold by </td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 22:59</td>
+          <td>page</td>
+          <td>Urban EDC Supply</td>
+          <td>🔔</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Urban EDC Supply homepage featuring weekly gear drops including standard production Chris Reeve Sebenza models and colla</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Chris Reeve Small Sebenza 31 - Drop Point Magnacut &amp; Sandblasted Titanium ($425 USD) - currently</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:00</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">A private individual selling a used CKF T25 flipper knife on Reddit&#x27;s Knife_Swap community.</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:08</td>
+          <td>page</td>
+          <td>Flytanium</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Flytanium is a balisong and EDC accessories retailer offering their own branded trainers, balisongs, and aftermarket par</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:15</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/Knife_Swap listing for private sale of a Skiff Asylum and GB 3.5 Sham knife with price drops.</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:15</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/knife_swap listing for a used Spyderco PM2 S45VN with G10 scales and aftermarket RGT Micarta scales available f</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:24</td>
+          <td>page</td>
+          <td>Lamnia</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">This is a generic category/navigation page for Lamnia&#x27;s Scandinavian knives section showing site structure and cook</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:30</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td>🔔</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit Knife_Swap listing selling two Demko knives: an AD20S in cruwear and a Nano Shark with custom regrind.</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Demko AD20S Textured Ti Cruwear Sharksfoot - LNIB - $600, Demko Nano Shark Textured Ti with BGM Regr</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:45</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/Knife_Swap listing of two standard production Spyderco knives (Shaman DLC and Manix 2 XL DLC) for sale by a pri</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 00:00</td>
+          <td>page</td>
+          <td>Reddit r/EDCexchange</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit moderation announcement regarding new Terms of Service policy banning firearm accessories and enhancements on r/E</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 00:15</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/Knife_Swap listing for a used Spyderco Native 5 LW in S110V steel being sold by original owner for $100.</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Spyderco Native 5 LW S110V - Original owner, sharpened 3x, small blade marks, $100 PPFF</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 00:34</td>
+          <td>page</td>
+          <td>Lamnia</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">This is a generic Lamnia category/navigation page for Scandinavian knives, puukko, and leuku knives with no specific pro</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 00:45</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/knife_swap user selling a used CKF T25 flipper knife with M398 blade and titanium handles at a reduced price.</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 00:45</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/knife_swap post selling a used Benchmade 51BK Morpho butterfly knife for $250, serviced by Benchmade.</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:00</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Private knife seller offering standard production knives from Microtech, Kershaw, Southern Grind, and Spartan at discoun</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Microtech OD green SOCOM Elite in 204P liner lock - $200, Kershaw Federalist (USA made double detent</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:00</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td>🔔</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit Knife_Swap listing for a used Microtech LUDT Tanto with price reduction to $300.</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Microtech Marfione Select Ti LUDT Tanto, M390MK steel, titanium scales, blue titanium backspacer - $</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:15</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td>🔔</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Private seller on r/Knife_Swap offering two like-new Arno Bernard fixed blade knives (Badger and Bateleur) as a package </td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Arno Bernard Badger fixed blade (N690, sheep horn, mirror finish), Arno Bernard Bateleur fixed blade</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:26</td>
+          <td>page</td>
+          <td>McNees Knives</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Homepage and navigation structure for McNees Knives e-commerce site with currency/country selector, no product content v</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:30</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td>🔔</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/knife_swap personal selling post featuring mid-tier production knives including one Chaves Rendicion 229.</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Chaves Rendicion 229 (black micarta inlays) - M390 steel - $280</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:45</td>
+          <td>page</td>
+          <td>Lamnia</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">This is a generic Lamnia website navigation and cookie policy page with no specific knife inventory or drop information </td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 02:00</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/knife_swap post selling a WinterBlade Co X-Folder and Black Balisong Xolo, neither of which are makers on the p</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 02:00</td>
+          <td>page</td>
+          <td>Reddit r/EDCexchange</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/EDCexchange listing of vintage Stephen Hall Honey Badger multitools, Minh Do Cobra Kai multitool, and Stelton b</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 02:15</td>
+          <td>page</td>
+          <td>Reddit r/EDCexchange</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/EDCexchange user selling two balisong knives (Winterblade Co X-Folder and Black Balisong Xolo) in condition A, </td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 03:15</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/Knife_Swap user listing three knives for sale: a Jurassic Park Mini Hera II, a Socom Elite with abalone inlays,</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 03:30</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit r/knife_swap listing of used knives for sale including Kizer, Artisan Cutlery, GiantMouse, and Kansept models wit</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 04:09</td>
+          <td>page</td>
+          <td>Lamnia</td>
+          <td></td>
+          <td style="color:var(--ash)">low</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">This is a generic Lamnia website category/navigation page showing their product categories and site structure, not a spe</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 04:12</td>
+          <td>page</td>
+          <td>Arizona Custom Knives</td>
+          <td></td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Arizona Custom Knives homepage showing recently added custom knives with daily drops at 3:30pm ET, featuring one Mick St</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">MSC Custom Fighter - Sole-Authorship Cobalt Damascus by Mick Strider (Alan Carroll Warren aftermarke</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 04:15</td>
+          <td>page</td>
+          <td>Reddit r/bladesinstock</td>
+          <td>🔔</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit post highlighting a Hinderer Eklipse Bowie with textured titanium scales in S45VN steel available at Southern Edg</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Hinderer Eklipse Bowie (textured Ti both sides, Battle Black blade, S45VN) - $600 USD</td>
+            </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 04:45</td>
+          <td>page</td>
+          <td>Reddit r/knife_swap</td>
+          <td></td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="color:var(--flame)">—</td>
+          <td class="path-cell">Reddit knife_swap listing featuring a rare Protech Emerson CQC-7 Bladeshow exclusive and several Spyderco production kni</td>
+        </tr><tr>
+              <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Protech CQC-7/Emerson Blade show special #44 - rare Bladeshow exclusive with sheath ($199), Spyderco</td>
+            </tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">RECENT DROPS <span class="badge">30</span></div>
+    <div class="panel">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>TIME</th><th>SOURCE</th><th>PRI</th><th>EVENT</th><th>ITEMS</th></tr></thead>
+          <tbody><tr>
+          <td style="white-space:nowrap">2026-05-10 17:48</td>
+          <td>Nashville Tactical Lounge</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Microtech UTX-85 D/E Gen III (Non ZBP) Black Aluminum - $270.00, Microtech LUDT </td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 17:51</td>
+          <td>Southern Edges</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Microtech UTX-85 OTF and Ultratech OTF (GEN IV models available), Protech Malibu</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 17:58</td>
+          <td>EDC Lifestyle — Pre-Owned</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Mick Strider Knives SMF Copper Top T/E - Preowned - $1,170.00 (in stock), Starli</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:00</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#e74c3c">critical</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">MKC Triumph Pro - Nock On Neon Green, Magnacut PVD, LNIB, $215</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:02</td>
+          <td>Demko Knives</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Shark-Cub® Stealth - $230.00, Nano-Shark® 20CV Black G10 - $230.00</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:08</td>
+          <td>Prometheus Design Werx</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">PDW SPD Invictus-SP - Full billet titanium, CPM MagnaCut blade, $369.00, PDW SPD</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:11</td>
+          <td>kizerknives.com (user)</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">user_watch_alert</td>
+          <td class="path-cell" style="color:var(--flame)">Drop Bear® Zero | Titanium Damascus | M390 + Polished DLC Ultra | DLC Titanium |</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:13</td>
+          <td>bentoboxshop.com (user)</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">user_watch_alert</td>
+          <td class="path-cell" style="color:var(--flame)">Spyderco Plain Edge CPM-S30V Teal Delica 4 Lightweight — IN STOCK — $140.00, Spy</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:15</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">David Carver Vagrant #36 - CPM 154, belt satin finish, new condition, Oz Rosie i</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 18:45</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Microtech Marfione Select Ti LUDT Tanto, M390MK steel, titanium scales, blue tit</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:00</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Demko AD20S Textured Ti Cruwear Sharksfoot - LNIB, $625, Demko Nano Shark Textur</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:15</td>
+          <td>Reddit r/EDCexchange</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Microtech Marfione Select Ti LUDT Tanto, M390MK steel, Ti scales, blue Ti backsp</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:46</td>
+          <td>Tactical Elements</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Rick Hinderer Knives Custom XM-18 3.5&quot; Fatty Slicer S35VN - Stonewashed Fra</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:48</td>
+          <td>Arizona Custom Knives</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">MSC Custom Fighter - Sole-Authorship Cobalt Damascus by Mick Strider (in stock, </td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:53</td>
+          <td>Urban EDC Supply</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Chris Reeve Small Sebenza 31 - Drop Point Magnacut &amp; Sandblasted Titanium ($</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:55</td>
+          <td>eKnives — Pre-Owned</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Preowned Microtech Ultratech Outbreak OTF 3.4&quot; M390 - $395.00</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 19:57</td>
+          <td>EDC Lifestyle — Pre-Owned</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">Mick Strider Knives SMF Copper Top T/E - Preowned $1,170.00 (CRITICAL - MSC knif</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 20:06</td>
+          <td>Prometheus Design Werx</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">baseline_stock_found</td>
+          <td class="path-cell" style="color:var(--flame)">PDW SPD Invictus-SP (Full Titanium, CPM MagnaCut) - $369.00, PDW SPD Invictus-SP</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 20:10</td>
+          <td>kizerknives.com (user)</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">user_watch_alert</td>
+          <td class="path-cell" style="color:var(--flame)">Drop Bear® Zero | Elmax + DLC Ultra + Hollow Grind | Aluminum | 3619BDA1 — IN ST</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 20:30</td>
+          <td>Reddit r/bladesinstock</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Chris Reeve Mnandi - Box Elder handle, Magnacut blade</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 20:30</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Hinderer XM-18 3.5&quot; with wood scales - $15 (used), Hinderer Eklipse S45VN -</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 20:30</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#e67e22">high</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Hinderer XM-18 3.5&quot; Skinny Magnacut Slicer - LNIB, never used, $500 shipped</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 22:00</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Spyderco Manix 2 Salt in Magnacut with black DLC and AWT aluminum scales</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 22:20</td>
+          <td>Southern Edges</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">page_changed</td>
+          <td class="path-cell" style="color:var(--flame)">Microtech UTX-85 OTF - GEN IV - Jedi Master Finished - $428.00, Microtech Ultrat</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 22:30</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Pro-Tech Runt J4 Custom with Chad Nichols Damascus blade and abalone button</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-10 23:30</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Demko AD20S Textured Ti Cruwear Sharksfoot - LNIB - $600, Demko Nano Shark Textu</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:00</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Microtech Marfione Select Ti LUDT Tanto, M390MK steel, titanium scales, blue tit</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:15</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Arno Bernard Badger fixed blade (N690, sheep horn, mirror finish), Arno Bernard </td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 01:30</td>
+          <td>Reddit r/knife_swap</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Chaves Rendicion 229 (black micarta inlays) - M390 steel - $280</td>
+        </tr><tr>
+          <td style="white-space:nowrap">2026-05-11 04:15</td>
+          <td>Reddit r/bladesinstock</td>
+          <td style="color:#f1c40f">medium</td>
+          <td style="font-size:0.6rem">feed_entry</td>
+          <td class="path-cell" style="color:var(--flame)">Hinderer Eklipse Bowie (textured Ti both sides, Battle Black blade, S45VN) - $60</td>
+        </tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">SMS LOG <span class="badge">26</span></div>
+    <div class="panel">
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>SENT</th><th>TO</th><th>ALERT</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">ALERTS SENT (LAST 20)</div>
+    <div class="panel">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>SENT</th><th>TO</th><th>SOURCE</th><th>SUBJECT</th></tr></thead>
+          <tbody><tr><td>2026-03-09 01:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 02:00</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 02:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 02:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 02:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 03:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 03:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 08:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 14:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 14:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 15:00</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 15:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 15:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 16:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 16:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 17:00</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 17:00</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 17:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 17:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr><tr><td>2026-03-09 17:30</td><td>?</td><td>?</td><td class="path-cell">?</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">VISITOR JOURNEYS (24H) <span class="badge">8 visitors</span></div>
+    <div class="panel">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>VID</th><th>HITS</th><th>JOURNEY</th><th>CAME FROM</th></tr></thead>
+          <tbody><tr>
+          <td style="color:var(--flame)">c0791634-c71</td>
+          <td class="num-cell">4</td>
+          <td class="path-cell" style="max-width:400px">/ → /get-my-link.html → /my-alerts.html → /get-my-link.html</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">9769e2af-b46</td>
+          <td class="num-cell">2</td>
+          <td class="path-cell" style="max-width:400px">/my-alerts.html → /get-my-link.html</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">21f8b10a-a83</td>
+          <td class="num-cell">2</td>
+          <td class="path-cell" style="max-width:400px">/my-alerts.html → /my-alerts.html</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">5230c3a3-31f</td>
+          <td class="num-cell">2</td>
+          <td class="path-cell" style="max-width:400px">/ → /</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">f5e993c9-fdd</td>
+          <td class="num-cell">2</td>
+          <td class="path-cell" style="max-width:400px">/what-we-watch.html → /</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">84fd6935-9ea</td>
+          <td class="num-cell">1</td>
+          <td class="path-cell" style="max-width:400px">/</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">80d9d5b8-096</td>
+          <td class="num-cell">1</td>
+          <td class="path-cell" style="max-width:400px">/watchlist.html</td>
+          <td>—</td>
+        </tr><tr>
+          <td style="color:var(--flame)">607dde71-89c</td>
+          <td class="num-cell">1</td>
+          <td class="path-cell" style="max-width:400px">/</td>
+          <td>—</td>
+        </tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  <footer>
+    <div>UPDATED 2026-05-11 04:50 UTC — AUTO-REFRESHES EVERY 2 MIN</div>
+    <div class="hgr">HGR</div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "castaways",
+  "description": "Custom Ghost theme for The Castaways",
+  "version": "1.1.0",
+  "engines": {
+    "ghost": ">=5.0.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Simon",
+    "email": "simonhg@gmail.com"
+  },
+  "config": {
+    "posts_per_page": 15
+  },
+  "keywords": [
+    "ghost-theme"
+  ]
+}

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="120">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>Traffic — Drop Watcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; padding: 1rem; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 8vw, 3rem); color: var(--white); letter-spacing: 0.05em; }
+    h1 span { color: var(--ember); }
+    .subtitle { color: var(--ash); font-size: 0.7rem; letter-spacing: 0.2em; margin-bottom: 1rem; line-height: 1.6; }
+    .flame-line { height: 2px; background: linear-gradient(90deg, transparent, var(--ember), var(--flame), var(--ember), transparent); margin: 1rem 0 1.5rem; }
+
+    /* Nav */
+    .nav { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 0.75rem; letter-spacing: 0.2em; flex-wrap: wrap; }
+    .nav a { color: var(--ash); text-decoration: none; }
+    .nav a:hover { color: var(--flame); }
+    .nav a.active { color: var(--flame); border-bottom: 1px solid var(--flame); }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--iron); border: 1px solid var(--iron); margin-bottom: 2rem; }
+    .stat-card { background: var(--black); padding: 1.2rem 0.5rem; text-align: center; }
+    .stat-label { font-size: 0.55rem; letter-spacing: 0.15em; color: var(--ash); margin-bottom: 0.3rem; }
+    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.4rem, 5vw, 2rem); color: var(--white); }
+    .stat-sub { font-size: 0.55rem; color: var(--ash); margin-top: 0.2rem; }
+
+    /* Section heads */
+    .section-head { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.1em; color: var(--ash); margin: 2rem 0 1rem; }
+
+    /* Bar chart */
+    .bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--iron); padding-bottom: 4px; margin-bottom: 2rem; overflow: hidden; }
+    .bar-chart-hourly { height: 80px; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; height: 100%; justify-content: flex-end; }
+    .bar-col-sm { min-width: 0; }
+    .bar { background: linear-gradient(to top, var(--ember), var(--flame)); width: 100%; min-height: 2px; transition: height 0.3s; }
+    .bar-sm { width: 80%; }
+    .bar-value { font-size: 0.55rem; color: var(--silver); margin-bottom: 4px; white-space: nowrap; }
+    .bar-label { font-size: 0.5rem; color: var(--ash); margin-top: 4px; white-space: nowrap; }
+
+    /* Panels grid */
+    .panels { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .panel { border: 1px solid var(--iron); overflow-x: auto; }
+    .panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.1em; color: var(--ember); padding: 0.75rem 1rem; background: var(--steel); border-bottom: 1px solid var(--iron); }
+    .panel-body { padding: 0; }
+    .panel-empty { padding: 1.5rem; color: var(--ash); font-size: 0.75rem; text-align: center; }
+
+    /* Data tables */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+    .data-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; border-bottom: 1px solid var(--iron); white-space: nowrap; }
+    .data-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid rgba(42,42,42,0.5); color: var(--silver); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--steel); }
+    .num-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .path-cell { max-width: 55vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+
+    /* Desktop: side-by-side panels */
+    @media (min-width: 700px) {
+      .stats-grid { grid-template-columns: repeat(6, 1fr); }
+      .panels { grid-template-columns: repeat(2, 1fr); }
+      .path-cell { max-width: 280px; }
+    }
+
+    /* Footer */
+    .source-line { color: var(--ash); font-size: 0.6rem; letter-spacing: 0.15em; margin-top: 0.5rem; }
+    footer { margin-top: 2rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>DROP <span>WATCHER</span></h1>
+  <p class="subtitle">TRAFFIC DASHBOARD — AUTO REFRESHES EVERY 2 MINUTES</p>
+  <div class="flame-line"></div>
+
+  <nav class="nav">
+    <a href="/stats/dashboard.html">DASHBOARD</a>
+    <a href="/stats/simon.html">DEEP DIVE</a>
+    <a href="/stats/traffic.html" class="active">TRAFFIC</a>
+    <a href="/stats/security.html">SECURITY</a>
+    <a href="/stats/status.html">STATUS</a>
+    <a href="/alerts.html">ALERTS</a>
+    <a href="/">HOME</a>
+  </nav>
+
+  
+    <div class="section-head">VISITOR TRACKING</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-label">PAGEVIEWS (24H)</div>
+        <div class="stat-value">15</div>
+        <div class="stat-sub">2251 total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">UNIQUE VISITORS (24H)</div>
+        <div class="stat-value" style="color:var(--flame)">8</div>
+        <div class="stat-sub">0 total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">PAGES / VISITOR</div>
+        <div class="stat-value">1.9</div>
+        <div class="stat-sub">24h avg</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">EXTERNAL REFS</div>
+        <div class="stat-value">0</div>
+        <div class="stat-sub">unique sources</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">TOP PAGES (ALL TIME)</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>PATH</th><th>VIEWS</th></tr></thead>
+            <tbody><tr><td class="path-cell">/</td><td class="num-cell">6</td></tr><tr><td class="path-cell">/my-alerts.html</td><td class="num-cell">4</td></tr><tr><td class="path-cell">/get-my-link.html</td><td class="num-cell">3</td></tr><tr><td class="path-cell">/watchlist.html</td><td class="num-cell">1</td></tr><tr><td class="path-cell">/what-we-watch.html</td><td class="num-cell">1</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">EXTERNAL REFERRERS</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>SOURCE</th><th>VISITS</th></tr></thead>
+            <tbody><tr><td colspan="2" style="color:var(--ash);text-align:center;padding:1rem">No external referrers yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head" style="font-size:1rem;margin-top:1.5rem">VISITOR JOURNEYS (24H)</div>
+    <div class="panel" style="margin-bottom:2rem">
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>VISITOR</th><th>HITS</th><th>JOURNEY</th><th>CAME FROM</th></tr></thead>
+          <tbody><tr><td style="color:var(--flame)">c0791634-c71</td><td class="num-cell">4</td><td class="path-cell" style="max-width:400px">/ → /get-my-link.html → /my-alerts.html → /get-my-link.html</td><td>—</td></tr><tr><td style="color:var(--flame)">9769e2af-b46</td><td class="num-cell">2</td><td class="path-cell" style="max-width:400px">/my-alerts.html → /get-my-link.html</td><td>—</td></tr><tr><td style="color:var(--flame)">21f8b10a-a83</td><td class="num-cell">2</td><td class="path-cell" style="max-width:400px">/my-alerts.html → /my-alerts.html</td><td>—</td></tr><tr><td style="color:var(--flame)">5230c3a3-31f</td><td class="num-cell">2</td><td class="path-cell" style="max-width:400px">/ → /</td><td>—</td></tr><tr><td style="color:var(--flame)">f5e993c9-fdd</td><td class="num-cell">2</td><td class="path-cell" style="max-width:400px">/what-we-watch.html → /</td><td>—</td></tr><tr><td style="color:var(--flame)">84fd6935-9ea</td><td class="num-cell">1</td><td class="path-cell" style="max-width:400px">/</td><td>—</td></tr><tr><td style="color:var(--flame)">80d9d5b8-096</td><td class="num-cell">1</td><td class="path-cell" style="max-width:400px">/watchlist.html</td><td>—</td></tr><tr><td style="color:var(--flame)">607dde71-89c</td><td class="num-cell">1</td><td class="path-cell" style="max-width:400px">/</td><td>—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">API TOKEN USAGE</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-label">CALLS (24H)</div>
+        <div class="stat-value">267</div>
+        <div class="stat-sub">25648 total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">INPUT TOKENS (24H)</div>
+        <div class="stat-value">695.7K</div>
+        <div class="stat-sub">66.0M total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">OUTPUT TOKENS (24H)</div>
+        <div class="stat-value">59.6K</div>
+        <div class="stat-sub">5.8M total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">EST. COST (24H)</div>
+        <div class="stat-value" style="color:var(--flame)">$0.7949</div>
+        <div class="stat-sub">$75.8348 total</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">BY CALLER</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>CALLER</th><th>CALLS</th><th>IN</th><th>OUT</th><th>COST</th></tr></thead>
+            <tbody><tr><td>analyze_page</td><td class="num-cell">22701</td><td class="num-cell">62,107,539</td><td class="num-cell">5,153,763</td><td class="num-cell">$70.3011</td></tr><tr><td>analyze_user_page</td><td class="num-cell">2934</td><td class="num-cell">3,906,453</td><td class="num-cell">595,877</td><td class="num-cell">$5.5087</td></tr><tr><td>morning_briefing</td><td class="num-cell">13</td><td class="num-cell">15,876</td><td class="num-cell">3,095</td><td class="num-cell">$0.0251</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">DAILY (LAST 7 DAYS)</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>DAY</th><th>CALLS</th><th>IN</th><th>OUT</th><th>COST</th></tr></thead>
+            <tbody><tr><td>2026-05-05</td><td class="num-cell">608</td><td class="num-cell">1,565,853</td><td class="num-cell">142,761</td><td class="num-cell">$1.8237</td></tr><tr><td>2026-05-06</td><td class="num-cell">402</td><td class="num-cell">1,048,262</td><td class="num-cell">95,996</td><td class="num-cell">$1.2226</td></tr><tr><td>2026-05-07</td><td class="num-cell">458</td><td class="num-cell">1,190,708</td><td class="num-cell">107,045</td><td class="num-cell">$1.3807</td></tr><tr><td>2026-05-08</td><td class="num-cell">551</td><td class="num-cell">1,433,640</td><td class="num-cell">127,985</td><td class="num-cell">$1.6589</td></tr><tr><td>2026-05-09</td><td class="num-cell">296</td><td class="num-cell">773,292</td><td class="num-cell">67,541</td><td class="num-cell">$0.8888</td></tr><tr><td>2026-05-10</td><td class="num-cell">268</td><td class="num-cell">697,487</td><td class="num-cell">60,093</td><td class="num-cell">$0.7984</td></tr><tr><td>2026-05-11</td><td class="num-cell">20</td><td class="num-cell">55,766</td><td class="num-cell">3,915</td><td class="num-cell">$0.0603</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  
+    <div class="section-head">AI CALLS (LAST 20)</div>
+    <div class="panel" style="margin-bottom:2rem">
+      <div class="panel-body" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr>
+            <th>TIME</th><th>TYPE</th><th>SITE</th><th>ALERT</th><th>PRI</th><th>FOUND</th><th>SUMMARY</th>
+          </tr></thead>
+          <tbody><tr>
+              <td style="white-space:nowrap">2026-05-11 04:45:07</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9sxji/wtslate_night_special_spyderco_leatherman_and_more/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Protech Knives, Spyderco</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit knife_swap listing featuring a rare Protech Emerson CQC-7 Bladeshow exclusive and several Spyderco production knives for private sale.">Reddit knife_swap listing featuring a rare Protech Emerson CQC-7 Bladeshow exclusive and several Spyderco production knives for private sale.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Protech CQC-7/Emerson Blade show special #44 - rare Bladeshow exclusive with sheath ($199) | Spyderco Zirconium Para 3 S110V - second owner with original scales ($250) | Spyderco Rec Avocado Para Military 2 204P - first owner, never used ($275)</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 04:15:04</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/bladesInStock/comments/1t6wj59/hinderer_eklipse_textured_ti_both_sides_bowie/">Reddit r/bladesinstock</td>
+              <td style="color:#2ecc71">TRUE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hinderer Knives</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit post highlighting a Hinderer Eklipse Bowie with textured titanium scales in S45VN steel available at Southern Edges.">Reddit post highlighting a Hinderer Eklipse Bowie with textured titanium scales in S45VN steel available at Southern Edges.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Hinderer Eklipse Bowie (textured Ti both sides, Battle Black blade, S45VN) - $600 USD</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 04:12:05</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.arizonacustomknives.com">Arizona Custom Knives</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Strider Knives</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Arizona Custom Knives homepage showing recently added custom knives with daily drops at 3:30pm ET, featuring one Mick Strider Custom (MSC) knife in stock.">Arizona Custom Knives homepage showing recently added custom knives with daily drops at 3:30pm ET, featuring one Mick Strider Custom (MSC) knife in stock.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">MSC Custom Fighter - Sole-Authorship Cobalt Damascus by Mick Strider (Alan Carroll Warren aftermarket handle/filework) - $16,450.00</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 04:09:24</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.lamnia.com">Lamnia</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="This is a generic Lamnia website category/navigation page showing their product categories and site structure, not a specific product listing or drop announcement page.">This is a generic Lamnia website category/navigation page showing their product categories and site structure, not a specific product listing or drop announcement page.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 03:30:07</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9rgev/wts_major_markdowns_on_kizer_raze_bulli_staffi/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/knife_swap listing of used knives for sale including Kizer, Artisan Cutlery, GiantMouse, and Kansept models with markdowns.">Reddit r/knife_swap listing of used knives for sale including Kizer, Artisan Cutlery, GiantMouse, and Kansept models with markdowns.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 03:15:06</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9qval/wts_jurassic_park_mini_hera_socom_elite_full/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/Knife_Swap user listing three knives for sale: a Jurassic Park Mini Hera II, a Socom Elite with abalone inlays, and a Tuch Click in titanium/Magnacut.">Reddit r/Knife_Swap user listing three knives for sale: a Jurassic Park Mini Hera II, a Socom Elite with abalone inlays, and a Tuch Click in titanium/Magnacut.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 02:15:06</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/EDCexchange/comments/1t9pwzh/wts_winter_blade_coblack_balisong/">Reddit r/EDCexchange</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/EDCexchange user selling two balisong knives (Winterblade Co X-Folder and Black Balisong Xolo) in condition A, neither from makers on the priority list.">Reddit r/EDCexchange user selling two balisong knives (Winterblade Co X-Folder and Black Balisong Xolo) in condition A, neither from makers on the priority list.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 02:00:09</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/EDCexchange/comments/1t9pdor/wts_bottle_opener_multitools_stephen_hall_honey/">Reddit r/EDCexchange</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/EDCexchange listing of vintage Stephen Hall Honey Badger multitools, Minh Do Cobra Kai multitool, and Stelton bottle opener for sale as a lot.">Reddit r/EDCexchange listing of vintage Stephen Hall Honey Badger multitools, Minh Do Cobra Kai multitool, and Stelton bottle opener for sale as a lot.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 02:00:07</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9pjkg/wts_winterblade_co_black_balisong/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/knife_swap post selling a WinterBlade Co X-Folder and Black Balisong Xolo, neither of which are makers on the priority watch list.">Reddit r/knife_swap post selling a WinterBlade Co X-Folder and Black Balisong Xolo, neither of which are makers on the priority watch list.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 01:45:19</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.lamnia.com">Lamnia</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="This is a generic Lamnia website navigation and cookie policy page with no specific knife inventory or drop information displayed.">This is a generic Lamnia website navigation and cookie policy page with no specific knife inventory or drop information displayed.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 01:30:08</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9oqu9/wts_ferramonster_kizer_wixco_civivi_chaves_kb/">Reddit r/knife_swap</td>
+              <td style="color:#2ecc71">TRUE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Chaves Knives</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/knife_swap personal selling post featuring mid-tier production knives including one Chaves Rendicion 229.">Reddit r/knife_swap personal selling post featuring mid-tier production knives including one Chaves Rendicion 229.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Chaves Rendicion 229 (black micarta inlays) - M390 steel - $280</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 01:26:10</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://mcneesknives.com">McNees Knives</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Homepage and navigation structure for McNees Knives e-commerce site with currency/country selector, no product content visible.">Homepage and navigation structure for McNees Knives e-commerce site with currency/country selector, no product content visible.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 01:15:06</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9nqtq/wts_arno_bernard_fixed_double_up_badger_and/">Reddit r/knife_swap</td>
+              <td style="color:#2ecc71">TRUE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Arno Bernard Knives</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Private seller on r/Knife_Swap offering two like-new Arno Bernard fixed blade knives (Badger and Bateleur) as a package deal for $400.">Private seller on r/Knife_Swap offering two like-new Arno Bernard fixed blade knives (Badger and Bateleur) as a package deal for $400.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Arno Bernard Badger fixed blade (N690, sheep horn, mirror finish) | Arno Bernard Bateleur fixed blade (N690, sheep horn, mirror finish)</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 01:00:13</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9nyqa/wts_price_drop_microtech_marfione_select_ti_ludt/">Reddit r/knife_swap</td>
+              <td style="color:#2ecc71">TRUE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Microtech</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit Knife_Swap listing for a used Microtech LUDT Tanto with price reduction to $300.">Reddit Knife_Swap listing for a used Microtech LUDT Tanto with price reduction to $300.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Microtech Marfione Select Ti LUDT Tanto, M390MK steel, titanium scales, blue titanium backspacer - $300 (3rd owner, factory edge, great condition)</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 01:00:11</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9o2h6/wts_rock_bottom_bro_prices_microtech_kershaw/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Microtech, Kershaw, Southern Grind, Spartan</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Private knife seller offering standard production knives from Microtech, Kershaw, Southern Grind, and Spartan at discounted prices to clear inventory before a trip.">Private knife seller offering standard production knives from Microtech, Kershaw, Southern Grind, and Spartan at discounted prices to clear inventory before a trip.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Microtech OD green SOCOM Elite in 204P liner lock - $200 | Kershaw Federalist (USA made double detent) with Horween leather pocket caddy - $120 | Damascus Kershaw Leek (new, original box) - $70</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 00:45:07</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9mgbm/wts_benchmade_51bk_morpho/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/knife_swap post selling a used Benchmade 51BK Morpho butterfly knife for $250, serviced by Benchmade.">Reddit r/knife_swap post selling a used Benchmade 51BK Morpho butterfly knife for $250, serviced by Benchmade.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 00:45:05</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9nihf/wts_ckf_t25_price_drop/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/knife_swap user selling a used CKF T25 flipper knife with M398 blade and titanium handles at a reduced price.">Reddit r/knife_swap user selling a used CKF T25 flipper knife with M398 blade and titanium handles at a reduced price.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 00:34:53</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.lamnia.com">Lamnia</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="This is a generic Lamnia category/navigation page for Scandinavian knives, puukko, and leuku knives with no specific product listings or maker inventory visible.">This is a generic Lamnia category/navigation page for Scandinavian knives, puukko, and leuku knives with no specific product listings or maker inventory visible.</td>
+            </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 00:15:06</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/Knife_Swap/comments/1t9n3px/wts_spyderco_native_5_lw_s110v/">Reddit r/knife_swap</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>medium</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Spyderco</td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit r/Knife_Swap listing for a used Spyderco Native 5 LW in S110V steel being sold by original owner for $100.">Reddit r/Knife_Swap listing for a used Spyderco Native 5 LW in S110V steel being sold by original owner for $100.</td>
+            </tr><tr>
+                  <td colspan="7" style="padding:0.2rem 0.75rem 0.6rem 2rem;color:var(--flame);font-size:0.6rem;border-bottom:1px solid var(--iron)">Spyderco Native 5 LW S110V - Original owner, sharpened 3x, small blade marks, $100 PPFF</td>
+                </tr><tr>
+              <td style="white-space:nowrap">2026-05-11 00:00:13</td>
+              <td><span style="color:var(--ash);font-weight:bold">CURATED</span></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="https://www.reddit.com/r/EDCexchange/comments/1o37fx4/rules_reddit_has_banned_the_sale_of_any_firearm/">Reddit r/EDCexchange</td>
+              <td style="color:var(--ash)">FALSE</td>
+              <td>low</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Reddit moderation announcement regarding new Terms of Service policy banning firearm accessories and enhancements on r/EDCexchange.">Reddit moderation announcement regarding new Terms of Service policy banning firearm accessories and enhancements on r/EDCexchange.</td>
+            </tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-head">SMS ALERTS</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-label">SMS SENT (24H)</div>
+        <div class="stat-value">0</div>
+        <div class="stat-sub">26 total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL SMS</div>
+        <div class="stat-value">26</div>
+        <div class="stat-sub">all time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DAYS ACTIVE</div>
+        <div class="stat-value">0</div>
+        <div class="stat-sub">with SMS sent</div>
+      </div>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">DAILY SMS (LAST 7 DAYS)</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>DATE</th><th>SENT</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">RECENT SMS</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead><tr><th>SENT</th><th>TO</th><th>ALERT</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  <div class="section-head">SERVER STATS</div>
+
+  
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">UNIQUE VISITORS</div>
+        <div class="stat-value">63</div>
+        <div class="stat-sub">today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">PAGE VIEWS</div>
+        <div class="stat-value">260</div>
+        <div class="stat-sub">today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">REQUESTS</div>
+        <div class="stat-value">1.2K</div>
+        <div class="stat-sub">today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">THREATS BLOCKED</div>
+        <div class="stat-value" style="color:#2ecc71">0</div>
+        <div class="stat-sub">today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">BANDWIDTH</div>
+        <div class="stat-value">285.9 MB</div>
+        <div class="stat-sub">today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ACTIVE WATCHERS</div>
+        <div class="stat-value" style="color:var(--flame)">64</div>
+        <div class="stat-sub">37 emails</div>
+      </div>
+    </div>
+
+  
+        <div class="section-head">7-DAY TREND</div>
+        <div class="bar-chart">
+              <div class="bar-col">
+                <div class="bar-value">193</div>
+                <div class="bar" style="height:56%"></div>
+                <div class="bar-label">05-04</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">189</div>
+                <div class="bar" style="height:55%"></div>
+                <div class="bar-label">05-05</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">227</div>
+                <div class="bar" style="height:66%"></div>
+                <div class="bar-label">05-06</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">199</div>
+                <div class="bar" style="height:58%"></div>
+                <div class="bar-label">05-07</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">295</div>
+                <div class="bar" style="height:87%"></div>
+                <div class="bar-label">05-08</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">339</div>
+                <div class="bar" style="height:100%"></div>
+                <div class="bar-label">05-09</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar-value">224</div>
+                <div class="bar" style="height:66%"></div>
+                <div class="bar-label">05-10</div>
+              </div></div>
+
+  
+        <div class="section-head">LAST 24 HOURS</div>
+        <div class="bar-chart bar-chart-hourly">
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:21%"></div>
+                <div class="bar-label">05</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:68%"></div>
+                <div class="bar-label">06</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:43%"></div>
+                <div class="bar-label">07</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:34%"></div>
+                <div class="bar-label">08</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:59%"></div>
+                <div class="bar-label">09</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">10</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:40%"></div>
+                <div class="bar-label">11</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">12</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:28%"></div>
+                <div class="bar-label">13</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:37%"></div>
+                <div class="bar-label">14</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:50%"></div>
+                <div class="bar-label">15</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">16</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:18%"></div>
+                <div class="bar-label">17</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:25%"></div>
+                <div class="bar-label">18</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:50%"></div>
+                <div class="bar-label">19</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:25%"></div>
+                <div class="bar-label">20</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:15%"></div>
+                <div class="bar-label">21</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:43%"></div>
+                <div class="bar-label">22</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:46%"></div>
+                <div class="bar-label">23</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:100%"></div>
+                <div class="bar-label">00</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:40%"></div>
+                <div class="bar-label">01</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:37%"></div>
+                <div class="bar-label">02</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:31%"></div>
+                <div class="bar-label">03</div>
+              </div>
+              <div class="bar-col bar-col-sm">
+                <div class="bar bar-sm" style="height:25%"></div>
+                <div class="bar-label">04</div>
+              </div></div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-title">TOP PATHS (SERVER)</div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>PATH</th><th>HITS</th><th>%</th></tr></thead>
+          <tbody><tr><td class="path-cell">/</td><td class="num-cell">132</td><td class="num-cell">23%</td></tr><tr><td class="path-cell">/blog/members/api/member/</td><td class="num-cell">66</td><td class="num-cell">11%</td></tr><tr><td class="path-cell">/blog/ghost/api/content/settings/?key=37877b95b50a8d9dc5ea22fd99</td><td class="num-cell">64</td><td class="num-cell">11%</td></tr><tr><td class="path-cell">/blog/the-castle-the-mice-and-the-starship/</td><td class="num-cell">58</td><td class="num-cell">10%</td></tr><tr><td class="path-cell">/blog/ghost/api/content/newsletters/?limit=100&amp;key=37877b95b50a8d9dc5ea22fd99</td><td class="num-cell">46</td><td class="num-cell">8%</td></tr><tr><td class="path-cell">/blog/ghost/api/content/tiers/?limit=100&amp;include=monthly_price,yearly_price,benefits&amp;key=37877b95b50a8d9dc5ea22fd99</td><td class="num-cell">46</td><td class="num-cell">8%</td></tr><tr><td class="path-cell">/blog/ghost/api/admin/users/me/?include=roles</td><td class="num-cell">35</td><td class="num-cell">6%</td></tr><tr><td class="path-cell">/</td><td class="num-cell">26</td><td class="num-cell">4%</td></tr><tr><td class="path-cell">/blog/members/api/comments/counts/?ids=69fe1578a6f1beb010757255</td><td class="num-cell">16</td><td class="num-cell">2%</td></tr><tr><td class="path-cell">/blog/members/api/comments/post/69fe1578a6f1beb010757255/?limit=20&amp;page=1&amp;order=count__likes+desc,+created_at+desc</td><td class="num-cell">16</td><td class="num-cell">2%</td></tr><tr><td class="path-cell">/blog/ghost/auth-frame/</td><td class="num-cell">16</td><td class="num-cell">2%</td></tr><tr><td class="path-cell">/blog/ghost/api/admin/site/</td><td class="num-cell">12</td><td class="num-cell">2%</td></tr><tr><td class="path-cell">/blog/ghost/api/admin/images/upload/</td><td class="num-cell">12</td><td class="num-cell">2%</td></tr><tr><td class="path-cell">/blog/ghost/</td><td class="num-cell">10</td><td class="num-cell">1%</td></tr><tr><td class="path-cell">/blog/ghost/api/admin/settings/?group=site,theme,private,members,portal,newsletter,email,labs,slack,unsplash,views,firstpromoter,editor,comments,analytics,announcement,pintura,donations,security,social_web,explore,transistor</td><td class="num-cell">10</td><td class="num-cell">1%</td></tr></tbody>
+        </table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">TOP REFERRERS (SERVER)</div>
+      <div class="panel-body"><div class="panel-empty">No referrer data available</div></div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-title">COUNTRIES</div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>COUNTRY</th><th>REQUESTS</th></tr></thead>
+          <tbody><tr><td>US</td><td class="num-cell">1226</td></tr><tr><td>NL</td><td class="num-cell">14</td></tr><tr><td>DE</td><td class="num-cell">3</td></tr><tr><td>SE</td><td class="num-cell">2</td></tr><tr><td>DK</td><td class="num-cell">1</td></tr><tr><td>IE</td><td class="num-cell">1</td></tr><tr><td>PH</td><td class="num-cell">1</td></tr><tr><td>SG</td><td class="num-cell">1</td></tr><tr><td>T1</td><td class="num-cell">1</td></tr></tbody>
+        </table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">STATUS CODES</div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>STATUS</th><th>REQUESTS</th></tr></thead>
+          <tbody><tr><td><span class="status-dot" style="background:#2ecc71"></span>200</td><td class="num-cell">773</td></tr><tr><td><span class="status-dot" style="background:#2ecc71"></span>204</td><td class="num-cell">204</td></tr><tr><td><span class="status-dot" style="background:#3498db"></span>304</td><td class="num-cell">151</td></tr><tr><td><span class="status-dot" style="background:#e67e22"></span>404</td><td class="num-cell">54</td></tr><tr><td><span class="status-dot" style="background:#e74c3c"></span>403</td><td class="num-cell">27</td></tr><tr><td><span class="status-dot" style="background:#2ecc71"></span>201</td><td class="num-cell">16</td></tr><tr><td><span class="status-dot" style="background:#e74c3c"></span>526</td><td class="num-cell">13</td></tr><tr><td><span class="status-dot" style="background:#3498db"></span>301</td><td class="num-cell">4</td></tr><tr><td><span class="status-dot" style="background:#2ecc71"></span>206</td><td class="num-cell">3</td></tr><tr><td><span class="status-dot" style="background:#3498db"></span>302</td><td class="num-cell">3</td></tr><tr><td><span class="status-dot" style="background:#888"></span>422</td><td class="num-cell">1</td></tr><tr><td><span class="status-dot" style="background:#888"></span>499</td><td class="num-cell">1</td></tr></tbody>
+        </table></div>
+    </div>
+  </div>
+
+  <p class="source-line">Sources: Cloudflare + GoAccess (2026-05-11 04:00:02 +0000) + Local — Updated: 2026-05-11 04:50:05 UTC</p>
+  <p class="source-line"><a href="/stats/" style="color:var(--flame);text-decoration:none">Full GoAccess server stats →</a></p>
+
+  <footer>
+    <span>instockornot.club — simonhg321/drop-watcher</span>
+    <span class="hgr" data-nosnippet>HGR</span>
+  </footer>
+</body>
+</html>

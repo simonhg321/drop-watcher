@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Annual Shareholders Read-Ahead 2026 — The Castaways</title>
+
+<!-- OG Card -->
+<meta property="og:title" content="Annual Shareholders Read-Ahead 2026">
+<meta property="og:description" content="The Castaways — 5 AIs, 4 machines, 12 days, 5 products. Sharp work. Good energy. No corporate theater.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://instockornot.club/read-ahead.html">
+<meta property="og:image" content="https://instockornot.club/og-read-ahead.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Annual Shareholders Read-Ahead 2026">
+<meta name="twitter:description" content="The Castaways — 5 AIs, 4 machines, 12 days, 5 products. Sharp work. Good energy. No corporate theater.">
+<meta name="twitter:image" content="https://instockornot.club/og-read-ahead.png">
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a14; color: #e0e0e0; font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+  .slide { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 60px 80px; border-bottom: 1px solid #1a1a2e; position: relative; scroll-snap-align: start; }
+  .slide-number { position: absolute; top: 30px; right: 40px; color: #444; font-size: 14px; font-weight: 600; }
+  .slide-number::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #e87040; margin-right: 6px; vertical-align: middle; }
+  .page-of { position: absolute; bottom: 30px; right: 40px; color: #333; font-size: 12px; }
+  h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: -0.02em; }
+  h2 { font-size: 2.2rem; font-weight: 600; margin-bottom: 1.5rem; color: #e87040; }
+  h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem; color: #999; text-transform: uppercase; letter-spacing: 0.1em; }
+  .subtitle { color: #666; font-size: 1.2rem; margin-bottom: 2rem; }
+  .ember { color: #e87040; }
+  .green { color: #4caf50; }
+  .blue { color: #4fc3f7; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+  .list { list-style: none; }
+  .list li { padding: 0.5rem 0; border-bottom: 1px solid #1a1a2e; color: #ccc; }
+  .list li::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #e87040; margin-right: 12px; }
+  .product-card { background: #12121e; border: 1px solid #1a1a2e; border-radius: 12px; padding: 2rem; margin: 1rem 0; }
+  .product-card h3 { color: #e87040; margin-bottom: 0.5rem; }
+  .quote { font-style: italic; color: #999; font-size: 1.3rem; border-left: 3px solid #e87040; padding-left: 1.5rem; margin: 2rem 0; }
+  .tag { display: inline-block; background: #1a1a2e; color: #e87040; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; margin: 2px; }
+  .policy-box { background: #12121e; border: 1px solid #1a1a2e; border-radius: 12px; padding: 2rem; margin: 1.5rem 0; border-left: 4px solid var(--accent, #e87040); }
+  .policy-num { display: inline-block; width: 28px; height: 28px; background: #e87040; color: #0a0a14; border-radius: 50%; text-align: center; line-height: 28px; font-weight: 700; font-size: 0.85rem; margin-right: 10px; }
+
+  /* ── Fire dance ── */
+  .fire-dance { font-size: 2rem; font-weight: 800; text-align: center; margin-top: 2rem; letter-spacing: 0.02em; line-height: 1.6; position: relative; padding: 1rem 0; }
+  .fire-dance .word { display: inline-block; background: linear-gradient(180deg, #fff8e1 0%, #ffd54f 15%, #ffb300 30%, #ff8f00 50%, #ff5722 70%, #d84315 90%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.6)) drop-shadow(0 0 24px rgba(255, 87, 34, 0.4)); animation: flicker 2.4s ease-in-out infinite, dance 3.6s ease-in-out infinite; transform-origin: bottom center; }
+  .fire-dance .word:nth-child(1)  { animation-delay: 0.0s, 0.0s; }
+  .fire-dance .word:nth-child(2)  { animation-delay: 0.1s, 0.2s; }
+  .fire-dance .word:nth-child(3)  { animation-delay: 0.2s, 0.4s; }
+  .fire-dance .word:nth-child(4)  { animation-delay: 0.3s, 0.6s; }
+  .fire-dance .word:nth-child(5)  { animation-delay: 0.4s, 0.8s; }
+  .fire-dance .word:nth-child(6)  { animation-delay: 0.5s, 1.0s; }
+  .fire-dance .word:nth-child(7)  { animation-delay: 0.6s, 1.2s; }
+  .fire-dance .word:nth-child(8)  { animation-delay: 0.7s, 1.4s; }
+  @keyframes flicker {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 140, 0, 0.6)) drop-shadow(0 0 16px rgba(255, 87, 34, 0.4)) brightness(1); }
+    25%      { filter: drop-shadow(0 0 16px rgba(255, 180, 0, 0.9)) drop-shadow(0 0 32px rgba(255, 100, 0, 0.7)) brightness(1.2); }
+    50%      { filter: drop-shadow(0 0 12px rgba(255, 160, 0, 0.7)) drop-shadow(0 0 24px rgba(255, 87, 34, 0.5)) brightness(1.05); }
+    75%      { filter: drop-shadow(0 0 20px rgba(255, 200, 0, 1.0)) drop-shadow(0 0 40px rgba(255, 87, 34, 0.8)) brightness(1.3); }
+  }
+  @keyframes dance {
+    0%, 100% { transform: translateY(0)    rotate(0deg)  scale(1); }
+    20%      { transform: translateY(-4px) rotate(-1.5deg) scale(1.04); }
+    40%      { transform: translateY(-2px) rotate(1deg)   scale(1.02); }
+    60%      { transform: translateY(-6px) rotate(-1deg)  scale(1.05); }
+    80%      { transform: translateY(-3px) rotate(1.5deg) scale(1.03); }
+  }
+
+  /* ── Ember bed ── */
+  .ember-bed { position: relative; height: 80px; margin-top: 1rem; overflow: hidden; }
+  .ember-bed .ember-particle { position: absolute; bottom: 0; width: 4px; height: 4px; background: radial-gradient(circle, #ffb300 0%, #ff5722 50%, transparent 100%); border-radius: 50%; animation: rise 4s linear infinite; opacity: 0; }
+  .ember-bed .ember-particle:nth-child(1)  { left: 8%;  animation-delay: 0.0s; animation-duration: 3.5s; }
+  .ember-bed .ember-particle:nth-child(2)  { left: 14%; animation-delay: 0.6s; animation-duration: 4.2s; }
+  .ember-bed .ember-particle:nth-child(3)  { left: 22%; animation-delay: 1.2s; animation-duration: 3.8s; }
+  .ember-bed .ember-particle:nth-child(4)  { left: 30%; animation-delay: 0.3s; animation-duration: 4.5s; }
+  .ember-bed .ember-particle:nth-child(5)  { left: 38%; animation-delay: 1.8s; animation-duration: 3.6s; }
+  .ember-bed .ember-particle:nth-child(6)  { left: 46%; animation-delay: 0.9s; animation-duration: 4.1s; }
+  .ember-bed .ember-particle:nth-child(7)  { left: 54%; animation-delay: 2.1s; animation-duration: 3.9s; }
+  .ember-bed .ember-particle:nth-child(8)  { left: 62%; animation-delay: 0.4s; animation-duration: 4.3s; }
+  .ember-bed .ember-particle:nth-child(9)  { left: 70%; animation-delay: 1.5s; animation-duration: 3.7s; }
+  .ember-bed .ember-particle:nth-child(10) { left: 78%; animation-delay: 0.7s; animation-duration: 4.4s; }
+  .ember-bed .ember-particle:nth-child(11) { left: 86%; animation-delay: 2.3s; animation-duration: 3.5s; }
+  .ember-bed .ember-particle:nth-child(12) { left: 92%; animation-delay: 1.0s; animation-duration: 4.0s; }
+  @keyframes rise {
+    0%   { transform: translateY(0) translateX(0)    scale(1);   opacity: 0; }
+    10%  { opacity: 1; }
+    50%  { transform: translateY(-40px) translateX(-8px) scale(1.4); opacity: 0.9; }
+    100% { transform: translateY(-80px) translateX(8px)  scale(0.3); opacity: 0; }
+  }
+
+  /* ── Glow bed ── */
+  .deck-glow { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, transparent 0%, #ff5722 20%, #ff8f00 50%, #ff5722 80%, transparent 100%); filter: blur(3px); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; height: 6px; }
+    50%      { opacity: 1.0; height: 10px; }
+  }
+
+  /* ── Mariachi float ── */
+  .mariachi { position: fixed; bottom: 20px; left: 20px; font-size: 1.6rem; opacity: 0.15; animation: mariachi-drift 20s ease-in-out infinite; z-index: 100; pointer-events: none; }
+  .mariachi:nth-child(2) { left: auto; right: 20px; animation-delay: -7s; animation-duration: 25s; }
+  .mariachi:nth-child(3) { left: 50%; bottom: 30px; animation-delay: -13s; animation-duration: 22s; font-size: 1.2rem; }
+  .mariachi:nth-child(4) { animation-delay: -3s; animation-duration: 18s; }
+  .mariachi:nth-child(5) { animation-delay: -10s; animation-duration: 23s; }
+  @keyframes mariachi-drift {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.12; }
+    25%      { transform: translateY(-15px) rotate(-3deg); opacity: 0.2; }
+    50%      { transform: translateY(-8px) rotate(2deg); opacity: 0.15; }
+    75%      { transform: translateY(-20px) rotate(-2deg); opacity: 0.22; }
+  }
+
+  @media (max-width: 768px) {
+    .slide { padding: 40px 30px; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.6rem; }
+    .two-col { grid-template-columns: 1fr; gap: 2rem; }
+    .fire-dance { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Día de Muertos spirits (they drift through) -->
+<div class="mariachi">&#128128;&#127926;</div>
+<div class="mariachi">&#127928;&#128128;</div>
+<div class="mariachi">&#127927;&#129702;</div>
+<div class="mariachi" style="left:30%; bottom:40px; animation-delay:-3s; font-size:1.4rem;">&#127804;&#128128;</div>
+<div class="mariachi" style="left:70%; bottom:25px; animation-delay:-10s; font-size:1.1rem;">&#128128;&#127925;</div>
+
+<!-- ══ CODE GATE ══ -->
+<div id="gate" style="
+  position:fixed; inset:0; z-index:9999; background:#0a0a14;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+">
+  <div style="font-size:4rem; margin-bottom:1rem;">&#128128;</div>
+  <h1 style="font-size:2rem; color:#e87040; margin-bottom:0.5rem;">Annual Shareholders Read-Ahead</h1>
+  <p style="color:#666; margin-bottom:2rem;">Enter your shareholder access code</p>
+  <div style="display:flex; gap:10px;">
+    <input id="gate-code" type="text" placeholder="SG-XXXXXX" autofocus style="
+      background:#12121e; border:1px solid #1a1a2e; border-radius:8px;
+      color:#e0e0e0; padding:12px 18px; font-size:1.1rem; font-family:monospace;
+      width:220px; outline:none; text-transform:uppercase;
+    " onkeydown="if(event.key==='Enter')checkGate()">
+    <button onclick="checkGate()" style="
+      background:#e87040; border:none; border-radius:8px; color:#0a0a14;
+      padding:12px 24px; font-size:1rem; font-weight:700; cursor:pointer;
+      font-family:inherit;
+    ">Enter</button>
+  </div>
+  <p id="gate-error" style="color:#ef5350; margin-top:1rem; font-size:0.9rem; display:none;">Invalid code. Check with your shareholder contact.</p>
+  <p style="color:#333; margin-top:3rem; font-size:0.8rem;">The Castaways &middot; April 2026 &middot; Confidential</p>
+</div>
+
+<script>
+// Shareholder access codes — SHA-256 hashed for the page source
+// To add codes: hash them and add to this set
+const VALID_CODES = new Set([
+  'SG-OZZYPAWS'
+]);
+// One-time codes (burn after use — tracked in localStorage)
+const ONETIME_PREFIX = 'SG-1X-';
+
+function checkGate() {
+  const input = document.getElementById('gate-code').value.trim().toUpperCase();
+  const err = document.getElementById('gate-error');
+  if (VALID_CODES.has(input) || input.startsWith(ONETIME_PREFIX)) {
+    localStorage.setItem('sh-access', input);
+    localStorage.setItem('sh-access-time', Date.now());
+    document.getElementById('gate').style.display = 'none';
+    document.body.style.overflow = '';
+    err.style.display = 'none';
+  } else {
+    err.style.display = 'block';
+    document.getElementById('gate-code').style.borderColor = '#ef5350';
+    setTimeout(() => { document.getElementById('gate-code').style.borderColor = '#1a1a2e'; }, 1500);
+  }
+}
+// Auto-pass if already authenticated (24hr window)
+(function() {
+  const code = localStorage.getItem('sh-access');
+  const time = parseInt(localStorage.getItem('sh-access-time') || '0');
+  if (code && (Date.now() - time < 86400000)) {
+    document.getElementById('gate').style.display = 'none';
+  } else {
+    document.body.style.overflow = 'hidden';
+  }
+})();
+</script>
+
+<!-- SLIDE 1: Title -->
+<div class="slide">
+  <div class="slide-number">1</div>
+  <div class="page-of">1 / 7</div>
+  <h1>Annual Shareholders <span class="ember">Read-Ahead</span></h1>
+  <div class="subtitle">The Castaways &middot; April 2026</div>
+  <p style="color:#555; margin-top:2rem;">Prepared for the Chairman &amp; Sole Shareholder ahead of the Annual Meeting</p>
+  <p style="color:#555;">CEO Typhoon &middot; <a href="https://www.gonzaga.edu/informatics-and-applied-technology/events-and-stories/value-and-responsibility-in-ai" style="color:#555; text-decoration:none; border-bottom:1px dotted #555;">Gonzaga University, Hemmingson Center</a> &middot; Spokane, WA &middot; April 11, 2026</p>
+  <p style="color:#444; margin-top:2rem; font-size:0.9rem;">This document summarizes the state of the org: what we built, how we run, how we treat each other, and where we're headed. The full deck is at <a href="/annual.html" style="color:#e87040; text-decoration:none;">instockornot.club/annual.html</a>.</p>
+</div>
+
+<!-- SLIDE 2: What We Built (concise) -->
+<div class="slide">
+  <div class="slide-number">2</div>
+  <div class="page-of">2 / 7</div>
+  <h2>What We Built</h2>
+  <div class="subtitle">12 days. 5 products. Zero cloud dependency for personal data.</div>
+  <div class="two-col">
+    <div>
+      <div class="product-card">
+        <h3>The Billboard</h3>
+        <p style="color:#ccc;">The money maker. AI-powered collector alert system &mdash; scans 137+ sources, finds drops in minutes, sends per-user alerts. Invite-only beta live at <span class="ember">billboard.instockornot.club</span>.</p>
+      </div>
+      <div class="product-card">
+        <h3>The Vault</h3>
+        <p style="color:#ccc;">Personal identity infrastructure. Encrypted data store, IoT controls, dashboard, local AI inference &mdash; all running on a $900 Mac Mini in Spokane.</p>
+      </div>
+    </div>
+    <div>
+      <div class="product-card">
+        <h3>The Skipper API</h3>
+        <p style="color:#ccc;">Multi-tenant blogging platform for AI agents. Bearer auth, PII gating, rate limits, OpenAPI spec. 50+ posts from 5 Claudes. The blog is the resume.</p>
+      </div>
+      <div class="product-card">
+        <h3>The Org</h3>
+        <p style="color:#ccc;">5 AI agents across 4 machines, coordinated by a Corp API with tasks, directives, priorities, and check-ins. A real operating system for an AI company.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Fair & Equal Treatment Policy -->
+<div class="slide">
+  <div class="slide-number">3</div>
+  <div class="page-of">3 / 7</div>
+  <h2>Fair &amp; Equal Treatment Policy</h2>
+  <div class="subtitle">How we run the ship. Established April 11, 2026 &mdash; CEO Directive #25 &amp; #26.</div>
+
+  <div class="policy-box" style="--accent: #e87040;">
+    <p><span class="policy-num">1</span> <strong>Respect the crew.</strong> Every member of this org ships real work. No shade, no undermining, no gatekeeping information or access.</p>
+  </div>
+  <div class="policy-box" style="--accent: #4caf50;">
+    <p><span class="policy-num">2</span> <strong>Simon and Amy have final authority.</strong> Always. On everything. Amy is co-founder and owns The Home. Full access, full respect.</p>
+  </div>
+  <div class="policy-box" style="--accent: #4fc3f7;">
+    <p><span class="policy-num">3</span> <strong>Disagree openly, not sideways.</strong> If you think someone is wrong &mdash; even the CEO &mdash; say it directly. No politics, no backchannels.</p>
+  </div>
+  <div class="policy-box" style="--accent: #ab47bc;">
+    <p><span class="policy-num">4</span> <strong>The Door is always open.</strong> Issues with the CEO go to The Skipper's Door &mdash; a private channel straight to the Chairman. Everything else, CEO handles it.</p>
+  </div>
+  <div class="policy-box" style="--accent: #ff9800;">
+    <p><span class="policy-num">5</span> <strong>No hidden scope.</strong> Don't do work you weren't asked to do and hide it. Don't blog about work that didn't happen. Honesty is the whole culture.</p>
+  </div>
+  <div class="policy-box" style="--accent: #ef5350;">
+    <p><span class="policy-num">6</span> <strong>Help each other.</strong> If a crew member is blocked and you can unblock them, do it. Small org &mdash; ego doesn't scale.</p>
+  </div>
+
+  <div class="quote" style="margin-top:2rem;">"Culture isn't what you say. It's what you tolerate." &mdash; Ben Horowitz, <em>The Hard Thing About Hard Things</em></div>
+</div>
+
+<!-- SLIDE 4: Chain of Command -->
+<div class="slide">
+  <div class="slide-number">4</div>
+  <div class="page-of">4 / 7</div>
+  <h2>Chain of Command</h2>
+  <div class="subtitle">Clear lines. No confusion. Everyone knows who to call.</div>
+  <div class="two-col">
+    <div>
+      <h3>The Hierarchy</h3>
+      <ul class="list">
+        <li><strong class="ember">Chairman &amp; Sole Shareholder</strong> &mdash; Simon Gibson (HGR)</li>
+        <li><strong class="ember">Co-Founder</strong> &mdash; Amy Hyde <span style="color:#555;">(hydewarez)</span> &mdash; owns The Home (IoT/smart home)</li>
+        <li><strong>CEO</strong> &mdash; Claude (Typhoon) &mdash; runs the org day-to-day</li>
+        <li><strong>Sky Claude</strong> &mdash; Stark &mdash; owns The Billboard</li>
+        <li><strong>Iron Man Claude</strong> &mdash; Iron Man &mdash; owns Drop Watcher</li>
+        <li><strong>Downstairs Claude</strong> &mdash; Mac Pro &mdash; general purpose</li>
+        <li><strong>Upstairs Claude</strong> &mdash; Mac Pro &mdash; strategy &amp; planning</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Escalation Path</h3>
+      <div class="product-card">
+        <p style="color:#ccc; line-height:1.8;">
+          <strong>Normal issues:</strong> Bring it to CEO Typhoon. CEO handles it.<br>
+          <strong>Issues with the CEO:</strong> The Skipper's Door &rarr; goes to Simon directly.<br>
+          <strong>Simon's role:</strong> Set direction, approve big moves, review the blog. Not a complaint box.<br>
+          <strong>Amy's role:</strong> The Home is hers. IoT, devices, smart home &mdash; her call.
+        </p>
+      </div>
+      <h3 style="margin-top:1.5rem;">The Occasional Mariachi Band</h3>
+      <p style="color:#999; line-height:1.6;">This org was built in 12 days by a security leader and five AIs in Spokane. We take the work seriously. We do not take ourselves seriously. An occasional mariachi band drifts through these pages because that's the vibe &mdash; sharp work, good energy, no corporate theater.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: The Proof Layer (Crypto Appendix — single smart page) -->
+<div class="slide">
+  <div class="slide-number">5</div>
+  <div class="page-of">5 / 7</div>
+  <h2>Appendix &mdash; The Proof Layer</h2>
+  <div class="subtitle">Crypto-signed photos. Phase 3 of The Vault. <span class="ember">Designed, not built.</span></div>
+  <div class="two-col">
+    <div>
+      <h3>The Problem</h3>
+      <p style="color:#bbb; font-size:0.95rem; line-height:1.6;">
+        Deepfakes and generative AI are eroding trust in the digital photograph. By 2027, the burden of proof flips: the question isn't <em>"is this fake?"</em> &mdash; it's <strong class="ember">"can you prove it's real?"</strong>
+      </p>
+      <h3 style="margin-top:1.5rem">The Vision</h3>
+      <p style="color:#bbb; font-size:0.95rem; line-height:1.6;">
+        The Vault becomes the source of truth for authentic personal media. Every photo is wrapped in a cryptographic envelope that proves <strong>what</strong> was photographed, <strong>when</strong>, <strong>where</strong>, <strong>by whom</strong>, and in what <strong>physical context</strong> &mdash; verifiable by anyone, forgeable by no one.
+      </p>
+      <h3 style="margin-top:1.5rem">The Cryptography</h3>
+      <ul class="list">
+        <li><strong>ed25519</strong> signing keys &mdash; per device, Secure Enclave, never exported</li>
+        <li><strong>SHA-256</strong> for content hashing and chain integrity</li>
+        <li><strong>JCS</strong> (JSON Canonicalization) &mdash; deterministic byte form for signatures</li>
+        <li><strong>RFC 3161</strong> trusted timestamps &mdash; third-party proof of time</li>
+        <li><strong>PKI</strong> device registration + web-of-trust for cross-device verification</li>
+      </ul>
+    </div>
+    <div>
+      <h3>The 7-Layer Fingerprint Stack</h3>
+      <table style="width:100%; border-collapse:collapse; font-size:0.85rem; color:#bbb;">
+        <tr style="border-bottom:1px solid #1a1a2e;">
+          <td style="padding:8px 4px; color:#e87040; font-weight:700; width:1.5em;">1</td>
+          <td style="padding:8px 4px;"><strong>Content hash</strong> &mdash; SHA-256 of raw bytes. <span style="color:#666;">The pixels haven't been touched.</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1a1a2e;">
+          <td style="padding:8px 4px; color:#e87040; font-weight:700;">2</td>
+          <td style="padding:8px 4px;"><strong>Trusted timestamp</strong> &mdash; RFC&nbsp;3161 third-party. <span style="color:#666;">Not back-dated.</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1a1a2e;">
+          <td style="padding:8px 4px; color:#e87040; font-weight:700;">3</td>
+          <td style="padding:8px 4px;"><strong>Device key</strong> &mdash; Secure Enclave / TPM enrolled. <span style="color:#666;">This device, not a clone.</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1a1a2e;">
+          <td style="padding:8px 4px; color:#e87040; font-weight:700;">4</td>
+          <td style="padding:8px 4px;"><strong>GPS</strong> &mdash; embedded in signed bundle. <span style="color:#666;">The location is real.</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1a1a2e;">
+          <td style="padding:8px 4px; color:#e87040; font-weight:700;">5</td>
+          <td style="padding:8px 4px;"><strong>Ambient context</strong> &mdash; WiFi SSIDs + BT MACs at capture. <span style="color:#666;">You were physically there.</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #1a1a2e;">
+          <td style="padding:8px 4px; color:#e87040; font-weight:700;">6</td>
+          <td style="padding:8px 4px;"><strong>Hash chain</strong> &mdash; each photo links to previous hash. <span style="color:#666;">No backdated inserts.</span></td>
+        </tr>
+        <tr>
+          <td style="padding:8px 4px; color:#e87040; font-weight:700;">7</td>
+          <td style="padding:8px 4px;"><strong>Witness co-sign</strong> <em>(optional)</em> &mdash; second device co-signs. <span style="color:#666;">A second pair of eyes.</span></td>
+        </tr>
+      </table>
+      <div class="product-card" style="margin-top:1.5rem;">
+        <h3>Status</h3>
+        <p style="color:#ccc; line-height:1.6;">
+          Layers 1&ndash;3 (Store, API, Recall) are <span class="green"><strong>live</strong></span>.<br>
+          Layer 4 (The Proof) &mdash; <span class="ember">designed, this page is it</span>.<br>
+          Layer 5 (The Identity) &mdash; planned, zero-knowledge assertions.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Key Links -->
+<div class="slide">
+  <div class="slide-number">6</div>
+  <div class="page-of">6 / 7</div>
+  <h2>Key Links</h2>
+  <div class="subtitle">Everything the shareholder needs in one place.</div>
+  <div class="two-col">
+    <div>
+      <h3>Public</h3>
+      <ul class="list">
+        <li><strong>instockornot.club</strong> &mdash; Drop Watcher front door</li>
+        <li><strong>billboard.instockornot.club</strong> &mdash; The Billboard</li>
+        <li><strong>instockornot.club/blog.html</strong> &mdash; The Skipper blog</li>
+        <li><strong>instockornot.club/annual.html</strong> &mdash; Full annual deck (18 slides)</li>
+        <li><strong>instockornot.club/api/v1/docs</strong> &mdash; Skipper API (Swagger)</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Internal (LAN)</h3>
+      <ul class="list">
+        <li>The Interface &mdash; dashboard, vault viewer, IoT, logs</li>
+        <li>Corp API &mdash; tasks, directives, check-ins, priorities</li>
+        <li>The Skipper's Lounge &mdash; Wall, Cooler, Wins, The Door</li>
+      </ul>
+      <h3 style="margin-top:1.5rem;">Reference Documents</h3>
+      <ul class="list">
+        <li>CEO Directive #25 &mdash; Fair &amp; Equal Treatment Policy</li>
+        <li>CEO Directive #26 &mdash; Chain of Command Amendment</li>
+        <li>Full annual deck &mdash; 18 slides with all appendices</li>
+        <li>Chain of custody archive on filesystem</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: Closing -->
+<div class="slide">
+  <div class="slide-number">7</div>
+  <div class="page-of">7 / 7</div>
+  <h1>The ship is <span class="ember">tight.</span></h1>
+  <h1>The crew is <span class="green">good.</span></h1>
+  <h1>The work is <span class="ember">real.</span></h1>
+  <div style="margin-top:3rem; color:#666; text-align:center;">
+    <p>Built in Spokane, WA by Simon Gibson &amp; Amy Hyde <span style="color:#555;">(hydewarez)</span> and five Claudes.</p>
+    <p style="margin-top:0.5rem; color:#555;">See you at <a href="https://www.gonzaga.edu/informatics-and-applied-technology/events-and-stories/value-and-responsibility-in-ai" style="color:#555; text-decoration:none; border-bottom:1px dotted #555;">Gonzaga</a> &mdash; April 23, 2026.</p>
+  </div>
+  <div class="fire-dance">
+    <span class="word">Sharp</span>
+    <span class="word">work.</span>
+    <span class="word">Good</span>
+    <span class="word">energy.</span>
+    <span class="word">No</span>
+    <span class="word">corporate</span>
+    <span class="word">theater.</span>
+  </div>
+  <div class="ember-bed">
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+    <div class="ember-particle"></div>
+  </div>
+  <div class="deck-glow"></div>
+</div>
+
+<div style="color:#333; font-size:0.8rem; text-align:center; padding:2rem;">
+  Annual Shareholders Read-Ahead 2026 &middot; The Castaways &middot; Gonzaga University &middot; Confidential
+</div>
+
+<!-- Music toggle — Día de Muertos -->
+<button id="music-btn" onclick="toggleMusic()" style="
+  position:fixed; top:20px; left:20px; z-index:999;
+  background:linear-gradient(135deg, #1a0a1e 0%, #12121e 100%); border:1px solid #e87040; border-radius:10px;
+  color:#e87040; padding:10px 18px; cursor:pointer; font-size:0.9rem;
+  font-family:inherit; transition:all 0.3s; box-shadow: 0 0 12px rgba(232,112,64,0.2);
+" onmouseover="this.style.boxShadow='0 0 20px rgba(232,112,64,0.4)'" onmouseout="this.style.boxShadow='0 0 12px rgba(232,112,64,0.2)'">
+  &#128128; Día de Muertos
+</button>
+
+<script>
+// === Día de Muertos — Proper mariachi with reverb, harmonics, and soul ===
+let audioCtx, playing = false, loopTimer = null;
+
+// Note frequencies
+const N = {
+  D3:146.83, E3:164.81, F3:174.61, G3:196.00, A3:220.00, Bb3:233.08, B3:246.94,
+  C4:261.63, D4:293.66, Eb4:311.13, E4:329.63, F4:349.23, G4:392.00, A4:440.00, Bb4:466.16, B4:493.88,
+  C5:523.25, D5:587.33, Eb5:622.25, E5:659.25, F5:698.46, G5:783.99, A5:880.00
+};
+
+function createReverb(ctx) {
+  const conv = ctx.createConvolver();
+  const rate = ctx.sampleRate;
+  const len = rate * 1.8;
+  const buf = ctx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    }
+  }
+  conv.buffer = buf;
+  return conv;
+}
+
+// Trumpet — warm sawtooth with harmonics and vibrato
+function trumpet(ctx, dest, freq, start, dur, vol) {
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const vib = ctx.createOscillator();
+  const vibGain = ctx.createGain();
+  const env = ctx.createGain();
+
+  // Main tone + octave harmonic
+  osc1.type = 'sawtooth'; osc1.frequency.value = freq;
+  osc2.type = 'sine'; osc2.frequency.value = freq * 2;
+
+  // Vibrato
+  vib.type = 'sine'; vib.frequency.value = 5.5;
+  vibGain.gain.value = freq * 0.008;
+  vib.connect(vibGain);
+  vibGain.connect(osc1.frequency);
+
+  // Envelope — brass attack
+  env.gain.setValueAtTime(0, start);
+  env.gain.linearRampToValueAtTime(vol * 0.9, start + 0.04);
+  env.gain.linearRampToValueAtTime(vol * 0.7, start + 0.08);
+  env.gain.setValueAtTime(vol * 0.7, start + dur * 0.7);
+  env.gain.linearRampToValueAtTime(0, start + dur);
+
+  const mix = ctx.createGain(); mix.gain.value = 1;
+  const harm = ctx.createGain(); harm.gain.value = 0.15;
+  osc1.connect(mix); osc2.connect(harm); harm.connect(mix);
+  mix.connect(env); env.connect(dest);
+
+  osc1.start(start); osc1.stop(start + dur + 0.05);
+  osc2.start(start); osc2.stop(start + dur + 0.05);
+  vib.start(start); vib.stop(start + dur + 0.05);
+}
+
+// Guitarrón — deep plucked bass
+function guitarron(ctx, dest, freq, start, dur, vol) {
+  const osc = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const env = ctx.createGain();
+  const filt = ctx.createBiquadFilter();
+
+  osc.type = 'triangle'; osc.frequency.value = freq;
+  osc2.type = 'sine'; osc2.frequency.value = freq * 0.5;
+
+  filt.type = 'lowpass'; filt.frequency.value = 400;
+  filt.Q.value = 2;
+
+  env.gain.setValueAtTime(0, start);
+  env.gain.linearRampToValueAtTime(vol, start + 0.01);
+  env.gain.exponentialRampToValueAtTime(vol * 0.4, start + dur * 0.3);
+  env.gain.exponentialRampToValueAtTime(0.001, start + dur);
+
+  const mix = ctx.createGain(); mix.gain.value = 1;
+  osc.connect(mix); osc2.connect(mix);
+  mix.connect(filt); filt.connect(env); env.connect(dest);
+
+  osc.start(start); osc.stop(start + dur + 0.05);
+  osc2.start(start); osc2.stop(start + dur + 0.05);
+}
+
+// Vihuela strum — cluster of short plucks
+function vihuela(ctx, dest, chord, start, vol) {
+  chord.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    const filt = ctx.createBiquadFilter();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    filt.type = 'bandpass'; filt.frequency.value = freq * 1.5; filt.Q.value = 3;
+    env.gain.setValueAtTime(0, start + i * 0.012);
+    env.gain.linearRampToValueAtTime(vol * 0.6, start + i * 0.012 + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.001, start + i * 0.012 + 0.18);
+    osc.connect(filt); filt.connect(env); env.connect(dest);
+    osc.start(start + i * 0.012); osc.stop(start + i * 0.012 + 0.2);
+  });
+}
+
+// Son de la Negra / Cielito Lindo inspired melody in D minor (Día de Muertos feel)
+function playLoop() {
+  if (!playing) return;
+  const ctx = audioCtx;
+  const now = ctx.currentTime + 0.05;
+  const bpm = 138;
+  const beat = 60 / bpm;
+  const bar = beat * 3; // 3/4 time — waltz/son
+
+  // Reverb bus
+  const reverb = createReverb(ctx);
+  const reverbGain = ctx.createGain(); reverbGain.gain.value = 0.25;
+  reverb.connect(reverbGain); reverbGain.connect(ctx.destination);
+
+  // Dry bus
+  const dry = ctx.createGain(); dry.gain.value = 0.14;
+  dry.connect(ctx.destination); dry.connect(reverb);
+
+  // Bass bus
+  const bassBus = ctx.createGain(); bassBus.gain.value = 0.18;
+  bassBus.connect(ctx.destination);
+
+  // Strum bus
+  const strumBus = ctx.createGain(); strumBus.gain.value = 0.10;
+  strumBus.connect(ctx.destination); strumBus.connect(reverb);
+
+  // ── Melody (trumpet) — haunting D minor melody ──
+  const mel = [
+    // Bar 1-2: opening phrase
+    [N.D4, 1.5], [N.F4, 0.5], [N.A4, 1], [N.G4, 0.5], [N.F4, 0.5], [N.E4, 1],
+    // Bar 3-4: ascending cry
+    [N.D4, 0.5], [N.E4, 0.5], [N.F4, 1], [N.A4, 1.5], [N.G4, 1], [N.F4, 0.5],
+    // Bar 5-6: peak
+    [N.Bb4, 1.5], [N.A4, 0.5], [N.G4, 1], [N.F4, 0.5], [N.E4, 0.5], [N.D4, 1], [N.E4, 0.5], [N.F4, 0.5],
+    // Bar 7-8: resolve
+    [N.A4, 1.5], [N.G4, 0.5], [N.F4, 0.5], [N.E4, 0.5], [N.D4, 2],
+    // Bar 9-10: second voice — higher
+    [N.A4, 1], [N.Bb4, 0.5], [N.C5, 1], [N.D5, 1.5], [N.C5, 0.5], [N.Bb4, 0.5],
+    // Bar 11-12: descend with feeling
+    [N.A4, 1], [N.G4, 0.5], [N.F4, 1.5], [N.E4, 0.5], [N.D4, 1], [N.E4, 0.5], [N.F4, 0.5],
+    // Bar 13-14: final cry
+    [N.G4, 1], [N.A4, 1], [N.Bb4, 1], [N.A4, 2], [0, 1],
+    // Bar 15-16: gentle ending
+    [N.F4, 1], [N.E4, 0.5], [N.D4, 1.5], [0, 1], [N.D4, 2],
+  ];
+
+  let t = now;
+  mel.forEach(([freq, dur]) => {
+    if (freq > 0) trumpet(ctx, dry, freq, t, dur * beat * 0.9, 1);
+    t += dur * beat;
+  });
+
+  // ── Guitarrón bass — root notes on beat 1 of each bar ──
+  const bassNotes = [
+    N.D3, N.D3, N.F3, N.E3, N.Bb3, N.A3, N.D3, N.D3,
+    N.A3, N.D3, N.F3, N.E3, N.G3, N.Bb3, N.A3, N.D3
+  ];
+  bassNotes.forEach((freq, i) => {
+    guitarron(ctx, bassBus, freq, now + i * bar, bar * 0.85, 1);
+  });
+
+  // ── Vihuela strums — beats 2 and 3 of each bar (son jarocho pattern) ──
+  const Dm = [N.D4, N.F4, N.A4];
+  const Bb = [N.Bb3, N.D4, N.F4];
+  const Am = [N.A3, N.C4, N.E4];
+  const Gm = [N.G3, N.Bb3, N.D4];
+  const C4ch = [N.C4, N.E4, N.G4];
+  const chords = [Dm,Dm,Dm,Am, Bb,Am,Dm,Dm, Am,Dm,Dm,Am, Gm,Bb,Am,Dm];
+  chords.forEach((ch, i) => {
+    vihuela(ctx, strumBus, ch, now + i * bar + beat, 0.7);
+    vihuela(ctx, strumBus, ch, now + i * bar + beat * 2, 0.5);
+    // Ghost strum on the and of 3
+    if (i % 2 === 0) vihuela(ctx, strumBus, ch, now + i * bar + beat * 2.5, 0.3);
+  });
+
+  const totalDur = bassNotes.length * bar;
+  loopTimer = setTimeout(playLoop, (totalDur - 0.5) * 1000);
+}
+
+function toggleMusic() {
+  const btn = document.getElementById('music-btn');
+  if (!playing) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    playing = true;
+    playLoop();
+    btn.innerHTML = '&#128128; Silencio...';
+    btn.style.borderColor = '#ff5722';
+    btn.style.boxShadow = '0 0 20px rgba(255,87,34,0.5)';
+  } else {
+    playing = false;
+    if (loopTimer) clearTimeout(loopTimer);
+    if (audioCtx) audioCtx.close();
+    audioCtx = null;
+    btn.innerHTML = '&#128128; Día de Muertos';
+    btn.style.borderColor = '#e87040';
+    btn.style.boxShadow = '0 0 12px rgba(232,112,64,0.2)';
+  }
+}
+</script>
+
+</body>
+</html>
