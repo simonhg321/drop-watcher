@@ -45,9 +45,11 @@ import paths
 import db
 import collection_fetch
 from alerter import send_email
+from sms_alerter import _send_twilio_sms
 
 # ── Who & how often ───────────────────────────────────────────────────────────
 HUNTER_EMAIL   = os.environ.get('DW_LUNAR_EMAIL') or os.environ.get('ALERT_TO')
+HUNTER_PHONE   = os.environ.get('DW_LUNAR_PHONE')   # E.164, e.g. +13472766172; SMS skipped if unset
 SEEN_TTL_HOURS = 24 * 14   # re-alert at most every 2 weeks for the SAME find/state
 
 # The signal. "lunar landing" is the canonical CGG name; the rest are safety nets.
@@ -282,6 +284,27 @@ def build_armed_email():
         + f"\nBlind spots (bot-blocked): {', '.join(BLIND_SPOTS)}\n")
 
 
+def build_find_sms(finds):
+    """Short SMS body for a find. The email carries the full detail + links."""
+    n = len(finds)
+    f = finds[0]
+    state = 'IN STOCK' if f['in_stock'] else ('listed' if f['in_stock'] is None else 'sold out')
+    head = f"🌙 LUNAR LANDING — {n} listing{'s' if n != 1 else ''} found!"
+    lead = f"{f['source']} ({state})"
+    return f"{head}\n{lead}\n{f['url']}\nDetails: {HUNTER_EMAIL}\nReply STOP to opt out."
+
+
+def send_find_sms(finds):
+    if not HUNTER_PHONE:
+        log.info("no DW_LUNAR_PHONE set — skipping SMS")
+        return
+    body = build_find_sms(finds)
+    if _send_twilio_sms(HUNTER_PHONE, body):
+        log.info(f"🌙 SMS sent to {HUNTER_PHONE}")
+    else:
+        log.error(f"SMS failed to {HUNTER_PHONE}")
+
+
 def run():
     log.info("Lunar hunt starting — HGR")
     all_finds = []
@@ -307,11 +330,13 @@ def run():
         log.info(f"Hunt done — {len(all_finds)} find(s), none fresh.")
         return
 
-    subj, html, txt = build_find_email([f for f, _ in fresh])
+    fresh_finds = [f for f, _ in fresh]
+    subj, html, txt = build_find_email(fresh_finds)
     if send_email(subj, html, txt, to_addr=HUNTER_EMAIL):
         for _, key in fresh:
             db.mark_feed_seen(key)
         log.info(f"🌙 ALERT SENT — {len(fresh)} fresh Lunar find(s) to {HUNTER_EMAIL}")
+        send_find_sms(fresh_finds)   # text fires alongside email; never blocks it
     else:
         log.error("send_email failed — not marking seen, will retry next run")
 
@@ -320,6 +345,10 @@ def arm():
     subj, html, txt = build_armed_email()
     ok = send_email(subj, html, txt, to_addr=HUNTER_EMAIL)
     log.info(f"Armed notice sent: {ok}")
+    if HUNTER_PHONE:
+        body = (f"🌙 Lunar Landing hunt ARMED — watching dealers + Reddit every 8 min. "
+                f"You'll get a text the instant one appears. Reply STOP to opt out.")
+        log.info(f"Armed SMS sent: {_send_twilio_sms(HUNTER_PHONE, body)}")
 
 
 if __name__ == '__main__':
