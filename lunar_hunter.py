@@ -35,6 +35,7 @@ import hashlib
 import logging
 
 import requests
+import feedparser
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
@@ -50,17 +51,26 @@ HUNTER_EMAIL   = os.environ.get('DW_LUNAR_EMAIL') or os.environ.get('ALERT_TO')
 SEEN_TTL_HOURS = 24 * 14   # re-alert at most every 2 weeks for the SAME find/state
 
 # The signal. "lunar landing" is the canonical CGG name; the rest are safety nets.
-# All matching happens inside CRK-scoped pages, so these stay specific in practice.
+# On CRK-scoped DEALER pages these stay specific. On Reddit (mixed makers) we additionally
+# require Chris Reeve context, since "lunar" alone is also a CRKT/Civivi model name.
 LUNAR_SIGNALS = ['lunar landing', 'lunar', 'moon landing', 'first man on the moon', 'apollo']
+REEVE_CONTEXT = ['reeve', 'crk', 'sebenza', 'inkosi', 'mnandi', 'impinda', 'umnumzaan']
 
-# ── The fleet (verified live 2026-05-31) ──────────────────────────────────────
+# ── The dealer fleet (verified live 2026-05-31) ───────────────────────────────
 SOURCES = [
     {'name': 'KnifeJoy',         'url': 'https://www.knifejoy.com/collections/chris-reeve-knives'},
     {'name': 'Northwest Knives', 'url': 'https://northwestknives.com/collections/chris-reeve-knives'},
     {'name': 'Southern Edges',   'url': 'https://southernedges.com/collections/chris-reeve-knives'},
     {'name': 'DLT Trading',      'url': 'https://www.dlttrading.com/chris-reeve-knives'},
 ]
-BLIND_SPOTS = ['Blade HQ', 'KnifeCenter', 'GP Knives']  # 403 bot-block — can't auto-scan
+# Reddit buy/sell/trade subs — a grail often hits the secondary market before dealers.
+# Reddit blocks search + r/knifeswap from this host, but these plain feeds work (verified).
+# r/crk is the dedicated Chris Reeve sub: every post is Reeve-context, so a bare "lunar"
+# matches there (the sub name is fed into the match blob), while the general swap subs
+# keep the strict lunar+Reeve rule.
+REDDIT_SUBS = ['crk', 'knife_swap', 'EDCexchange', 'bladesinstock']
+
+BLIND_SPOTS = ['Blade HQ', 'KnifeCenter', 'GP Knives', 'Reddit search/r-knifeswap (403)']
 
 logging.basicConfig(
     level=logging.INFO,
@@ -91,6 +101,54 @@ def fetch_page(url, ssl_permissive=False):
 def _signal_in(text):
     t = (text or '').lower()
     return [s for s in LUNAR_SIGNALS if s in t]
+
+
+def _reddit_match(text):
+    """True only for a real CRK Lunar Landing post — guards against unrelated
+    'Lunar' models (CRKT/Civivi) by requiring Reeve context unless the post says
+    the exact phrase 'lunar landing'. Reeve terms are matched on word boundaries so
+    'crk' does NOT match 'CRKT' (a different brand entirely)."""
+    t = (text or '').lower()
+    if 'lunar landing' in t:
+        return True
+    has_lunar = any(s in t for s in LUNAR_SIGNALS)
+    has_reeve = any(re.search(r'\b' + re.escape(c) + r'\b', t) for c in REEVE_CONTEXT)
+    return has_lunar and has_reeve
+
+
+def scan_reddit():
+    """Scan buy/sell/trade subreddit feeds for a Lunar Landing listing.
+
+    Uses the plain r/<sub>.rss feed (the same method feed_watcher uses — Reddit blocks
+    search + r/knifeswap from this host, but these feeds work). Each new post's title +
+    summary is matched; a hit links straight to the Reddit permalink.
+    """
+    finds = []
+    for sub in REDDIT_SUBS:
+        url = f"https://www.reddit.com/r/{sub}.rss"
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            r.raise_for_status()
+            feed = feedparser.parse(r.text)
+        except Exception as e:
+            log.warning(f"Reddit r/{sub} — feed fetch failed: {e}")
+            continue
+        hits = 0
+        for entry in feed.entries:
+            # Include the sub name so r/crk counts as Reeve-context automatically.
+            blob = f"{sub} {entry.get('title', '')} {entry.get('summary', '')}"
+            if _reddit_match(blob):
+                finds.append({
+                    'source':   f"Reddit r/{sub}",
+                    'title':    entry.get('title', 'Lunar Landing post')[:140],
+                    'url':      entry.get('link', url),
+                    'in_stock': None,        # it's a listing, not dealer stock
+                    'price':    '',
+                    'deep':     True,
+                })
+                hits += 1
+        log.info(f"Reddit r/{sub} — {len(feed.entries)} posts, {hits} lunar match(es)")
+    return finds
 
 
 def scan_source(src):
@@ -206,6 +264,8 @@ def build_armed_email():
     fleet = ''.join(f'<li style="margin:4px 0;color:#bccaeb">{html_mod.escape(s["name"])}'
                     f' <span style="color:#46557a">— {html_mod.escape(_short_url(s["url"]))}</span></li>'
                     for s in SOURCES)
+    fleet += (f'<li style="margin:4px 0;color:#bccaeb">Reddit '
+              f'<span style="color:#46557a">— {html_mod.escape("r/" + ", r/".join(REDDIT_SUBS))}</span></li>')
     inner = (f'<p style="color:#dfe6f2;font-size:14px;">The Lunar Landing hunt is '
              f'<b style="color:#39d98a;">ARMED</b> and running every 8 minutes.</p>'
              f'<div style="background:#0b101f;border:1px solid #1f2c4a;padding:16px;margin:16px 0;">'
@@ -230,6 +290,10 @@ def run():
             all_finds.extend(scan_source(src))
         except Exception as e:
             log.error(f"{src['name']} — scan error: {e}")
+    try:
+        all_finds.extend(scan_reddit())
+    except Exception as e:
+        log.error(f"Reddit — scan error: {e}")
 
     fresh = []
     for f in all_finds:
