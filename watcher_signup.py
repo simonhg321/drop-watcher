@@ -494,7 +494,8 @@ def my_alerts(token):
         kws = [k.strip().lower() for k in w.get('keywords', '').split(',') if k.strip()]
         url = w.get('url', '').lower()
         domain = re.sub(r'^https?://(www\.)?', '', url).split('/')[0]
-        watch_filters.append({'domain': domain, 'keywords': kws, 'url': url,
+        norm = re.sub(r'^https?://(www\.)?', '', url).rstrip('/')
+        watch_filters.append({'domain': domain, 'norm': norm, 'keywords': kws, 'url': url,
                               'keywords_raw': w.get('keywords', ''),
                               'id': w.get('id'),
                               'token': w.get('unsubscribe_token')})
@@ -502,14 +503,22 @@ def my_alerts(token):
     recent_drops = db.get_recent_drops(hours=72)
     matched_drops = []
     for d in recent_drops:
-        drop_url    = (d.get('url') or '').lower()
-        drop_domain = re.sub(r'^https?://(www\.)?', '', drop_url).split('/')[0]
-        summary     = (d.get('page_summary') or '').lower()
-        notable     = ' '.join(d.get('notable_items') or []).lower()
-        searchable  = f"{summary} {notable}"
+        drop_url     = (d.get('url') or '').lower()
+        drop_domain  = re.sub(r'^https?://(www\.)?', '', drop_url).split('/')[0]
+        drop_norm    = re.sub(r'^https?://(www\.)?', '', drop_url).rstrip('/')
+        is_user_drop = (d.get('source') or '').endswith('(user)')
+        summary      = (d.get('page_summary') or '').lower()
+        notable      = ' '.join(d.get('notable_items') or []).lower()
+        kw_found     = ' '.join(d.get('keywords_found') or []).lower()
+        excerpt      = (d.get('page_excerpt') or '').lower()
+        searchable   = f"{summary} {notable} {kw_found} {excerpt}"
 
         for wf in watch_filters:
-            if not wf['domain'] or wf['domain'] != drop_domain:
+            # User-watch drops match only their exact URL; curated/feed drops by domain.
+            if is_user_drop:
+                if not wf['norm'] or wf['norm'] != drop_norm:
+                    continue
+            elif not wf['domain'] or wf['domain'] != drop_domain:
                 continue
             if wf['keywords'] and not any(k in searchable for k in wf['keywords']):
                 continue

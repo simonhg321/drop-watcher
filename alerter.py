@@ -38,14 +38,14 @@ RESEND_API_URL = 'https://api.resend.com/emails'
 log = logging.getLogger('alerter')
 
 # ── Resend sender ─────────────────────────────────────────────────────────────
-def send_email(subject, body_html, body_text, extra_recipients=None):
+def send_email(subject, body_html, body_text, extra_recipients=None, to_addr=None):
     if not RESEND_API_KEY:
         log.error("RESEND_API_KEY not configured in .env")
         return False
 
     payload = {
         'from': FROM_ADDRESS,
-        'to': [ALERT_TO],
+        'to': [to_addr or ALERT_TO],
         'bcc': extra_recipients if extra_recipients else None,
         'subject': subject,
         'html': body_html,

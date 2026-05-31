@@ -39,6 +39,7 @@ load_dotenv(paths.ENV_FILE)
 # ── Add agents dir to path so we can import ai_interpreter ───────────────────
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 from ai_interpreter import analyze_page, analyze_user_page
+import collection_fetch
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 CONFIG_DIR = paths.CONFIG_DIR
@@ -89,6 +90,29 @@ def build_keywords(cool_list, makers_config):
 # ── Page fingerprint ──────────────────────────────────────────────────────────
 def fingerprint(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
+
+# ── Structured products for deep-linking matched items ────────────────────────
+PRODUCTS_STORE_CAP = 80
+
+def instock_products(products):
+    """Trim a Shopify product list to in-stock items for deep-linking in alerts.
+
+    Only in-stock items are alert-worthy, and capping keeps the JSON we stash on the
+    drop (drops.raw_json) bounded even for 750-product catalogs. Returns [] for
+    non-Shopify pages (products is None) — alerter then falls back to the page link.
+    """
+    if not products:
+        return []
+    return [
+        {
+            'title': p.get('title', ''),
+            'url': p.get('url', ''),
+            'tags': p.get('tags', []),
+            'price': p.get('price', ''),
+            'available': True,
+        }
+        for p in products if p.get('available')
+    ][:PRODUCTS_STORE_CAP]
 
 # ── Pre-filter ────────────────────────────────────────────────────────────────
 def prefilter(text, keywords):
@@ -229,8 +253,21 @@ def domain_from_url(url):
         url = url[4:]
     return url.split('/')[0]
 
-def load_user_sites(source_domains):
-    """Load unique URLs from active watchers that aren't already in sources.yaml."""
+def normalize_watch_url(url):
+    """Normalize a URL for exact-match dedup: lowercase, strip scheme, www, trailing slash."""
+    u = url.strip().lower().replace('https://', '').replace('http://', '')
+    if u.startswith('www.'):
+        u = u[4:]
+    return u.rstrip('/')
+
+def load_user_sites(source_urls):
+    """Load unique URLs from active watchers that aren't already curated sources.
+
+    Dedup is by EXACT normalized URL, not domain. A deeper path on a domain we also
+    curate (e.g. knifejoy.com/collections/chris-reeve-knives when knifejoy.com is a
+    curated source) is a distinct user watch and MUST still be polled — domain-level
+    dedup silently dropped these and the user's watch never fired.
+    """
     try:
         watchers = db.get_active_watchers()
     except Exception as e:
@@ -242,9 +279,9 @@ def load_user_sites(source_domains):
         url = w.get('url', '').strip()
         if not url:
             continue
-        domain = domain_from_url(url)
-        if domain in source_domains:
+        if normalize_watch_url(url) in source_urls:
             continue
+        domain = domain_from_url(url)
         if url not in user_sites:
             user_sites[url] = {'url': url, 'keywords': set(), 'name': domain}
         kws = [k.strip().lower() for k in w.get('keywords', '').split(',') if k.strip()]
@@ -279,10 +316,11 @@ def run():
 
     websites = [s for s in sources.get('websites', []) if s.get('enabled', True)]
 
-    # Build set of domains already covered by sources.yaml
-    source_domains = set()
+    # Build set of curated source URLs (exact-URL match, not domain) so a user's
+    # deep-link watch on a domain we also curate is still polled as its own watch.
+    source_urls = set()
     for site in websites:
-        source_domains.add(domain_from_url(site['url']))
+        source_urls.add(normalize_watch_url(site['url']))
 
     user_sites = {}
     last_user_reload = 0
@@ -302,8 +340,9 @@ def run():
             log.info(f"Checking {name} in {sleep_time}s...")
             time.sleep(sleep_time)
 
-            html = fetch_page(url, ssl_permissive=ssl_permissive)
-            if html is None:
+            text, products = collection_fetch.fetch_collection(
+                url, fetch_page, ssl_permissive=ssl_permissive, log=log)
+            if text is None:
                 failure_count[url] = failure_count.get(url, 0) + 1
                 if failure_count[url] >= fail_thresh:
                     log.error(f"{name} has failed {failure_count[url]} times in a row")
@@ -312,10 +351,6 @@ def run():
 
             failure_count[url] = 0
 
-            soup = BeautifulSoup(html, 'html.parser')
-            for tag in soup(['nav', 'header', 'footer', 'script', 'style', 'meta', 'link']):
-                 tag.decompose()
-            text = soup.get_text(separator=' ', strip=True)
             fp     = fingerprint(text)
             old_fp = page_cache.get(url, {}).get('fingerprint')
 
@@ -340,6 +375,8 @@ def run():
                             result['agent'] = 'web_watcher'
                             result['source'] = name
                             result['event'] = 'baseline_stock_found'
+                            result['page_excerpt'] = text[:6000]
+                            result['products'] = instock_products(products)
                             if result.get('priority') == 'critical':
                                 result['priority'] = 'high'
                             write_alert(settings, result)
@@ -377,6 +414,8 @@ def run():
                     result['agent'] = 'web_watcher'
                     result['source'] = name
                     result['event'] = 'page_changed'
+                    result['page_excerpt'] = text[:6000]
+                    result['products'] = instock_products(products)
                     summary = result.get('page_summary', '') + result.get('drop_announcement', {}).get('description', '')
                     if is_content_seen(name, summary):
                         log.info(f"{name} — content unchanged since last alert, suppressing duplicate")
@@ -391,7 +430,7 @@ def run():
 
         # ── User-submitted URL watches ──────────────────���────────────────────
         if time.time() - last_user_reload > USER_SITES_RELOAD_INTERVAL:
-            user_sites = load_user_sites(source_domains)
+            user_sites = load_user_sites(source_urls)
             last_user_reload = time.time()
             if user_sites:
                 log.info(f"Tracking {len(user_sites)} user-submitted URL(s)")
@@ -412,8 +451,8 @@ def run():
             log.info(f"Checking user site {uname} in {sleep_time}s (keywords: {', '.join(user_kws)})...")
             time.sleep(sleep_time)
 
-            html = fetch_page(uurl)
-            if html is None:
+            text, products = collection_fetch.fetch_collection(uurl, fetch_page, log=log)
+            if text is None:
                 failure_count[uurl] = failure_count.get(uurl, 0) + 1
                 if failure_count[uurl] >= fail_thresh:
                     log.error(f"{uname} has failed {failure_count[uurl]} times in a row")
@@ -421,10 +460,6 @@ def run():
 
             failure_count[uurl] = 0
 
-            soup = BeautifulSoup(html, 'html.parser')
-            for tag in soup(['nav', 'header', 'footer', 'script', 'style', 'meta', 'link']):
-                tag.decompose()
-            text = soup.get_text(separator=' ', strip=True)
             fp = fingerprint(text)
             old_fp = page_cache.get(uurl, {}).get('fingerprint')
 
@@ -474,6 +509,8 @@ def run():
                     result['agent'] = 'web_watcher'
                     result['source'] = uname
                     result['event'] = 'user_watch_alert'
+                    result['page_excerpt'] = text[:6000]
+                    result['products'] = instock_products(products)
                     write_alert(settings, result)
                     mark_content_seen(uname, summary)
                     mark_items_seen(uname, new_items)

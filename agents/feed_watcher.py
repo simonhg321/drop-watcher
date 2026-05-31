@@ -46,12 +46,13 @@ DROPS_LOG       = paths.DROPS_JSONL
 # ── Logging ───────────────────────────────────────────────────────────────────
 os.makedirs(LOG_DIR, exist_ok=True)
 
+# Log to the file only. cron already redirects stdout+stderr to the same file
+# (>> feed_watcher.log 2>&1), so a StreamHandler here duplicated every line.
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
         logging.FileHandler(os.path.join(LOG_DIR, 'feed_watcher.log')),
-        logging.StreamHandler()
     ]
 )
 log = logging.getLogger('feed_watcher')
@@ -202,6 +203,7 @@ def run():
                 result['event']  = 'feed_entry'
                 result['entry_title'] = title
                 result['entry_url']   = link
+                result['page_excerpt'] = text[:6000]
                 write_alert(settings, result)
                 log.info(f"  ✓ Alert written — {result.get('priority','?').upper()}")
             else:

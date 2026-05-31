@@ -56,10 +56,40 @@ def domain_from_url(url):
     return re.sub(r'^https?://(www\.)?', '', url.lower()).split('/')[0]
 
 
+def normalize_watch_url(url):
+    """Normalize a URL for exact-match scoping: strip scheme, www, trailing slash."""
+    return re.sub(r'^https?://(www\.)?', '', (url or '').lower()).rstrip('/')
+
+
 def keywords_match(searchable_text, keywords_str):
     """Returns list of matched keywords."""
     keywords = [k.strip().lower() for k in re.split(r'[,\n]+', keywords_str) if k.strip()]
     return [kw for kw in keywords if kw in searchable_text]
+
+
+MATCHED_PRODUCTS_CAP = 8
+
+def select_matched_products(products, matches):
+    """In-stock products whose title or tags contain a matched keyword (substring).
+
+    `products` is the structured Shopify list stored on the drop ({title, url, tags,
+    available, price}); `matches` is the keywords that fired. Returns up to
+    MATCHED_PRODUCTS_CAP, so an alert links straight to the items rather than the
+    whole collection. Empty for non-Shopify drops (no structured products).
+    """
+    needles = [m.lower() for m in matches if m]
+    if not needles:
+        return []
+    out = []
+    for p in products:
+        if not p.get('available') or not p.get('url'):
+            continue
+        hay = (p.get('title', '') + ' ' + ' '.join(p.get('tags') or [])).lower()
+        if any(n in hay for n in needles):
+            out.append(p)
+        if len(out) >= MATCHED_PRODUCTS_CAP:
+            break
+    return out
 
 
 def build_alert_email(watcher, matches, drop):
@@ -75,6 +105,11 @@ def build_alert_email(watcher, matches, drop):
     notable      = drop.get('notable_items', [])
     safe_notable = [html_mod.escape(n) for n in notable[:5]]
     priority     = html_mod.escape(drop.get('priority', 'medium'))
+
+    # Deep-link to the specific in-stock products that matched the keyword(s).
+    # Only Shopify drops carry a structured product list (drop['products']); for
+    # everything else this stays empty and the email falls back to the page link.
+    matched_products = select_matched_products(drop.get('products') or [], matches)
 
     nkd_html = ''
     nkd_text_line = ''
@@ -96,6 +131,24 @@ def build_alert_email(watcher, matches, drop):
         <ul style="margin:0;padding-left:20px">{items}</ul>
       </div>'''
 
+    # Matched items — direct deep-links to the in-stock products that matched.
+    matched_html = ''
+    if matched_products:
+        rows = ''
+        for p in matched_products:
+            p_url   = html_mod.escape(p.get('url', ''))
+            p_title = html_mod.escape(p.get('title', '') or p.get('url', ''))
+            price   = p.get('price', '')
+            price_s = f' <span style="color:#666">— ${html_mod.escape(str(price))}</span>' if price else ''
+            rows += (f'<li style="margin:6px 0">'
+                     f'<a href="{p_url}" style="color:#ff6b2b;text-decoration:none">{p_title}</a>'
+                     f'{price_s}</li>')
+        matched_html = f'''
+      <div style="background: #161616; border: 1px solid #2a1a0a; padding: 16px; margin: 20px 0;">
+        <div style="color: #ff6b2b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Matched items — in stock now</div>
+        <ul style="margin:0;padding-left:20px;list-style:none">{rows}</ul>
+      </div>'''
+
     email_html = f"""
     <div style="font-family: monospace; background: #0a0a0a; color: #e8e8e8; padding: 24px; max-width: 600px;">
       <h2 style="color: #ff2d2d; margin: 0 0 16px;">⚡ DROP WATCHER</h2>
@@ -113,6 +166,8 @@ def build_alert_email(watcher, matches, drop):
         <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Keywords matched</div>
         <div style="color: #e8e8e8;">{'  ·  '.join(safe_matches)}</div>
       </div>
+
+      {matched_html}
 
       {notable_html}
 
@@ -136,12 +191,22 @@ def build_alert_email(watcher, matches, drop):
     </div>
     """
 
+    matched_text = ''
+    if matched_products:
+        lines = '\n'.join(
+            f"  - {p.get('title', '') or p.get('url', '')}"
+            f"{(' — $' + str(p.get('price'))) if p.get('price') else ''}\n    {p.get('url', '')}"
+            for p in matched_products
+        )
+        matched_text = f"Matched items (in stock now):\n{lines}\n\n"
+
     text = (
         f"DROP WATCHER — Match found\n\n"
         f"Source: {drop.get('source', '')}\n"
         f"Page: {url}\n"
         f"Matched: {', '.join(matches)}\n"
         f"Summary: {drop.get('page_summary', '')}\n\n"
+        f"{matched_text}"
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"{nkd_text_line}"
@@ -176,21 +241,34 @@ def run():
         wid   = watcher['id']
         w_url = watcher.get('url', '').lower()
         w_domain = domain_from_url(w_url)
+        w_norm = normalize_watch_url(w_url)
         kws   = watcher.get('keywords', '')
         email = watcher['email']
 
         for drop in drops:
             drop_url    = (drop.get('url') or '').lower()
             drop_domain = domain_from_url(drop_url)
+            is_user_drop = (drop.get('source') or '').endswith('(user)')
 
-            # Domain must match
-            if not w_domain or w_domain != drop_domain:
+            # Match scope: a user-watch drop is produced from ONE specific page, so it
+            # may only match the watcher of that exact URL — otherwise two watches on
+            # the same domain (different paths/keywords) cross-contaminate now that the
+            # searchable text includes the full page excerpt. Curated/feed drops still
+            # fan out to every watcher on the domain.
+            if is_user_drop:
+                if not w_norm or w_norm != normalize_watch_url(drop_url):
+                    continue
+            elif not w_domain or w_domain != drop_domain:
                 continue
 
-            # Build searchable text from drop
-            summary  = (drop.get('page_summary') or '').lower()
-            notable  = ' '.join(drop.get('notable_items') or []).lower()
-            searchable = f"{summary} {notable}"
+            # Build searchable text from the real page content (excerpt + the AI's
+            # detected keyword hits), not just its prose summary — so literal keywords
+            # like "damascus" or "add to cart" match what's actually on the page.
+            summary   = (drop.get('page_summary') or '').lower()
+            notable   = ' '.join(drop.get('notable_items') or []).lower()
+            kw_found  = ' '.join(drop.get('keywords_found') or []).lower()
+            excerpt   = (drop.get('page_excerpt') or '').lower()
+            searchable = f"{summary} {notable} {kw_found} {excerpt}"
 
             matches = keywords_match(searchable, kws)
             if not matches:
@@ -220,11 +298,7 @@ def run():
 
             subject, html, txt = build_alert_email(watcher, matches, drop)
 
-            import alerter as _alerter
-            original_to = _alerter.ALERT_TO
-            _alerter.ALERT_TO = email
-            result = send_email(subject, html, txt)
-            _alerter.ALERT_TO = original_to
+            result = send_email(subject, html, txt, to_addr=email)
 
             if result:
                 # Mark cooldown for THIS watcher's match only

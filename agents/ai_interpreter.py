@@ -34,6 +34,51 @@ client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
 
 MODEL = 'claude-haiku-4-5-20251001'
 
+# ── Page-text limits ─────────────────────────────────────────────────────────
+# The old hard 3000-char cut silently hid items lower on long collection pages
+# (e.g. a Damascus listing in the bottom half of a Chris Reeve collection page).
+USER_PAGE_CHAR_LIMIT = 8000
+CURATED_CHAR_LIMIT   = 6000
+
+
+def build_keyword_excerpt(page_text, keywords, limit=USER_PAGE_CHAR_LIMIT,
+                          head=1500, window=400, max_hits_per_kw=5):
+    """Build an excerpt that always includes context around the user's keywords.
+
+    Guarantees that wherever a watched keyword appears — even near the end of a long
+    page — the surrounding text reaches the AI, instead of being chopped off by a flat
+    head-of-page truncation. Always keeps the page head for general context, then
+    splices in windows around each keyword hit and merges overlaps.
+    """
+    if len(page_text) <= limit:
+        return page_text
+
+    low = page_text.lower()
+    spans = [(0, head)]
+    for kw in keywords:
+        kw_l = (kw or '').lower().strip()
+        if not kw_l:
+            continue
+        start, hits = 0, 0
+        while hits < max_hits_per_kw:
+            idx = low.find(kw_l, start)
+            if idx == -1:
+                break
+            spans.append((max(0, idx - window), idx + len(kw_l) + window))
+            start = idx + len(kw_l)
+            hits += 1
+
+    spans.sort()
+    merged = []
+    for s, e in spans:
+        if merged and s <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+        else:
+            merged.append((s, e))
+
+    excerpt = ' … '.join(page_text[s:e] for s, e in merged)
+    return excerpt[:limit]
+
 # ── Token usage logging ────────────────────────────────────────────────────
 def log_api_usage(caller, site_name, message):
     """Log token usage to SQLite after every Anthropic call."""
@@ -152,7 +197,7 @@ After applying the override above, use these rules:
 - Standard production Arno Bernard models (Rinkhals, iMamba, Turaco) without damascus are MEDIUM priority — this OVERRIDES the notable_item HIGH rule. Do not set these to high or critical unless damascus or mammoth inlay is explicitly mentioned.
 - Demko AD20.5 is a common production knife — always MEDIUM priority unless a rare sprint/collab variant is explicitly mentioned
 - GENERAL RULE: Dealer "new arrivals" pages showing standard production knives from any maker = MEDIUM. Dealers restock constantly. Only flag HIGH if there is a genuinely special variant, limited edition, or collab.
-WEBPAGE CONTENT (truncated to 3000 chars):
+WEBPAGE CONTENT (may be truncated; non-contiguous sections separated by " … "):
 {page_content}
 
 Return ONLY valid JSON in this exact format, no other text:
@@ -214,7 +259,7 @@ Look at the page content and determine:
 2. For each keyword match, what is the stock/availability status
 3. Is anything the user wants actually purchasable right now
 
-WEBPAGE CONTENT (truncated to 3000 chars):
+WEBPAGE CONTENT (may be truncated; non-contiguous sections separated by " … "):
 {page_content}
 
 Return ONLY valid JSON in this exact format, no other text:
@@ -253,7 +298,7 @@ End with HGR."""
 
 
 def analyze_page(site_name, url, page_text, makers_list):
-    truncated = page_text[:3000] if len(page_text) > 3000 else page_text
+    truncated = page_text[:CURATED_CHAR_LIMIT] if len(page_text) > CURATED_CHAR_LIMIT else page_text
     makers_formatted = '\n'.join([f"- {m}" for m in makers_list])
     makers_config = load_makers_config()
     priority_intel = build_priority_intel(makers_config)
@@ -324,9 +369,69 @@ def analyze_drop_announcement(site_name, content, makers_list):
         return None
 
 
+DEALER_CLASSIFY_PROMPT = """You are classifying a website for a knife/EDC in-stock alert service.
+
+URL: {url}
+
+Decide whether this site is a DEDICATED knife / EDC (everyday-carry) retailer or a knife
+maker's own store — the kind of specialty shop worth monitoring for knife drops.
+
+Rules:
+- is_dealer = true ONLY for knife/EDC specialty retailers (e.g. Blade HQ, KnifeCenter,
+  DLT Trading) or a knife/tool maker's own storefront.
+- is_dealer = false for GENERAL marketplaces and big-box stores (Amazon, eBay, Walmart,
+  Target, Best Buy, Sam's Club, Academy), and for anything not centered on knives/EDC
+  (jewelry, groceries, electronics, toys, etc.) — even if a knife happens to be listed.
+- When unsure, prefer false with low confidence.
+
+Return ONLY JSON:
+{{
+  "is_dealer": true/false,
+  "category": "short label, e.g. 'knife/EDC retailer', 'knife maker store', 'general marketplace', 'non-knife retailer'",
+  "brands": ["up to 5 knife/EDC brands you can see are carried"],
+  "confidence": 0.0-1.0,
+  "reason": "one sentence"
+}}
+
+PAGE CONTENT (may be truncated):
+{page_content}
+"""
+
+
+def classify_dealer(url, page_text):
+    """Classify whether a URL is a knife/EDC dealer worth curating. Returns dict or None.
+
+    Used by dealer_scout.py to triage uncurated domains users have added. Does NOT
+    decide anything about watching — it only fills the review queue.
+    """
+    site_name = url.lower().replace('https://', '').replace('http://', '').split('/')[0]
+    truncated = page_text[:5000] if len(page_text) > 5000 else page_text
+    prompt = DEALER_CLASSIFY_PROMPT.format(url=url, page_content=truncated)
+
+    try:
+        message = client.messages.create(
+            model=MODEL,
+            max_tokens=400,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        log_api_usage('classify_dealer', site_name, message)
+        result = clean_ai_json(message.content[0].text.strip())
+        log_ai_call('classify_dealer', site_name, url, truncated[:500], result)
+        return result
+    except json.JSONDecodeError as e:
+        log.error(f"classify_dealer invalid JSON for {site_name}: {e}")
+        return None
+    except anthropic.APIError as e:
+        log.error(f"classify_dealer API error for {site_name}: {e}")
+        return None
+    except Exception as e:
+        log.error(f"classify_dealer unexpected error for {site_name}: {e}")
+        return None
+
+
 def analyze_user_page(url, page_text, user_keywords):
     """Analyze a page for a user's specific keywords — generic, not knife-market-specific."""
-    truncated = page_text[:3000] if len(page_text) > 3000 else page_text
+    truncated = build_keyword_excerpt(page_text, user_keywords)
     keywords_formatted = ', '.join(user_keywords)
     site_name = url.lower().replace('https://', '').replace('http://', '').split('/')[0]
 

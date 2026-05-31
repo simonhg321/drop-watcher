@@ -133,6 +133,26 @@ CREATE TABLE IF NOT EXISTS nkd_scores (
 );
 CREATE INDEX IF NOT EXISTS idx_nkd_scores_wall ON nkd_scores(show_on_wall, scored_at);
 CREATE INDEX IF NOT EXISTS idx_nkd_scores_watcher ON nkd_scores(watcher_id);
+
+-- Candidate dealer domains discovered from user watches (dealer_scout.py).
+-- This is a REVIEW QUEUE ONLY — nothing here is watched until a human copies it into
+-- sources.yaml. Keeping it out of sources.yaml is what prevents an unreviewed domain
+-- from triggering the curated cross-watcher fan-out.
+CREATE TABLE IF NOT EXISTS dealer_candidates (
+    domain TEXT PRIMARY KEY,
+    is_dealer INTEGER DEFAULT 0,
+    category TEXT DEFAULT '',
+    brands TEXT DEFAULT '',
+    confidence REAL DEFAULT 0,
+    reason TEXT DEFAULT '',
+    sample_url TEXT DEFAULT '',
+    user_count INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending',   -- pending | approved | rejected | promoted
+    notified TEXT,                   -- ISO ts when Simon was nudged (once per domain)
+    first_seen TEXT NOT NULL,
+    last_checked TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_dealer_candidates_status ON dealer_candidates(status);
 """
 
 
@@ -738,3 +758,64 @@ def trim_all():
     prune_seen_items(hours=48)
     prune_seen_feeds(hours=72)
     prune_discord_sent(hours=48)
+
+
+# ── Dealer candidates (dealer_scout.py review queue) ───────────────────────
+
+def get_dealer_candidate(domain):
+    with get_db() as db:
+        row = db.execute(
+            "SELECT * FROM dealer_candidates WHERE domain=?", (domain,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def upsert_dealer_candidate(domain, is_dealer, category, brands, confidence,
+                            reason, sample_url, user_count):
+    """Insert or refresh a candidate. Preserves first_seen, status and notified
+    across re-scans — only the classification fields and counts update."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_db() as db:
+        db.execute("""
+            INSERT INTO dealer_candidates
+                (domain, is_dealer, category, brands, confidence, reason,
+                 sample_url, user_count, status, notified, first_seen, last_checked)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?)
+            ON CONFLICT(domain) DO UPDATE SET
+                is_dealer=excluded.is_dealer,
+                category=excluded.category,
+                brands=excluded.brands,
+                confidence=excluded.confidence,
+                reason=excluded.reason,
+                sample_url=excluded.sample_url,
+                user_count=excluded.user_count,
+                last_checked=excluded.last_checked
+        """, (domain, int(is_dealer), category, brands, confidence, reason,
+              sample_url, user_count, now, now))
+
+
+def get_dealer_candidates(status=None, dealers_only=False):
+    q = "SELECT * FROM dealer_candidates"
+    conds, args = [], []
+    if status:
+        conds.append("status=?"); args.append(status)
+    if dealers_only:
+        conds.append("is_dealer=1")
+    if conds:
+        q += " WHERE " + " AND ".join(conds)
+    q += " ORDER BY user_count DESC, confidence DESC"
+    with get_db() as db:
+        return [dict(r) for r in db.execute(q, args).fetchall()]
+
+
+def set_dealer_candidate_status(domain, status):
+    with get_db() as db:
+        db.execute("UPDATE dealer_candidates SET status=? WHERE domain=?",
+                   (status, domain))
+
+
+def mark_dealer_candidate_notified(domain):
+    now = datetime.now(timezone.utc).isoformat()
+    with get_db() as db:
+        db.execute("UPDATE dealer_candidates SET notified=? WHERE domain=?",
+                   (now, domain))
