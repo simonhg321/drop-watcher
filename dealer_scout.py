@@ -1,29 +1,35 @@
 # Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
-dealer_scout.py — surface NEW knife/EDC dealers that users keep adding but we don't
-yet curate, so Simon can decide whether to promote them to sources.yaml.
+dealer_scout.py — discover NEW knife/EDC dealers that users add, classify them with
+Haiku, and AUTO-ADD the confident ones to sources.yaml. Simon reviews weekly by email.
 
-WHY THIS IS A REVIEW QUEUE, NOT AN AUTO-ADDER
-  A curated source in sources.yaml fans out to EVERY watcher on that domain (curated
-  drops match by domain, not exact URL — see per_user_alerter). Auto-promoting an
-  unreviewed domain could therefore spray cross-watcher noise, or pull a general
-  marketplace (target.com, ebay.com) a user happened to add into the curated fan-out.
-  So this script ONLY writes to the dealer_candidates review queue. It never touches
-  sources.yaml. Promotion stays a deliberate, human step — that is the collision guard.
+AUTO-ADD POLICY (set by Simon 2026-06-01 — supersedes the old review-queue-only design)
+  A candidate is promoted to sources.yaml automatically when Haiku says is_dealer=YES
+  AND confidence >= AUTO_ADD_CONFIDENCE. The is_dealer gate is the safety that keeps it
+  honest: general marketplaces (target/walmart/amazon/ebay) classify is_dealer=NO even
+  at 0.99 confidence, so they are never added. Promotion writes BOTH the repo
+  config/sources.yaml and the live /etc copy, then restarts web_watcher (it only reads
+  the curated list at startup). Simon gets a WEEKLY digest of everything auto-added and
+  flags anything amiss with --reject.
+
+  Caveat carried over from the old design: a curated source fans out to EVERY watcher on
+  that domain (curated drops match by domain, not exact URL — see per_user_alerter). That
+  fan-out is now the accepted, intended behaviour — the weekly review is the backstop.
 
 WHAT IT DOES (cron, daily)
   1. Group active watchers by domain → distinct-user count + a sample URL.
   2. Skip domains already curated in sources.yaml, and domains re-checked recently.
   3. Ask Haiku (ai_interpreter.classify_dealer) "is this a knife/EDC dealer?".
   4. Upsert the verdict into dealer_candidates.
-  5. Nudge Simon ONCE per domain when a real dealer crosses NUDGE_MIN_USERS distinct users.
+  5. Auto-add every pending dealer at/above the confidence bar; restart web_watcher.
 
 CLI
-  (cron)                    scan + classify + nudge
+  (cron)                    scan + classify + auto-add
+  --digest                  email Simon the weekly review of auto-added dealers (cron weekly)
   --report                  print the current queue
-  --approve <domain>        mark a candidate approved (status only; still not watched)
-  --reject  <domain>        mark a candidate rejected (won't nudge again)
+  --approve <domain>        promote a candidate NOW (write to sources.yaml + reload)
+  --reject  <domain>        mark a candidate rejected (won't be auto-added or shown again)
 HGR
 """
 
@@ -31,6 +37,8 @@ import os
 import sys
 import re
 import json
+import shutil
+import subprocess
 import html as html_mod
 import logging
 from datetime import datetime, timezone, timedelta
@@ -49,9 +57,13 @@ from ai_interpreter import classify_dealer
 from alerter import send_email
 
 SCOUT_EMAIL    = os.environ.get('DW_SCOUT_EMAIL') or os.environ.get('ALERT_TO')
-NUDGE_MIN_USERS = 2          # distinct users on a domain before we nudge Simon
 RECHECK_DAYS    = 14         # re-classify a domain at most this often (saves tokens)
-MIN_CONFIDENCE  = 0.6        # below this we don't nudge, even if is_dealer
+AUTO_ADD_CONFIDENCE = 0.80   # is_dealer AND conf >= this → auto-added to sources.yaml
+DIGEST_DAYS     = 7          # weekly digest window
+
+# Auto-add writes the repo copy (durable / git) AND the live copy (what web_watcher reads).
+REPO_SOURCES = os.path.join(BASE_DIR, 'config', 'sources.yaml')
+LIVE_SOURCES = paths.SOURCES_YAML
 
 logging.basicConfig(
     level=logging.INFO,
@@ -162,68 +174,217 @@ def scan():
         log.info(f"{domain} — dealer={verdict.get('is_dealer')} "
                  f"conf={verdict.get('confidence')} users={user_count} ({verdict.get('category','')})")
 
-    nudge()
-    log.info("scan done")
+    promoted = promote()
+    log.info(f"scan done — {len(promoted)} dealer(s) auto-added")
 
 
-def _yaml_snippet(cand):
-    name = cand['domain'].split('.')[0].replace('-', ' ').title()
-    return (f"  - name: {name}\n"
+def _dealer_name(domain):
+    return domain.split('.')[0].replace('-', ' ').title()
+
+
+def _source_entry_text(cand):
+    """The sources.yaml block for an auto-added dealer (2-space list indentation)."""
+    today  = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    brands = cand['brands'] or '—'
+    return (f"  # auto-added {today} by dealer_scout — {cand['category']} "
+            f"(conf {cand['confidence']:.2f}; brands: {brands})\n"
+            f"  - name: {_dealer_name(cand['domain'])}\n"
             f"    url: https://{cand['domain']}\n"
             f"    poll_interval: 20\n"
             f"    enabled: true")
 
 
-def nudge():
-    """Email Simon once per qualifying dealer candidate."""
+def _append_dealer_to_sources(cand):
+    """Insert a dealer entry into the websites list (before the `feeds:` block) of the
+    repo sources.yaml, validate it still parses, then mirror to the live /etc copy.
+    Returns True only if both files were written cleanly. Never leaves a corrupt file."""
+    try:
+        with open(REPO_SOURCES) as f:
+            lines = f.readlines()
+    except Exception as e:
+        log.error(f"auto-add: cannot read {REPO_SOURCES}: {e}")
+        return False
+
+    idx = next((i for i, l in enumerate(lines) if l.startswith('feeds:')), None)
+    if idx is None:
+        log.error("auto-add: no `feeds:` anchor in sources.yaml — aborting (won't guess)")
+        return False
+
+    new_text = ''.join(lines[:idx] + [_source_entry_text(cand) + '\n\n'] + lines[idx:])
+
+    # Validate BEFORE touching disk — a corrupt sources.yaml would blind the watcher.
+    try:
+        data = yaml.safe_load(new_text)
+        added = any(domain_from_url(w.get('url', '')) == cand['domain']
+                    for w in data.get('websites', []))
+        if not added:
+            raise ValueError("entry not present after insert")
+    except Exception as e:
+        log.error(f"auto-add: insert would corrupt sources.yaml ({e}) — aborting")
+        return False
+
+    try:
+        shutil.copyfile(REPO_SOURCES, REPO_SOURCES + '.bak')
+        with open(REPO_SOURCES, 'w') as f:
+            f.write(new_text)
+        if os.path.abspath(LIVE_SOURCES) != os.path.abspath(REPO_SOURCES):
+            shutil.copyfile(REPO_SOURCES, LIVE_SOURCES)
+    except Exception as e:
+        log.error(f"auto-add: write failed for {cand['domain']}: {e}")
+        return False
+    return True
+
+
+def _remove_dealer_from_sources(domain):
+    """Reverse of _append: strip a dealer's entry (and its auto-added comment) from the
+    websites list. Anchors on the url line, validates the result parses, mirrors to live.
+    Returns True if removed, False if not present or the edit would corrupt the file."""
+    try:
+        with open(REPO_SOURCES) as f:
+            lines = f.readlines()
+    except Exception as e:
+        log.error(f"remove: cannot read {REPO_SOURCES}: {e}")
+        return False
+
+    u = next((i for i, l in enumerate(lines)
+              if l.strip() == f"url: https://{domain}"), None)
+    if u is None:
+        return False  # not curated — nothing to strip
+
+    start = u - 1                                   # the `- name:` line sits just above url
+    if start >= 1 and lines[start - 1].lstrip().startswith('# auto-added'):
+        start -= 1                                  # also drop its auto-added comment
+    end = u + 1
+    while end < len(lines) and lines[end].startswith('    '):   # poll_interval, enabled, …
+        end += 1
+    if end < len(lines) and lines[end].strip() == '':           # one trailing blank
+        end += 1
+
+    new_text = ''.join(lines[:start] + lines[end:])
+    try:
+        data = yaml.safe_load(new_text)
+        if any(domain_from_url(w.get('url', '')) == domain for w in data.get('websites', [])):
+            raise ValueError("domain still present after removal")
+    except Exception as e:
+        log.error(f"remove: edit would corrupt sources.yaml ({e}) — aborting")
+        return False
+
+    try:
+        shutil.copyfile(REPO_SOURCES, REPO_SOURCES + '.bak')
+        with open(REPO_SOURCES, 'w') as f:
+            f.write(new_text)
+        if os.path.abspath(LIVE_SOURCES) != os.path.abspath(REPO_SOURCES):
+            shutil.copyfile(REPO_SOURCES, LIVE_SOURCES)
+    except Exception as e:
+        log.error(f"remove: write failed for {domain}: {e}")
+        return False
+    log.info(f"removed {domain} from sources.yaml")
+    return True
+
+
+def _reload_web_watcher():
+    """web_watcher reads the curated list only at startup, so a fresh dealer needs a
+    restart to go live. shg has NOPASSWD on supervisorctl (verified 2026-06-01)."""
+    try:
+        r = subprocess.run(['sudo', '-n', '/usr/bin/supervisorctl', 'restart', 'web_watcher'],
+                           capture_output=True, text=True, timeout=60)
+        if r.returncode == 0:
+            log.info("web_watcher restarted — new dealer(s) live")
+            return True
+        log.warning(f"web_watcher restart failed (rc={r.returncode}): {r.stderr.strip()} "
+                    f"— new dealers go live on the next restart")
+    except Exception as e:
+        log.warning(f"web_watcher restart errored: {e} — new dealers go live on next restart")
+    return False
+
+
+def _promote_one(cand):
+    """Add one candidate to sources.yaml and mark it promoted. Idempotent: a domain
+    already curated is marked promoted without a second write."""
+    domain = cand['domain']
+    if domain in curated_domains():
+        log.info(f"{domain} already curated — marking promoted, no write")
+        db.set_dealer_candidate_status(domain, 'promoted')
+        db.mark_dealer_candidate_notified(domain)
+        return False
+    if not _append_dealer_to_sources(cand):
+        return False
+    db.set_dealer_candidate_status(domain, 'promoted')
+    db.mark_dealer_candidate_notified(domain)   # stamp = "surfaced to Simon" → drives the digest
+    log.info(f"AUTO-ADDED {domain} (conf {cand['confidence']:.2f}, {cand['category']})")
+    return True
+
+
+def promote():
+    """Auto-add every pending dealer at/above the confidence bar. Returns added domains."""
+    added = []
     for cand in db.get_dealer_candidates(status='pending', dealers_only=True):
-        if cand.get('notified'):
+        if cand['confidence'] < AUTO_ADD_CONFIDENCE:
             continue
-        if cand['user_count'] < NUDGE_MIN_USERS or cand['confidence'] < MIN_CONFIDENCE:
-            continue
-        subj, html, txt = build_nudge_email(cand)
-        if send_email(subj, html, txt, to_addr=SCOUT_EMAIL):
-            db.mark_dealer_candidate_notified(cand['domain'])
-            log.info(f"nudged Simon about {cand['domain']} ({cand['user_count']} users)")
-        else:
-            log.error(f"nudge email failed for {cand['domain']}")
+        if _promote_one(cand):
+            added.append(cand['domain'])
+    if added:
+        _reload_web_watcher()
+    return added
 
 
-def build_nudge_email(cand):
-    d = html_mod.escape(cand['domain'])
-    brands = html_mod.escape(cand['brands'] or '—')
-    cat = html_mod.escape(cand['category'] or '')
-    reason = html_mod.escape(cand['reason'] or '')
-    snippet = html_mod.escape(_yaml_snippet(cand))
-    subj = f"🔎 New dealer candidate — {cand['domain']} ({cand['user_count']} users)"
-    html = f"""
-    <div style="font-family:monospace;background:#0a0a0a;color:#e8e8e8;padding:24px;max-width:600px;">
-      <h2 style="color:#e67e22;margin:0 0 6px;">🔎 DEALER SCOUT</h2>
-      <p style="color:#aaa;font-size:13px;margin:0 0 18px;">instockornot.club</p>
-      <p><b style="color:#fff;">{cand['user_count']} different users</b> are watching pages on
-      <b style="color:#fff;">{d}</b> — a domain we don't curate yet.</p>
-      <div style="background:#161616;border:1px solid #222;padding:16px;margin:16px 0;">
-        <div style="color:#555;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;">Haiku verdict</div>
-        <div style="margin-top:6px;">Knife/EDC dealer: <b style="color:#39d98a;">yes</b>
-          &nbsp;·&nbsp; confidence {cand['confidence']:.2f} &nbsp;·&nbsp; {cat}</div>
-        <div style="color:#888;font-size:12px;margin-top:6px;">Brands seen: {brands}</div>
-        <div style="color:#888;font-size:12px;margin-top:6px;">{reason}</div>
-      </div>
-      <p style="color:#aaa;font-size:13px;">If you want to curate it, paste this into
-        <code>sources.yaml</code> under <code>websites:</code> —</p>
-      <pre style="background:#111;border:1px solid #222;padding:12px;color:#cfe8cf;font-size:12px;overflow:auto;">{snippet}</pre>
-      <p style="color:#b06; font-size:12px;">⚠ Curated sources fan out to every watcher on
-        the domain — that's the intended leverage, but it's why this is your call, not automatic.</p>
-      <p style="color:#444;font-size:11px;">Reject future nudges:
-        <code>python3 dealer_scout.py --reject {d}</code></p>
-    </div>"""
-    txt = (f"DEALER SCOUT — new candidate\n\n"
-           f"{cand['user_count']} users watch {cand['domain']} (uncurated).\n"
-           f"Haiku: knife/EDC dealer, confidence {cand['confidence']:.2f}, {cand['category']}\n"
-           f"Brands: {cand['brands'] or '-'}\n{cand['reason']}\n\n"
-           f"To curate, add to sources.yaml under websites:\n{_yaml_snippet(cand)}\n\n"
-           f"NOTE: curated sources fan out to every watcher on the domain — your call.\n"
-           f"Reject: python3 dealer_scout.py --reject {cand['domain']}")
+def send_digest():
+    """Weekly email: every dealer auto-added in the last DIGEST_DAYS. Always sends (a
+    quiet 'nothing this week' is a heartbeat that the scout is alive and reviewed)."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=DIGEST_DAYS)
+    recent = []
+    for c in db.get_dealer_candidates(status='promoted'):
+        try:
+            if c.get('notified') and datetime.fromisoformat(c['notified']) >= cutoff:
+                recent.append(c)
+        except ValueError:
+            continue
+    recent.sort(key=lambda c: c['confidence'], reverse=True)
+    subj, html, txt = build_digest_email(recent)
+    if send_email(subj, html, txt, to_addr=SCOUT_EMAIL):
+        log.info(f"weekly digest sent — {len(recent)} auto-added dealer(s)")
+    else:
+        log.error("weekly digest email failed")
+
+
+def build_digest_email(rows):
+    n = len(rows)
+    subj = f"🔎 Dealer scout — {n} new dealer{'s' if n != 1 else ''} added this week"
+    if rows:
+        cards = ''
+        for c in rows:
+            d = html_mod.escape(c['domain'])
+            cards += f"""
+            <div style="background:#161616;border:1px solid #222;padding:14px;margin:0 0 10px;">
+              <div style="color:#fff;font-size:14px;">{html_mod.escape(_dealer_name(c['domain']))}
+                <span style="color:#666;font-size:12px;">· https://{d}</span></div>
+              <div style="color:#888;font-size:12px;margin-top:4px;">
+                {html_mod.escape(c['category'] or '')} · conf {c['confidence']:.2f}
+                · brands: {html_mod.escape(c['brands'] or '—')}</div>
+              <div style="color:#555;font-size:11px;margin-top:6px;">
+                back out: <code>dealer_scout.py --reject {d}</code></div>
+            </div>"""
+        body_html = (f'<p style="color:#ddd;">I auto-added <b style="color:#fff;">{n}</b> '
+                     f'knife/EDC dealer{"s" if n != 1 else ""} to the watch list this week '
+                     f'(is_dealer + confidence ≥ {AUTO_ADD_CONFIDENCE:.0%}). Scan and flag '
+                     f'anything off — reject backs it out of sources.yaml.</p>{cards}'
+                     f'<p style="color:#555;font-size:11px;">URLs default to the bare domain; '
+                     f'tell me if any should point at a specific drops/new-arrivals page.</p>')
+        txt_lines = [f"- {_dealer_name(c['domain'])}  https://{c['domain']}\n"
+                     f"    {c['category']} · conf {c['confidence']:.2f} · brands: {c['brands'] or '-'}\n"
+                     f"    reject: dealer_scout.py --reject {c['domain']}" for c in rows]
+        txt = (f"DEALER SCOUT — {n} dealer(s) auto-added this week "
+               f"(is_dealer + conf >= {AUTO_ADD_CONFIDENCE:.0%}):\n\n" + "\n".join(txt_lines)
+               + "\n\nReject any to back it out of sources.yaml.")
+    else:
+        body_html = ('<p style="color:#ddd;">No new dealers crossed the auto-add bar this '
+                     f'week (is_dealer + confidence ≥ {AUTO_ADD_CONFIDENCE:.0%}). Nothing to review.</p>')
+        txt = "DEALER SCOUT — no new dealers auto-added this week. Nothing to review."
+    html = (f'<div style="font-family:monospace;background:#0a0a0a;color:#e8e8e8;'
+            f'padding:24px;max-width:600px;"><h2 style="color:#e67e22;margin:0 0 6px;">'
+            f'🔎 DEALER SCOUT — WEEKLY</h2>'
+            f'<p style="color:#aaa;font-size:13px;margin:0 0 18px;">instockornot.club</p>'
+            f'{body_html}</div>')
     return subj, html, txt
 
 
@@ -242,11 +403,25 @@ def report():
 if __name__ == '__main__':
     if '--report' in sys.argv:
         report()
+    elif '--digest' in sys.argv:
+        send_digest()
     elif '--approve' in sys.argv:
-        db.set_dealer_candidate_status(sys.argv[sys.argv.index('--approve') + 1], 'approved')
-        print("approved")
+        domain = sys.argv[sys.argv.index('--approve') + 1]
+        cand = db.get_dealer_candidate(domain)
+        if not cand:
+            print(f"no candidate for {domain}")
+        elif _promote_one(cand):
+            _reload_web_watcher()
+            print(f"promoted {domain} → sources.yaml")
+        else:
+            print(f"{domain} not written (already curated or write failed — see log)")
     elif '--reject' in sys.argv:
-        db.set_dealer_candidate_status(sys.argv[sys.argv.index('--reject') + 1], 'rejected')
-        print("rejected")
+        domain = sys.argv[sys.argv.index('--reject') + 1]
+        db.set_dealer_candidate_status(domain, 'rejected')
+        if _remove_dealer_from_sources(domain):
+            _reload_web_watcher()
+            print(f"rejected {domain} + removed from sources.yaml")
+        else:
+            print(f"rejected {domain} (was not in sources.yaml)")
     else:
         scan()

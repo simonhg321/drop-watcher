@@ -53,17 +53,37 @@ HUNTER_PHONE   = os.environ.get('DW_LUNAR_PHONE')   # E.164, e.g. +13472766172; 
 SEEN_TTL_HOURS = 24 * 14   # re-alert at most every 2 weeks for the SAME find/state
 
 # The signal. "lunar landing" is the canonical CGG name; the rest are safety nets.
-# On CRK-scoped DEALER pages these stay specific. On Reddit (mixed makers) we additionally
-# require Chris Reeve context, since "lunar" alone is also a CRKT/Civivi model name.
+# On CRK-SCOPED dealer pages (scoped:True) a bare signal is enough. On UNSCOPED pages
+# — whole-store pre-owned/consignment catalogs and Reddit (mixed makers) — we additionally
+# require Chris Reeve context, since "lunar"/"apollo" alone are also CRKT/Civivi model names.
 LUNAR_SIGNALS = ['lunar landing', 'lunar', 'moon landing', 'first man on the moon', 'apollo']
 REEVE_CONTEXT = ['reeve', 'crk', 'sebenza', 'inkosi', 'mnandi', 'impinda', 'umnumzaan']
 
-# ── The dealer fleet (verified live 2026-05-31) ───────────────────────────────
+# ── The dealer fleet ──────────────────────────────────────────────────────────
+# scoped:True  → page is already filtered to Chris Reeve, so any lunar signal fires.
+# scoped:False → general/secondary-market page, so a match ALSO needs Reeve context.
 SOURCES = [
-    {'name': 'KnifeJoy',         'url': 'https://www.knifejoy.com/collections/chris-reeve-knives'},
-    {'name': 'Northwest Knives', 'url': 'https://northwestknives.com/collections/chris-reeve-knives'},
-    {'name': 'Southern Edges',   'url': 'https://southernedges.com/collections/chris-reeve-knives'},
-    {'name': 'DLT Trading',      'url': 'https://www.dlttrading.com/chris-reeve-knives'},
+    # CRK-scoped dealer collections (verified live 2026-05-31)
+    {'name': 'KnifeJoy',         'url': 'https://www.knifejoy.com/collections/chris-reeve-knives', 'scoped': True},
+    {'name': 'Northwest Knives', 'url': 'https://northwestknives.com/collections/chris-reeve-knives', 'scoped': True},
+    {'name': 'Southern Edges',   'url': 'https://southernedges.com/collections/chris-reeve-knives', 'scoped': True},
+    {'name': 'DLT Trading',      'url': 'https://www.dlttrading.com/chris-reeve-knives', 'scoped': True},
+
+    # CRK dealers promoted by dealer_scout, added 2026-06-01 (all CRK-scoped pages).
+    {'name': 'Edgeworks',        'url': 'https://edgeworksonline.com/collections/chris-reeve-knives', 'scoped': True},  # Shopify deep-link
+    {'name': "St Nick's Knives", 'url': 'https://stnicksknives.com/collections/chris-reeve-knives', 'scoped': True},   # Shopify deep-link
+    {'name': 'Sooner State',     'url': 'https://soonerstateknives.com/chrisreevefoldingknives.htm', 'scoped': True},  # static HTML → text-scan
+
+    # Secondary market / pre-owned (added 2026-06-01 from what-we-watch.html → sources.yaml).
+    # Whole-store pre-owned pages, NOT CRK-filtered → scoped:False (Reeve context required).
+    {'name': 'Recon 1 — Pre-Owned',     'url': 'https://recon1.com/collections/pre-owned', 'scoped': False},  # 404 since 2026-03-28 per sources.yaml; kept for parity, logs unreachable
+    {'name': 'eKnives — Pre-Owned',     'url': 'https://eknives.com/preowned/', 'scoped': False},
+    {'name': 'Knife Purveyor',          'url': 'https://www.knifepurveyor.com', 'scoped': False},
+    {'name': 'Luv Them Knives',         'url': 'https://luvthemknives.com/collections/pre-owned-knives', 'scoped': False},
+    {'name': 'Rivers Edge — Consignment', 'url': 'https://riversedgecutlery.com/consignment-shop/', 'scoped': False},
+    {'name': 'EDC Lifestyle — Pre-Owned', 'url': 'https://www.edclifestyle.com/pre-owned-consignment/', 'scoped': False},
+    {'name': 'Knife Market',            'url': 'https://knife-market.com', 'scoped': False},
+    {'name': 'Cutting Edge — Pre-Owned', 'url': 'https://cuttingedge.com', 'scoped': False},
 ]
 # Reddit buy/sell/trade subs — a grail often hits the secondary market before dealers.
 # Reddit blocks search + r/knifeswap from this host, but these plain feeds work (verified).
@@ -100,22 +120,27 @@ def fetch_page(url, ssl_permissive=False):
         return None
 
 
-def _signal_in(text):
-    t = (text or '').lower()
-    return [s for s in LUNAR_SIGNALS if s in t]
+def _lunar_match(text, scoped):
+    """Does this blob name the Lunar Landing?
 
-
-def _reddit_match(text):
-    """True only for a real CRK Lunar Landing post — guards against unrelated
-    'Lunar' models (CRKT/Civivi) by requiring Reeve context unless the post says
-    the exact phrase 'lunar landing'. Reeve terms are matched on word boundaries so
-    'crk' does NOT match 'CRKT' (a different brand entirely)."""
+    The exact phrase "lunar landing" always wins. Otherwise a bare signal
+    ("lunar"/"apollo"/…) only counts on a CRK-SCOPED page (scoped=True). On an
+    UNSCOPED page (a whole-store pre-owned catalog, or Reddit) we also require Chris
+    Reeve context, since 'Lunar'/'Apollo' are unrelated CRKT/Civivi model names.
+    Reeve terms match on word boundaries so 'crk' does NOT match 'CRKT'."""
     t = (text or '').lower()
     if 'lunar landing' in t:
         return True
-    has_lunar = any(s in t for s in LUNAR_SIGNALS)
-    has_reeve = any(re.search(r'\b' + re.escape(c) + r'\b', t) for c in REEVE_CONTEXT)
-    return has_lunar and has_reeve
+    if not any(s in t for s in LUNAR_SIGNALS):
+        return False
+    if scoped:
+        return True
+    return any(re.search(r'\b' + re.escape(c) + r'\b', t) for c in REEVE_CONTEXT)
+
+
+def _reddit_match(text):
+    """Reddit posts span all makers → treat as unscoped (Reeve context required)."""
+    return _lunar_match(text, scoped=False)
 
 
 def scan_reddit():
@@ -159,6 +184,7 @@ def scan_source(src):
     Shopify dealers yield per-product finds (title, url, in_stock). Text-scan dealers
     yield at most one page-level find linking to the collection.
     """
+    scoped = src.get('scoped', True)
     text, products = collection_fetch.fetch_collection(src['url'], fetch_page, log=log)
     if text is None:
         log.warning(f"{src['name']} — unreachable")
@@ -167,9 +193,9 @@ def scan_source(src):
     finds = []
     if products:  # Shopify → deep-link each matching product
         for p in products:
-            blob = (p.get('title', '') + ' ' + ' '.join(p.get('tags') or [])
-                    + ' ' + p.get('url', ''))
-            if _signal_in(blob):
+            blob = (p.get('title', '') + ' ' + p.get('vendor', '') + ' '
+                    + ' '.join(p.get('tags') or []) + ' ' + p.get('url', ''))
+            if _lunar_match(blob, scoped):
                 finds.append({
                     'source':   src['name'],
                     'title':    p.get('title', '') or 'Chris Reeve Lunar Landing',
@@ -179,7 +205,7 @@ def scan_source(src):
                     'deep':     True,
                 })
     else:  # text-scan → one page-level find if the signal is anywhere on the page
-        if _signal_in(text):
+        if _lunar_match(text, scoped):
             finds.append({
                 'source':   src['name'],
                 'title':    'Chris Reeve Lunar Landing (listed on page)',

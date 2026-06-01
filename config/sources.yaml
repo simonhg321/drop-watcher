@@ -322,6 +322,90 @@ websites:
     notes: Boss wants WHITE version — alert when Coming Soon changes to Add to Cart
 
 # ── RSS / Social Feeds ────────────────────────────────────────────────────────
+  # auto-added 2026-06-01 by dealer_scout — knife maker store (conf 0.92; brands: Custom Knife Factory)
+  - name: Ncblade
+    url: https://ncblade.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife maker store (conf 0.99; brands: Rick Hinderer)
+  - name: Rickhindererknives
+    url: https://rickhindererknives.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife maker store (conf 0.98; brands: Kizer)
+  - name: Kizerknives
+    url: https://kizerknives.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Great Eastern Cutlery, Case Knives, Lion Steel, Maserin Cutlery, Viper Knives)
+  - name: Collectorknives
+    url: https://collectorknives.net
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife maker store (conf 0.95; brands: Quiet Carry)
+  - name: Quietcarry
+    url: https://quietcarry.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC specialty retailer (conf 0.95; brands: Spyderco)
+  - name: Bentoboxshop
+    url: https://bentoboxshop.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Chris Reeve Knives)
+  - name: Edgeworksonline
+    url: https://edgeworksonline.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Chris Reeve Knives)
+  - name: Soonerstateknives
+    url: https://soonerstateknives.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Chris Reeve Knives)
+  - name: Stnicksknives
+    url: https://stnicksknives.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC maker store (conf 0.92; brands: okluma)
+  - name: Okluma
+    url: https://okluma.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC retailer (conf 0.92; brands: Vosteed)
+  - name: Whitemountainknives
+    url: https://whitemountainknives.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife/EDC retailer (conf 0.85; brands: Hawk Knives)
+  - name: Pvk
+    url: https://pvk.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife maker store (conf 0.85; brands: Null Knives)
+  - name: Nullknives
+    url: https://nullknives.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-01 by dealer_scout — knife maker store (conf 0.85; brands: Brimwulf)
+  - name: Everburn
+    url: https://everburn.store
+    poll_interval: 20
+    enabled: true
+
 feeds:
   - name: Steel Flame Instagram
     url: https://rss.app/feeds/PLACEHOLDER_STEEL_FLAME.xml
