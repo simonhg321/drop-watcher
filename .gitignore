@@ -32,9 +32,10 @@ html/robots.txt
 # OS
 .DS_Store
 
-# Internal docs (server paths, IPs, architecture — not for public repo)
+# Internal docs (server paths, IPs, architecture, security detail — not for public repo)
 JOURNAL.md
 HANDOFF.md
+docs/
 
 
 # Local dev
