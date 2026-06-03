@@ -58,14 +58,30 @@ def is_safe_url(url):
     except socket.gaierror:
         return False, "We can't resolve that hostname. Check the URL."
 
+    saw_valid_ip = False
     for family, _, _, _, sockaddr in addrinfo:
-        ip_str = sockaddr[0]
+        ip_str = sockaddr[0].split('%')[0]   # strip IPv6 zone id (fe80::1%eth0)
         try:
             ip = ipaddress.ip_address(ip_str)
         except ValueError:
-            continue
+            # Unparseable address from the resolver — fail closed, don't skip it.
+            return False, "That URL points to an unsupported address."
+        # Unwrap IPv4-mapped/compatible IPv6 (e.g. ::ffff:169.254.169.254) so it's
+        # checked as the IPv4 it really reaches — otherwise it slips past the
+        # IPv4-listed blocklist and hits loopback/cloud-metadata.
+        if ip.version == 6 and ip.ipv4_mapped is not None:
+            ip = ip.ipv4_mapped
+        saw_valid_ip = True
+        # Categorical safety net beyond the explicit list (covers reserved ranges,
+        # multicast, etc. the manual list might miss).
+        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+                or ip.is_multicast or ip.is_unspecified):
+            return False, "That URL points to an internal or reserved address."
         for network in BLOCKED_NETWORKS:
             if ip in network:
                 return False, "That URL points to an internal or reserved address."
+
+    if not saw_valid_ip:
+        return False, "We can't resolve that hostname. Check the URL."
 
     return True, "ok"
