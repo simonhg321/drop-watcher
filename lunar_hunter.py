@@ -131,7 +131,7 @@ def _lunar_match(text, scoped):
     t = (text or '').lower()
     if 'lunar landing' in t:
         return True
-    if not any(s in t for s in LUNAR_SIGNALS):
+    if not any(re.search(r'\b' + re.escape(s) + r'\b', t) for s in LUNAR_SIGNALS):
         return False
     if scoped:
         return True

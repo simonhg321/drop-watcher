@@ -385,6 +385,10 @@ def run():
                                 result['priority'] = 'high'
                             write_alert(settings, result)
                             mark_items_seen(name, new_items)
+                            # Record content-seen at baseline too, else the first
+                            # later page change re-fires this same baseline stock.
+                            baseline_summary = (result.get('page_summary') or '') + ((result.get('drop_announcement') or {}).get('description') or '')
+                            mark_content_seen(name, baseline_summary)
                         else:
                             log.info(f"{name} — all notable items already seen, suppressing alert")
                 continue
@@ -458,6 +462,9 @@ def run():
             text, products = collection_fetch.fetch_collection(uurl, fetch_page, log=log)
             if text is None:
                 failure_count[uurl] = failure_count.get(uurl, 0) + 1
+                # Record the attempt so a failing URL is throttled by the poll
+                # interval instead of being re-hit every ~10s loop tick (no backoff).
+                page_cache.setdefault(uurl, {})['last_checked'] = time.time()
                 if failure_count[uurl] >= fail_thresh:
                     log.error(f"{uname} has failed {failure_count[uurl]} times in a row")
                 continue
