@@ -85,3 +85,34 @@ def is_safe_url(url):
         return False, "We can't resolve that hostname. Check the URL."
 
     return True, "ok"
+
+
+def safe_get(url, headers=None, timeout=10, max_redirects=4):
+    """SSRF-safe HTTP GET.
+
+    Validates the URL and EVERY redirect hop against is_safe_url (resolving
+    relative Location headers), following at most max_redirects. Without this,
+    a public host that 302s to http://169.254.169.254/ would be followed
+    server-side and reach cloud metadata / loopback.
+
+    Returns the final requests.Response. Raises ValueError(reason) if any hop is
+    unsafe or the redirect chain is too long; lets requests' own exceptions
+    (Timeout, ConnectionError, …) propagate so callers can message them.
+    """
+    import requests
+    from urllib.parse import urljoin
+
+    current = url
+    for _ in range(max_redirects + 1):
+        safe, reason = is_safe_url(current)
+        if not safe:
+            raise ValueError(reason)
+        r = requests.get(current, headers=headers, timeout=timeout, allow_redirects=False)
+        if r.is_redirect or r.status_code in (301, 302, 303, 307, 308):
+            loc = r.headers.get('Location', '')
+            if not loc:
+                return r
+            current = urljoin(current, loc)   # resolve relative redirects to absolute
+            continue
+        return r
+    raise ValueError("Too many redirects.")

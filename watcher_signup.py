@@ -74,17 +74,13 @@ def normalize_url(url):
 
 def quick_keyword_check(url, keywords_str):
     """Fetch a page and check for keyword matches. Returns list of matched keywords."""
-    import requests as req
     from bs4 import BeautifulSoup
-    from safe_fetch import is_safe_url
-
-    safe, _ = is_safe_url(url)
-    if not safe:
-        return []
+    from safe_fetch import safe_get
 
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club)'}
-        r = req.get(url, headers=headers, timeout=10)
+        # safe_get validates the URL and every redirect hop (SSRF guard).
+        r = safe_get(url, headers=headers, timeout=10)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
         for tag in soup(['nav', 'footer', 'script', 'style', 'header']):
@@ -586,7 +582,9 @@ def verify_phone():
         return jsonify({'error': 'Missing id or code'}), 400
 
     w = db.get_watcher_by_id(watch_id)
-    if w and w.get('sms_verify_code') == code:
+    stored_code = w.get('sms_verify_code') if w else None
+    # Constant-time compare to avoid a timing oracle on the 6-digit code.
+    if stored_code and secrets.compare_digest(str(stored_code), code):
         expires = w.get('sms_verify_expires', '')
         if expires and datetime.now(timezone.utc).isoformat() > expires:
             return jsonify({'error': 'Code expired. Sign up again to get a new code.'}), 410
@@ -743,7 +741,7 @@ def check_url():
     """Quick scrapeability check — called on URL blur from watchlist.html."""
     import requests
     from bs4 import BeautifulSoup
-    from safe_fetch import is_safe_url
+    from safe_fetch import safe_get
 
     data = request.get_json(silent=True) or {}
     url = (data.get('url') or '').strip()
@@ -757,35 +755,21 @@ def check_url():
         url = 'https://' + url
     url = normalize_url(url)
 
-    # SSRF protection — block internal/private IPs
-    safe, reason = is_safe_url(url)
-    if not safe:
-        return jsonify({'ok': False, 'msg': reason})
-
     headers = {
         'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club)'
     }
 
+    # safe_get validates the URL and every redirect hop (SSRF guard).
     try:
-        r = requests.get(url, headers=headers, timeout=10, allow_redirects=False)
+        r = safe_get(url, headers=headers, timeout=10)
+    except ValueError as e:
+        return jsonify({'ok': False, 'msg': str(e)})
     except requests.exceptions.Timeout:
         return jsonify({'ok': False, 'msg': "That site took too long to respond. We won't be able to watch it reliably."})
     except requests.exceptions.ConnectionError:
         return jsonify({'ok': False, 'msg': "We can't reach that URL. Check the address and try again."})
     except Exception:
         return jsonify({'ok': False, 'msg': "Something went wrong reaching that URL."})
-
-    # If redirect, validate the target too
-    if r.is_redirect or r.status_code in (301, 302, 303, 307, 308):
-        redirect_url = r.headers.get('Location', '')
-        if redirect_url:
-            safe, reason = is_safe_url(redirect_url)
-            if not safe:
-                return jsonify({'ok': False, 'msg': reason})
-            try:
-                r = requests.get(redirect_url, headers=headers, timeout=10, allow_redirects=False)
-            except Exception:
-                return jsonify({'ok': False, 'msg': "The redirect destination failed. Check the URL."})
 
     if r.status_code == 403:
         return jsonify({'ok': False, 'msg': "That site is blocking us (403 Forbidden). We won't be able to watch it."})
