@@ -58,6 +58,10 @@ SEEN_TTL_HOURS = 24 * 14   # re-alert at most every 2 weeks for the SAME find/st
 # require Chris Reeve context, since "lunar"/"apollo" alone are also CRKT/Civivi model names.
 LUNAR_SIGNALS = ['lunar landing', 'lunar', 'moon landing', 'first man on the moon', 'apollo']
 REEVE_CONTEXT = ['reeve', 'crk', 'sebenza', 'inkosi', 'mnandi', 'impinda', 'umnumzaan']
+# Pre-compile the word-boundary patterns once — _lunar_match runs per product
+# (up to ~750/dealer × 14 dealers every 8 min), so recompiling per call was waste.
+_LUNAR_SIGNAL_RE = [re.compile(r'\b' + re.escape(s) + r'\b') for s in LUNAR_SIGNALS]
+_REEVE_CONTEXT_RE = [re.compile(r'\b' + re.escape(c) + r'\b') for c in REEVE_CONTEXT]
 
 # ── The dealer fleet ──────────────────────────────────────────────────────────
 # scoped:True  → page is already filtered to Chris Reeve, so any lunar signal fires.
@@ -131,11 +135,11 @@ def _lunar_match(text, scoped):
     t = (text or '').lower()
     if 'lunar landing' in t:
         return True
-    if not any(re.search(r'\b' + re.escape(s) + r'\b', t) for s in LUNAR_SIGNALS):
+    if not any(p.search(t) for p in _LUNAR_SIGNAL_RE):
         return False
     if scoped:
         return True
-    return any(re.search(r'\b' + re.escape(c) + r'\b', t) for c in REEVE_CONTEXT)
+    return any(p.search(t) for p in _REEVE_CONTEXT_RE)
 
 
 def _reddit_match(text):

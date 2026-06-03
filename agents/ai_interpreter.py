@@ -313,11 +313,21 @@ Keep it under 150 words.
 End with HGR."""
 
 
+_PRIORITY_INTEL = None  # built once from makers.yaml (static between restarts)
+
+def get_priority_intel():
+    """Cache the priority-intel string — makers.yaml is static between restarts, so
+    re-reading + rebuilding it on every AI call was wasted disk I/O on the hot path."""
+    global _PRIORITY_INTEL
+    if _PRIORITY_INTEL is None:
+        _PRIORITY_INTEL = build_priority_intel(load_makers_config())
+    return _PRIORITY_INTEL
+
+
 def analyze_page(site_name, url, page_text, makers_list):
     truncated = page_text[:CURATED_CHAR_LIMIT] if len(page_text) > CURATED_CHAR_LIMIT else page_text
     makers_formatted = '\n'.join([f"- {m}" for m in makers_list])
-    makers_config = load_makers_config()
-    priority_intel = build_priority_intel(makers_config)
+    priority_intel = get_priority_intel()
 
     prompt = PAGE_ANALYSIS_PROMPT.format(
         site_name=site_name,
