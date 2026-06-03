@@ -31,6 +31,7 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
 import paths
 import db
+from matching import kw_matches
 
 load_dotenv(paths.ENV_FILE, override=True)
 
@@ -93,7 +94,7 @@ def quick_keyword_check(url, keywords_str):
         return []
 
     keywords = [k.strip().lower() for k in keywords_str.split(',') if k.strip()]
-    return [kw for kw in keywords if kw in text]
+    return [kw for kw in keywords if kw_matches(kw, text)]
 
 
 # ── Confirmation email ────────────────────────────────────────────────────────
@@ -520,7 +521,7 @@ def my_alerts(token):
                     continue
             elif not wf['domain'] or wf['domain'] != drop_domain:
                 continue
-            if wf['keywords'] and not any(k in searchable for k in wf['keywords']):
+            if wf['keywords'] and not any(kw_matches(k, searchable) for k in wf['keywords']):
                 continue
             matched_drops.append(d)
             break

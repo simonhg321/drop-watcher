@@ -29,6 +29,7 @@ COOLDOWN_HOURS = 6
 DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with cron)
 
 from alerter import send_email
+from matching import kw_matches
 import nkd
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
@@ -64,7 +65,7 @@ def normalize_watch_url(url):
 def keywords_match(searchable_text, keywords_str):
     """Returns list of matched keywords."""
     keywords = [k.strip().lower() for k in re.split(r'[,\n]+', keywords_str) if k.strip()]
-    return [kw for kw in keywords if kw in searchable_text]
+    return [kw for kw in keywords if kw_matches(kw, searchable_text)]
 
 
 MATCHED_PRODUCTS_CAP = 8
@@ -85,7 +86,7 @@ def select_matched_products(products, matches):
         if not p.get('available') or not p.get('url'):
             continue
         hay = (p.get('title', '') + ' ' + ' '.join(p.get('tags') or [])).lower()
-        if any(n in hay for n in needles):
+        if any(kw_matches(n, hay) for n in needles):
             out.append(p)
         if len(out) >= MATCHED_PRODUCTS_CAP:
             break
