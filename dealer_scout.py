@@ -38,6 +38,7 @@ import sys
 import re
 import json
 import shutil
+import tempfile
 import subprocess
 import html as html_mod
 import logging
@@ -194,6 +195,23 @@ def _source_entry_text(cand):
             f"    enabled: true")
 
 
+def _atomic_write(path, text):
+    """Write text to path atomically (temp in same dir + os.replace) so a concurrent
+    reader — web_watcher loading the curated list — never sees a half-written file."""
+    d = os.path.dirname(path) or '.'
+    fd, tmp = tempfile.mkstemp(dir=d, prefix='.sources.', suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(text)
+        os.replace(tmp, path)   # atomic within the same filesystem
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def _append_dealer_to_sources(cand):
     """Insert a dealer entry into the websites list (before the `feeds:` block) of the
     repo sources.yaml, validate it still parses, then mirror to the live /etc copy.
@@ -225,10 +243,9 @@ def _append_dealer_to_sources(cand):
 
     try:
         shutil.copyfile(REPO_SOURCES, REPO_SOURCES + '.bak')
-        with open(REPO_SOURCES, 'w') as f:
-            f.write(new_text)
+        _atomic_write(REPO_SOURCES, new_text)
         if os.path.abspath(LIVE_SOURCES) != os.path.abspath(REPO_SOURCES):
-            shutil.copyfile(REPO_SOURCES, LIVE_SOURCES)
+            _atomic_write(LIVE_SOURCES, new_text)
     except Exception as e:
         log.error(f"auto-add: write failed for {cand['domain']}: {e}")
         return False
@@ -246,8 +263,15 @@ def _remove_dealer_from_sources(domain):
         log.error(f"remove: cannot read {REPO_SOURCES}: {e}")
         return False
 
-    u = next((i for i, l in enumerate(lines)
-              if l.strip() == f"url: https://{domain}"), None)
+    # Match by DOMAIN, not an exact `url: https://{domain}` string, so a curated
+    # entry stored as www./with a path/http still gets removed (else --reject flips
+    # the DB to rejected while the dealer stays live and keeps fanning out).
+    u = None
+    for i, l in enumerate(lines):
+        s = l.strip()
+        if s.startswith('url:') and domain_from_url(s[4:].strip()) == domain:
+            u = i
+            break
     if u is None:
         return False  # not curated — nothing to strip
 
@@ -271,10 +295,9 @@ def _remove_dealer_from_sources(domain):
 
     try:
         shutil.copyfile(REPO_SOURCES, REPO_SOURCES + '.bak')
-        with open(REPO_SOURCES, 'w') as f:
-            f.write(new_text)
+        _atomic_write(REPO_SOURCES, new_text)
         if os.path.abspath(LIVE_SOURCES) != os.path.abspath(REPO_SOURCES):
-            shutil.copyfile(REPO_SOURCES, LIVE_SOURCES)
+            _atomic_write(LIVE_SOURCES, new_text)
     except Exception as e:
         log.error(f"remove: write failed for {domain}: {e}")
         return False

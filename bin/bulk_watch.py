@@ -29,9 +29,12 @@ added = 0
 for site in sources.get('websites', []):
     if not site.get('enabled', False):
         continue
-    url = site['url'].rstrip('/')
+    url = (site.get('url') or '').rstrip('/')
+    if not url:
+        print(f"  SKIP {site.get('name', '?')} — entry has no url")
+        continue
     if url.lower() in existing_urls:
-        print(f"  SKIP {site['name']} — already watching")
+        print(f"  SKIP {site.get('name', url)} — already watching")
         continue
     entry = {
         'id': uuid.uuid4().hex[:8],
@@ -50,7 +53,7 @@ for site in sources.get('websites', []):
         'alert_count': 0,
     }
     watchers.append(entry)
-    print(f"  ADDED {site['name']} — {url}")
+    print(f"  ADDED {site.get('name', url)} — {url}")
     added += 1
 
 with open(WATCHERS, 'w') as f:
