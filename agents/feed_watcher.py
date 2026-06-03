@@ -171,7 +171,6 @@ def run():
             if is_seen(key):
                 continue
 
-            mark_seen(key)
             new_count += 1
 
             # Build text from title + summary
@@ -182,6 +181,7 @@ def run():
 
             if not prefilter(text, keywords):
                 log.debug(f"  No keywords in: {title[:60]}")
+                mark_seen(key)  # deterministic miss — safe to record
                 continue
 
             log.info(f"  🎯 Keyword hit: {title[:80]}")
@@ -194,8 +194,13 @@ def run():
             )
 
             if result is None:
+                # Leave UNSEEN so a transient AI/API failure retries next run
+                # instead of permanently swallowing a real drop.
                 log.error(f"  AI analysis failed for entry: {title[:60]}")
                 continue
+
+            # AI returned a verdict — record it either way so we don't re-analyze.
+            mark_seen(key)
 
             if result.get('alert_worthy'):
                 result['agent']  = 'feed_watcher'

@@ -109,6 +109,22 @@ def clean_ai_json(raw):
     return json.loads(raw)
 
 
+def first_text(message, label=''):
+    """Safely pull the first text block from a Claude response.
+
+    Guards against an empty content list or a non-text first block (e.g. a
+    max_tokens stop with no text), which would otherwise raise
+    IndexError/AttributeError. Logs the stop_reason so a truncated response is
+    diagnosable instead of silently lost. Returns '' when there's no text.
+    """
+    for block in (message.content or []):
+        text = getattr(block, 'text', None)
+        if text:
+            return text.strip()
+    log.error(f"AI returned no text block for {label} (stop_reason={getattr(message, 'stop_reason', '?')})")
+    return ''
+
+
 def log_ai_call(caller, site_name, url, prompt_snippet, response_json):
     """Log full AI interaction to SQLite."""
     try:
@@ -315,12 +331,12 @@ def analyze_page(site_name, url, page_text, makers_list):
         log.info(f"Sending {site_name} to AI interpreter...")
         message = client.messages.create(
             model=MODEL,
-            max_tokens=1024,
+            max_tokens=1536,
             messages=[{"role": "user", "content": prompt}]
         )
 
         log_api_usage('analyze_page', site_name, message)
-        raw = message.content[0].text.strip()
+        raw = first_text(message, site_name)
         result = clean_ai_json(raw)
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         result['site'] = site_name
@@ -356,7 +372,7 @@ def analyze_drop_announcement(site_name, content, makers_list):
             messages=[{"role": "user", "content": prompt}]
         )
         log_api_usage('analyze_drop', site_name, message)
-        raw = message.content[0].text.strip()
+        raw = first_text(message, site_name)
         if raw.startswith('```'):
             raw = raw.split('```')[1]
             if raw.startswith('json'):
@@ -415,7 +431,7 @@ def classify_dealer(url, page_text):
             messages=[{"role": "user", "content": prompt}]
         )
         log_api_usage('classify_dealer', site_name, message)
-        result = clean_ai_json(message.content[0].text.strip())
+        result = clean_ai_json(first_text(message, site_name))
         log_ai_call('classify_dealer', site_name, url, truncated[:500], result)
         return result
     except json.JSONDecodeError as e:
@@ -445,12 +461,12 @@ def analyze_user_page(url, page_text, user_keywords):
         log.info(f"Sending user watch {site_name} to AI (keywords: {keywords_formatted})...")
         message = client.messages.create(
             model=MODEL,
-            max_tokens=1024,
+            max_tokens=1536,
             messages=[{"role": "user", "content": prompt}]
         )
 
         log_api_usage('analyze_user_page', site_name, message)
-        raw = message.content[0].text.strip()
+        raw = first_text(message, site_name)
         result = clean_ai_json(raw)
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         result['site'] = site_name
@@ -487,7 +503,7 @@ def generate_morning_briefing(alerts, sites_checked):
             messages=[{"role": "user", "content": prompt}]
         )
         log_api_usage('morning_briefing', 'n/a', message)
-        return message.content[0].text.strip()
+        return first_text(message, 'morning_briefing')
     except Exception as e:
         log.error(f"Morning briefing generation failed: {e}")
         return f"Morning briefing unavailable ({e}). Check logs manually. HGR"

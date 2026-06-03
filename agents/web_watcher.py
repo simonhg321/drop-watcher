@@ -154,7 +154,7 @@ CONTENT_DEDUP_HOURS = 4
 DEDUP_HOURS = 24
 
 def content_key(source, summary):
-    return f"{source}:{hashlib.md5(summary.encode()).hexdigest()[:8]}"
+    return f"{source}:{hashlib.md5((summary or '').encode()).hexdigest()[:8]}"
 
 def is_content_seen(source, summary, _unused=None):
     key = content_key(source, summary)
@@ -171,15 +171,19 @@ def item_key(source, item):
 
 def filter_new_items(source, notable_items, _unused=None):
     new_items = []
-    for item in notable_items:
-        key = item_key(source, item)
+    for item in (notable_items or []):
+        if not item:
+            continue
+        key = item_key(source, str(item))
         if not db.is_item_seen(key, hours=DEDUP_HOURS):
             new_items.append(item)
     return new_items
 
 def mark_items_seen(source, notable_items, _unused=None):
-    for item in notable_items:
-        key = item_key(source, item)
+    for item in (notable_items or []):
+        if not item:
+            continue
+        key = item_key(source, str(item))
         db.mark_item_seen(key)
     return _unused
 
@@ -416,7 +420,7 @@ def run():
                     result['event'] = 'page_changed'
                     result['page_excerpt'] = text[:6000]
                     result['products'] = instock_products(products)
-                    summary = result.get('page_summary', '') + result.get('drop_announcement', {}).get('description', '')
+                    summary = (result.get('page_summary') or '') + ((result.get('drop_announcement') or {}).get('description') or '')
                     if is_content_seen(name, summary):
                         log.info(f"{name} — content unchanged since last alert, suppressing duplicate")
                         continue

@@ -296,9 +296,15 @@ def run():
                 continue
             seen_drops.add(drop_key)
 
-            subject, html, txt = build_alert_email(watcher, matches, drop)
+            try:
+                subject, html, txt = build_alert_email(watcher, matches, drop)
 
-            result = send_email(subject, html, txt, to_addr=email)
+                result = send_email(subject, html, txt, to_addr=email)
+            except Exception as e:
+                # One malformed watcher row must not abort the remaining users'
+                # alerts for this run (they'd age out of the recent-drops window).
+                log.error(f"Alert build/send failed for {email} (watcher {watcher.get('id')}): {e}")
+                continue
 
             if result:
                 # Mark cooldown for THIS watcher's match only

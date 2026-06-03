@@ -35,8 +35,8 @@ from urllib.parse import urlparse, urljoin
 
 from bs4 import BeautifulSoup
 
-SHOPIFY_LIMIT       = 250
-SHOPIFY_MAX_PAGES   = 3     # up to 750 products — plenty for keyword watches
+SHOPIFY_LIMIT       = 100   # keep each products.json page well under fetch_page's 2MB cap
+SHOPIFY_MAX_PAGES   = 8      # up to 800 products — plenty for keyword watches
 HTML_MAX_PAGES      = 4     # generic ?page=N walk cap
 PAGE_SLEEP_SECONDS  = 0.8   # politeness between pages of the SAME site
 
@@ -119,7 +119,15 @@ def fetch_shopify_collection(url, fetch_page, ssl_permissive=False, log=None):
         try:
             data = json.loads(raw)
         except Exception:
-            return None, None  # not JSON → not a usable Shopify endpoint (or truncated)
+            # Page 1 unparseable → not a usable Shopify endpoint (or fully truncated).
+            # A LATER page failing (e.g. an oversized page hit the fetch cap) must not
+            # throw away the products we already collected from earlier pages.
+            if products:
+                if log:
+                    log.warning(f"[collection_fetch] page {page} unparseable for {url}; "
+                                f"returning {len(products)} products from earlier pages")
+                break
+            return None, None
         page_products = data.get('products', [])
         if not page_products:
             break
