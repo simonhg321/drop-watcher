@@ -86,11 +86,17 @@ def mark_sent(alert_id, alert_type):
     db.mark_alert_sent(alert_id, alert_type='email')
 
 def make_alert_id(alert):
-    """Unique ID: timestamp + source + first notable item (or url hash)."""
+    """Unique ID: timestamp + source + hash of url and ALL notable items.
+
+    Hashing the full item list (not just items[0][:40]) keeps two distinct drops
+    from the same source in the same batch — which can share a timestamp and an
+    identical leading banner item — from colliding to the same id and suppressing
+    the second alert.
+    """
     ts = alert.get('timestamp', '')
     source = alert.get('source', '')
-    items = alert.get('notable_items', [])
-    extra = items[0][:40] if items else alert.get('url', '')
+    items = alert.get('notable_items', []) or []
+    extra = alert.get('url', '') + '|' + '||'.join(str(i) for i in items)
     import hashlib
     return f"{ts}_{source}_{hashlib.md5(extra.encode()).hexdigest()[:8]}"
 

@@ -292,7 +292,15 @@ def run():
         # Take the first match — if multiple watches match same drop, send once
         seen_drops = set()
         for watcher, matches, drop, ck in alerts:
-            drop_key = drop.get('url', '') + '|' + drop.get('timestamp', '')
+            # Dedup the SAME drop matching multiple of this user's watches. Fold in
+            # source + an items hash so two genuinely different drops at the same URL
+            # (e.g. a timestamp-less feed restock) don't collapse into one.
+            drop_key = '|'.join([
+                drop.get('url', ''),
+                drop.get('timestamp', ''),
+                drop.get('source', ''),
+                hashlib.md5(str(drop.get('notable_items', '')).encode()).hexdigest()[:8],
+            ])
             if drop_key in seen_drops:
                 continue
             seen_drops.add(drop_key)
