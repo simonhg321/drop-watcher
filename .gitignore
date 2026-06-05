@@ -35,6 +35,9 @@ html/robots.txt
 # Internal docs (server paths, IPs, architecture, security detail — not for public repo)
 JOURNAL.md
 HANDOFF.md
+CLAUDE.md
+handoff-claude.md
+handoff-sms.md
 docs/
 
 
