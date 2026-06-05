@@ -3,7 +3,6 @@
 
 User-agent: *
 Allow: /
-Disallow: /api/
 Disallow: /stats/
 Disallow: /my-alerts.html
 Disallow: /watcher_status.html
