@@ -276,6 +276,18 @@ USER_SITES_RELOAD_INTERVAL = 5 * 60   # reload watchers.json every 5 min
 # normalize_watch_url / domain_from_url now live in urls.py (single source of truth
 # shared with per_user_alerter + watcher_signup so matching can't silently diverge).
 
+def user_watch_sites(watchers):
+    """Turn active watcher rows into fetch targets, skipping GLOBAL watches (empty
+    url) — those match curated drops in per_user_alerter and have nothing to scrape."""
+    sites = []
+    for w in watchers:
+        url = (w.get('url') or '').strip()
+        if not url:
+            continue
+        sites.append({'url': url, 'keywords': w.get('keywords', ''), 'id': w.get('id')})
+    return sites
+
+
 def load_user_sites(source_urls):
     """Load unique URLs from active watchers that aren't already curated sources.
 
@@ -291,10 +303,8 @@ def load_user_sites(source_urls):
         return {}
 
     user_sites = {}  # url -> {url, keywords: set, name}
-    for w in watchers:
-        url = w.get('url', '').strip()
-        if not url:
-            continue
+    for w in user_watch_sites(watchers):
+        url = w['url']
         if normalize_watch_url(url) in source_urls:
             continue
         domain = domain_from_url(url)

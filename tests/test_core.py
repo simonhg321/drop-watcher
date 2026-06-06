@@ -1311,3 +1311,25 @@ class TestExpandMaker:
     def test_blank_returns_empty(self):
         from makers import expand_maker
         assert expand_maker('') == [] and expand_maker(None) == []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WEB_WATCHER — skips global (empty-URL) watches (S54)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestWebWatcherSkipsGlobal:
+    def test_user_site_list_excludes_empty_url(self):
+        import importlib, sys
+        sys.path.insert(0, 'agents')
+        import web_watcher
+        importlib.reload(web_watcher)
+        watchers = [
+            {'id': '1', 'url': 'https://shop.com/x', 'keywords': 'a', 'active': 1},
+            {'id': '2', 'url': '',                  'keywords': 'a', 'maker': 'CRK', 'active': 1},
+            {'id': '3', 'url': None,                'keywords': 'a', 'maker': 'CRK', 'active': 1},
+        ]
+        sites = web_watcher.user_watch_sites(watchers)
+        urls = [s['url'] for s in sites]
+        assert 'https://shop.com/x' in urls
+        assert '' not in urls and None not in urls
+        assert len(sites) == 1
