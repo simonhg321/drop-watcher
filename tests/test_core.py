@@ -994,3 +994,21 @@ class TestUrlNormalization:
     def test_embedded_scheme_preserved_in_path(self):
         from urls import normalize_watch_url as n
         assert n('https://sub.shop.com/http://x') == 'sub.shop.com/http://x'  # only prefix stripped
+
+
+class TestConfigLoad:
+    """Shared scraper config helpers (config_load.py) — web_watcher + feed_watcher
+    must build the same keyword list + pre-filter identically. (S52)"""
+
+    def test_build_keywords_flattens_and_dedupes(self):
+        from config_load import build_keywords
+        cool = {'keywords': {'grails': ['Sebenza', 'Lunar']}}
+        makers = {'makers': [{'name': 'Chris Reeve', 'aliases': ['CRK', 'crk']}],
+                  'collaborations': [{'aliases': ['CGG']}]}
+        kws = build_keywords(cool, makers)
+        assert set(kws) == {'sebenza', 'lunar', 'chris reeve', 'crk', 'cgg'}  # lowercased + deduped
+
+    def test_prefilter_loose_substring(self):
+        from config_load import prefilter
+        assert prefilter('New SEBENZA 31 in stock', ['sebenza'])
+        assert not prefilter('nothing here', ['sebenza'])

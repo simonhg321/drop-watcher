@@ -31,6 +31,7 @@ load_dotenv(paths.ENV_FILE)
 # ── Add agents dir to path ────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 from ai_interpreter import analyze_page
+from config_load import load_yaml, build_keywords, prefilter
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 CONFIG_DIR   = paths.CONFIG_DIR
@@ -57,32 +58,10 @@ logging.basicConfig(
 )
 log = logging.getLogger('feed_watcher')
 
-# ── YAML loader ───────────────────────────────────────────────────────────────
-def load_yaml(path):
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
-
-# ── Build makers list and keywords (same as web_watcher) ─────────────────────
+# load_yaml / build_keywords / prefilter now live in config_load.py (shared with
+# web_watcher so the two scrapers pre-filter identically). build_makers_list is local.
 def build_makers_list(makers_config):
     return [maker['name'] for maker in makers_config.get('makers', [])]
-
-def build_keywords(cool_list, makers_config):
-    keywords = []
-    for bucket in cool_list.get('keywords', {}).values():
-        for kw in bucket:
-            keywords.append(kw.lower())
-    for maker in makers_config.get('makers', []):
-        keywords.append(maker['name'].lower())
-        for alias in maker.get('aliases', []):
-            keywords.append(alias.lower())
-    for collab in makers_config.get('collaborations', []):
-        for alias in collab.get('aliases', []):
-            keywords.append(alias.lower())
-    return list(set(keywords))
-
-def prefilter(text, keywords):
-    text_lower = text.lower()
-    return any(kw in text_lower for kw in keywords)
 
 # ── Seen entry tracking (via SQLite) ─────────────────────────────────────────
 SEEN_TTL_HOURS = 72

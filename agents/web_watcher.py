@@ -42,6 +42,7 @@ from ai_interpreter import analyze_page, analyze_user_page
 import collection_fetch
 from safe_fetch import is_safe_url
 from urls import normalize_watch_url, domain_from_url
+from config_load import load_yaml, build_keywords, prefilter
 from urllib.parse import urljoin
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -67,28 +68,12 @@ logging.basicConfig(
 log = logging.getLogger('web_watcher')
 
 # ── YAML loader ───────────────────────────────────────────────────────────────
-def load_yaml(path):
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+# load_yaml / build_keywords / prefilter now live in config_load.py (shared with
+# feed_watcher so the two scrapers pre-filter identically). build_makers_list is local.
 
 # ── Build makers list for AI ──────────────────────────────────────────────────
 def build_makers_list(makers_config):
     return [maker['name'] for maker in makers_config.get('makers', [])]
-
-# ── Build keyword list for pre-filter ────────────────────────────────────────
-def build_keywords(cool_list, makers_config):
-    keywords = []
-    for bucket in cool_list.get('keywords', {}).values():
-        for kw in bucket:
-            keywords.append(kw.lower())
-    for maker in makers_config.get('makers', []):
-        keywords.append(maker['name'].lower())
-        for alias in maker.get('aliases', []):
-            keywords.append(alias.lower())
-    for collab in makers_config.get('collaborations', []):
-        for alias in collab.get('aliases', []):
-            keywords.append(alias.lower())
-    return list(set(keywords))
 
 # ── Page fingerprint ──────────────────────────────────────────────────────────
 def fingerprint(text):
@@ -130,10 +115,7 @@ def instock_products(products):
         for p in products if p.get('available')
     ][:PRODUCTS_STORE_CAP]
 
-# ── Pre-filter ────────────────────────────────────────────────────────────────
-def prefilter(text, keywords):
-    text_lower = text.lower()
-    return any(kw in text_lower for kw in keywords)
+# prefilter moved to config_load.py (imported below).
 
 
 # ── Homepage / nav-only detection ─────────────────────────────────────────────
