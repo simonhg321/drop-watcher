@@ -146,6 +146,7 @@
   .seg-label .d { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ash); margin-top: 4px; line-height: 1.4; }
   .seg-input:checked + .seg-label { border-color: var(--flame); background: rgba(230,126,34,0.08); }
   .seg-input:checked + .seg-label .t { color: var(--flame); }
+  .seg-input:focus-visible + .seg-label { outline: 2px solid var(--flame); outline-offset: 2px; }
 
   #urlWrap { display: none; margin-top: 14px; }
   #urlWrap.show { display: block; }
@@ -354,7 +355,7 @@
         <input type="radio" name="where" id="w-all" class="seg-input" checked onchange="toggleUrl()">
         <label for="w-all" class="seg-label">
           <div class="t">★ All our shops</div>
-          <div class="d">Every knife shop we track — 80+ dealers. Best net for a grail.</div>
+          <div class="d">Every knife shop we track. Best net for a grail.</div>
         </label>
         <input type="radio" name="where" id="w-url" class="seg-input" onchange="toggleUrl()">
         <label for="w-url" class="seg-label">
@@ -532,8 +533,10 @@ function renderExpand() {
 function urlMode() { return document.getElementById('w-url').checked; }
 
 function toggleUrl() {
-  document.getElementById('urlWrap').classList.toggle('show', urlMode());
-  if (!urlMode()) {
+  const um = urlMode();
+  document.getElementById('urlWrap').classList.toggle('show', um);
+  document.getElementById('makerReq').style.visibility = um ? 'hidden' : '';
+  if (!um) {
     // hide URL-check status when leaving URL mode
     document.getElementById('urlStatus').style.display = 'none';
     document.getElementById('makerError').style.display = 'none';
@@ -550,9 +553,10 @@ function updatePreview() {
 
 makerEl.addEventListener('input', function() {
   if (makerEl.value.trim()) document.getElementById('makerError').style.display = 'none';
+  renderExpand();
 });
-makerEl.addEventListener('input', renderExpand);
 coolEl.addEventListener('input', updatePreview);
+toggleUrl();   // set initial state (makerReq visibility + urlWrap)
 renderExpand();
 
 // ── URL check on blur ──────────────────────────────────────────────────────
