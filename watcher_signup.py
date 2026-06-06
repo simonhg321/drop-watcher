@@ -53,7 +53,7 @@ BASE_URL         = 'https://instockornot.club'
 # Site feedback → emails Simon + posts an untrusted "NOT FLEET" entry to the
 # internal Typhoon blog (the curation gate is the checkpoint before anything
 # goes public). Token + proxy from /etc/drop-watcher/.env — never hard-coded.
-FEEDBACK_TO      = 'hello@instockornot.club'
+FEEDBACK_TO      = 'info@instockornot.club'
 BLOG_PROXY_URL   = os.environ.get('DW_BLOG_PROXY_URL', 'http://localhost:8443/api/blog/post')
 BLOG_TOKEN       = os.environ.get('DW_BLOG_TOKEN')
 EMAIL_RE         = re.compile(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$')
