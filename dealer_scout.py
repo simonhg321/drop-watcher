@@ -86,11 +86,7 @@ def fetch_page(url, ssl_permissive=False):
                                  ssl_permissive=ssl_permissive, headers=HEADERS, log=log)
 
 
-def domain_from_url(url):
-    u = (url or '').lower().replace('https://', '').replace('http://', '')
-    if u.startswith('www.'):
-        u = u[4:]
-    return u.split('/')[0]
+from urls import domain_from_url  # single source of truth (shared matching normalizer)
 
 
 def curated_domains():

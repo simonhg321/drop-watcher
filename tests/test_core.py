@@ -966,3 +966,31 @@ class TestFetchText:
     def test_never_raises_on_garbage(self):
         from safe_fetch import fetch_text
         assert fetch_text('http://') is None  # no hostname → None, not an exception
+
+
+class TestUrlNormalization:
+    """Shared watch-matching normalizers (urls.py) — must agree everywhere so a watch
+    drop can't be stamped one way and matched another (silent miss). (S52)"""
+
+    def test_normalize_basic(self):
+        from urls import normalize_watch_url as n
+        assert n('https://www.knifejoy.com/collections/Hinderer/') == 'knifejoy.com/collections/hinderer'
+        assert n('http://shop.com') == 'shop.com'
+        assert n('https://WWW.Shop.com/X') == 'shop.com/x'
+
+    def test_normalize_strips_whitespace(self):
+        from urls import normalize_watch_url as n
+        assert n('  https://shop.com/x  ') == 'shop.com/x'   # the latent edge the old pua impl missed
+
+    def test_normalize_handles_none_empty(self):
+        from urls import normalize_watch_url as n
+        assert n(None) == '' and n('') == ''
+
+    def test_domain_basic(self):
+        from urls import domain_from_url as d
+        assert d('https://www.knifejoy.com/collections/x') == 'knifejoy.com'
+        assert d('http://Shop.com/a/b') == 'shop.com'
+
+    def test_embedded_scheme_preserved_in_path(self):
+        from urls import normalize_watch_url as n
+        assert n('https://sub.shop.com/http://x') == 'sub.shop.com/http://x'  # only prefix stripped

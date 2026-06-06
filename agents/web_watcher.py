@@ -41,6 +41,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 from ai_interpreter import analyze_page, analyze_user_page
 import collection_fetch
 from safe_fetch import is_safe_url
+from urls import normalize_watch_url, domain_from_url
 from urllib.parse import urljoin
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -290,19 +291,8 @@ def fetch_page(url, ssl_permissive=False):
 USER_POLL_INTERVAL = 15 * 60          # scrape user URLs every 15 min
 USER_SITES_RELOAD_INTERVAL = 5 * 60   # reload watchers.json every 5 min
 
-def domain_from_url(url):
-    """Extract domain from URL, stripping scheme and www."""
-    url = url.lower().replace('https://', '').replace('http://', '')
-    if url.startswith('www.'):
-        url = url[4:]
-    return url.split('/')[0]
-
-def normalize_watch_url(url):
-    """Normalize a URL for exact-match dedup: lowercase, strip scheme, www, trailing slash."""
-    u = url.strip().lower().replace('https://', '').replace('http://', '')
-    if u.startswith('www.'):
-        u = u[4:]
-    return u.rstrip('/')
+# normalize_watch_url / domain_from_url now live in urls.py (single source of truth
+# shared with per_user_alerter + watcher_signup so matching can't silently diverge).
 
 def load_user_sites(source_urls):
     """Load unique URLs from active watchers that aren't already curated sources.

@@ -30,6 +30,7 @@ DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with
 
 from alerter import send_email
 from matching import kw_matches
+from urls import normalize_watch_url, domain_from_url
 import nkd
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
@@ -53,13 +54,7 @@ def load_recent_drops():
     return db.get_recent_drops(minutes=DROPS_WINDOW_MINUTES)
 
 
-def domain_from_url(url):
-    return re.sub(r'^https?://(www\.)?', '', url.lower()).split('/')[0]
-
-
-def normalize_watch_url(url):
-    """Normalize a URL for exact-match scoping: strip scheme, www, trailing slash."""
-    return re.sub(r'^https?://(www\.)?', '', (url or '').lower()).rstrip('/')
+# normalize_watch_url / domain_from_url now live in urls.py (single source of truth).
 
 
 def keywords_match(searchable_text, keywords_str):
