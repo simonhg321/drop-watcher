@@ -32,7 +32,7 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 import paths
 import db
 from matching import kw_matches
-from safe_fetch import is_safe_url, safe_get
+from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
 
@@ -54,10 +54,19 @@ log = logging.getLogger(__name__)
 
 # ── New-shop knife-gate helpers ───────────────────────────────────────────────
 
+DEALER_REJECT_CONFIDENCE = 0.6  # only reject "not a knife shop" when the AI is at least this sure
+
+
 def _fetch_page_text(url):
+    """SSRF-safe, byte-capped page text for dealer classification; '' on failure.
+
+    Uses the streaming, byte-capped fetch_text (hard-caps the download at max_bytes)
+    rather than safe_get, which buffers the FULL response body into memory first.
+    fetch_text is SSRF-guarded and returns None on failure (never raises); the
+    try/except is belt-and-suspenders.
+    """
     try:
-        r = safe_get(url, timeout=12)
-        return (r.text or '')[:20000] if r is not None else ''
+        return (fetch_text(url, max_bytes=512 * 1024, timeout=12) or '')[:20000]
     except Exception:
         return ''
 
@@ -65,7 +74,10 @@ def _fetch_page_text(url):
 def _curated_domains():
     try:
         data = load_yaml(paths.SOURCES_YAML) or {}
-    except (FileNotFoundError, OSError):
+    except Exception as e:
+        # Missing file OR malformed YAML (yaml.YAMLError) — fail soft: an empty
+        # curated set just means we AI-classify every domain, never 500s the endpoint.
+        log.warning(f"_curated_domains: could not load {paths.SOURCES_YAML}: {e}")
         return set()
     out = set()
     for s in data.get('sources', []) or []:
@@ -297,7 +309,7 @@ def watch():
     url   = data.get('url', '').strip()
     keywords = data['keywords'].strip()
     name  = data.get('name', '').strip()
-    maker = data.get('maker', '').strip()[:100]
+    maker = data.get('maker', '').strip()
     phone = data.get('phone', '').strip()
     priority = data.get('priority', 'high')
 
@@ -330,17 +342,23 @@ def watch():
         # If the URL points at a domain we don't already curate and haven't already
         # queued for review, AI-classify it: knives-only for now. On YES we create the
         # scoped watch AND queue the shop for weekly human review (never auto-fleet it).
+        curated = _curated_domains()
         dom = domain_from_url(url)
-        if dom and dom not in _curated_domains() and db.get_dealer_candidate(dom) is None:
+        if dom and dom not in curated and db.get_dealer_candidate(dom) is None:
             # Per-email daily cap on introducing brand-new shops (abuse guard).
+            # Best-effort under concurrency: count_recent_new_shop_watches only sees
+            # committed rows, so simultaneous requests can momentarily over-count past
+            # the cap — acceptable for an abuse guard, not a hard quota.
             try:
                 settings = load_yaml(paths.SETTINGS_YAML) or {}
-            except (FileNotFoundError, OSError):
+            except Exception as e:
+                # Missing file OR malformed YAML — fail soft to the default cap.
+                log.warning(f"watch(): could not load {paths.SETTINGS_YAML}: {e}")
                 settings = {}
             cap = int(settings.get('max_new_shops_per_email_per_day', 5) or 0)
             if cap > 0:
                 recent = db.count_recent_new_shop_watches(
-                    email, hours=24, known_domains=_curated_domains())
+                    email, hours=24, known_domains=curated)
                 if recent >= cap:
                     return jsonify({'error': "You've added a lot of new shops today — "
                                              "try again tomorrow."}), 429
@@ -354,21 +372,25 @@ def watch():
                     log.error(f"classify_dealer failed for {dom}: {e}")
                     verdict = None
 
-            if verdict is not None:
-                if not verdict.get('is_dealer'):
+            if verdict:
+                is_dealer = bool(verdict.get('is_dealer'))
+                conf = float(verdict.get('confidence') or 0)
+                # Only hard-reject when the classifier is CONFIDENT it's not a knife
+                # shop. Otherwise fail open (create the watch) and still queue the shop
+                # for weekly review so Simon can judge — don't lose an uncertain user.
+                if (not is_dealer) and conf >= DEALER_REJECT_CONFIDENCE:
                     return jsonify({'error': 'Drop Watcher is knives-only for now — '
                                              'more coming soon.'}), 400
-                # knives=YES → queue for weekly review (do NOT auto-add to fleet)
                 brands = verdict.get('brands')
                 if isinstance(brands, (list, tuple)):
                     brands = ', '.join(str(b) for b in brands)
                 try:
                     db.upsert_dealer_candidate(
                         domain=dom,
-                        is_dealer=True,
+                        is_dealer=is_dealer,
                         category=verdict.get('category', ''),
                         brands=brands or '',
-                        confidence=float(verdict.get('confidence') or 0),
+                        confidence=conf,
                         reason='user signup',
                         sample_url=url,
                         user_count=1,
@@ -388,6 +410,10 @@ def watch():
     # Name: optional, cap length
     if len(name) > 100:
         return jsonify({'error': 'Name too long (max 100 chars).'}), 400
+
+    # Maker: optional, cap length (reject rather than silently truncate, like name/keywords)
+    if len(maker) > 100:
+        return jsonify({'error': 'Maker name too long (max 100 chars).'}), 400
 
     # Priority: whitelist
     if priority not in ('critical', 'high', 'medium', 'low'):

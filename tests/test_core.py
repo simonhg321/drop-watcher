@@ -1371,6 +1371,61 @@ class TestWatchEndpointGlobal:
         import db
         assert db.get_dealer_candidate('newknives-xyz.com') is not None
 
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_new_shop_daily_cap_returns_429(self, _c, _e, client):
+        # Set a low per-email daily cap, then add more distinct NEW (knife) domains than
+        # the cap allows for one email; the over-limit request must 429.
+        c, ws = client
+        import paths, yaml
+        with open(paths.SETTINGS_YAML, 'w') as f:
+            yaml.safe_dump({'max_new_shops_per_email_per_day': 1}, f)
+        ws._fetch_page_text = lambda u: 'chris reeve knives in stock'
+        with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+             patch.object(ws, 'classify_dealer',
+                          return_value={'is_dealer': True, 'confidence': 0.95,
+                                        'category': 'knife dealer', 'brands': 'CRK'}):
+            r1 = c.post('/api/watch', json={'url': 'https://capshop-one.com/a',
+                                            'keywords': 'damascus', 'email': 'cap@h.com'})
+            r2 = c.post('/api/watch', json={'url': 'https://capshop-two.com/b',
+                                            'keywords': 'damascus', 'email': 'cap@h.com'})
+        assert r1.status_code in (200, 201)
+        assert r2.status_code == 429
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_classify_failure_creates_watch_no_queue(self, _c, _e, client):
+        # New domain, but page fetch yields nothing → classifier never runs → fail open:
+        # the watch is created and the shop is NOT queued for review (don't lose the user).
+        c, ws = client
+        ws._fetch_page_text = lambda u: ''
+        with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+             patch.object(ws, 'classify_dealer') as mock_cls:
+            r = c.post('/api/watch', json={'url': 'https://nopage-xyz.com/x',
+                                           'keywords': 'damascus', 'email': 'nf@h.com'})
+        assert r.status_code in (200, 201)
+        mock_cls.assert_not_called()
+        import db
+        assert db.get_dealer_candidate('nopage-xyz.com') is None
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_curated_domain_skips_ai(self, _c, _e, client):
+        # A domain already in sources.yaml is known/curated → the knife-gate (and its
+        # paid AI call) must be skipped entirely, and the watch still created.
+        c, ws = client
+        import paths, yaml
+        with open(paths.SOURCES_YAML, 'w') as f:
+            yaml.safe_dump({'sources': [{'url': 'https://knownshop.com/collections/all'}]}, f)
+        with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+             patch.object(ws, 'classify_dealer', MagicMock()) as mock_cls:
+            r = c.post('/api/watch', json={'url': 'https://knownshop.com/x',
+                                           'keywords': 'damascus', 'email': 'kn@h.com'})
+        assert r.status_code in (200, 201)
+        mock_cls.assert_not_called()
+        import db
+        assert any(w['url'] for w in db.get_watchers_by_email('kn@h.com'))
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAKER ALIAS EXPANSION (makers.py) — S54
