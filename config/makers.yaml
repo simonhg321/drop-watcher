@@ -203,13 +203,20 @@ makers:
   # ── Tier 2 — Medium priority ───────────────────────────────────────────────
 
   - name: Demko Knives
-    aliases: [demko, ad20, ad20.5, andrew demko, ad20 custom]
-    priority: medium
+    aliases: [demko, ad20, ad20.5, ad22, andrew demko, ad20 custom]
+    priority: high
     notable_models:
       critical:
         - custom
+        - ad20 magnacut
+        - ad22 magnacut
+        - machine ground
       high:
         - ad20.5
+        - ad22
+        - ad20 xl
+        - shark lock
+        - sharksfoot
       medium:
         - ad20
 
@@ -238,16 +245,33 @@ makers:
     priority: medium
 
   - name: Chaves Knives
-    aliases: [chaves, chaves knives, redencion, ultramar]
-    priority: medium
+    aliases: [chaves, chaves knives, redencion, ultramar, chaves redencion, 229]
+    priority: high
+    notable_models:
+      critical:
+        - redencion 229 integral
+        - street integral
+      high:
+        - redencion 229
+        - ultramar
+        - liberation
 
   - name: Rockstead Knife
     aliases: [rockstead, rockstead knife]
     priority: medium
 
   - name: Shirogorov Knives
-    aliases: [shirogorov, hati, neon, f95]
-    priority: medium
+    aliases: [shirogorov, hati, neon, f95, ursus, quantum, shiro]
+    priority: high
+    notable_models:
+      critical:
+        - ursus
+        - quantum
+      high:
+        - f95
+        - hati
+        - neon
+        - 111
 
   - name: Todd Begg Knives
     aliases: [todd begg, begg knives, steelcraft, field marshall]
@@ -331,6 +355,89 @@ makers:
   - name: William Harsey
     aliases: [harsey, william harsey, harsey knives]
     priority: medium
+
+  # ── Blade Show 2026 — Hot Makers ──────────────────────────────────────────
+
+  - name: Holt Bladeworks
+    aliases: [holt, holt bladeworks, specter, haptic, morpheus]
+    priority: high
+    notable_models:
+      critical:
+        - specter
+        - haptic
+        - morpheus
+      high:
+        - hation
+
+  - name: Grimsmo Knives
+    aliases: [grimsmo, norseman, saga, rask]
+    priority: high
+    notable_models:
+      critical:
+        - norseman
+        - rask
+      high:
+        - saga
+
+  - name: Koenig Knives
+    aliases: [koenig, arius, mini goblin, koenig knives]
+    priority: high
+    notable_models:
+      critical:
+        - arius dlc
+        - arius damascus
+      high:
+        - arius
+        - mini goblin
+
+  - name: Zero Tolerance
+    aliases: [zero tolerance, zt, 0044, 0562, 0350, 0452, 0393, 0562ti]
+    priority: medium
+    notable_models:
+      critical:
+        - 20th anniversary
+      high:
+        - 0044
+        - 0562ti
+        - 0393
+      medium:
+        - 0350
+
+  - name: Iron Ethos
+    aliases: [iron ethos, ironethos]
+    priority: medium
+    notable_models:
+      high:
+        - all
+
+  - name: Berg Blades
+    aliases: [berg blades, berg, sweeney, tick]
+    priority: medium
+    notable_models:
+      high:
+        - sweeney
+        - tick
+        - alpha
+
+  - name: Freeman Outdoor Gear
+    aliases: [freeman, freeman outdoor, 451]
+    priority: medium
+    notable_models:
+      high:
+        - 451 button lock
+
+  - name: Golden Designworks
+    aliases: [golden designworks, golden design]
+    priority: medium
+
+  - name: Emerson Knives
+    aliases: [emerson, emerson knives, emerson archetype, cqc]
+    priority: medium
+    notable_models:
+      high:
+        - cqc-7
+        - commander
+        - archetype
 
 # ── Collaborations — always CRITICAL ──────────────────────────────────────────
 collaborations:

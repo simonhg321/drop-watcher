@@ -148,3 +148,36 @@ keywords:
     - x Steel Flame
     - x Hinderer
     - Hinderer Steel Flame
+
+  # Blade Show 2026 — show-specific signals
+  blade_show:
+    - blade show
+    - blade show exclusive
+    - blade show 2026
+    - show exclusive
+    - show special
+    - show edition
+    - BSATL
+    - BSATL26
+    - blade show atlanta
+    - booth only
+    - show only
+    - first come first served
+    - show floor
+    - just back from blade show
+
+  # Blade Show grail makers — models moving fast post-show
+  blade_show_grails:
+    - holt specter
+    - holt haptic
+    - grimsmo norseman
+    - grimsmo rask
+    - koenig arius
+    - shirogorov ursus
+    - demko ad20 xl
+    - demko ad22
+    - zt 20th anniversary
+    - zero tolerance 0044
+    - chaves 229 integral
+    - berg sweeney
+    - iron ethos

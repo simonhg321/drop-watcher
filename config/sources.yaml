@@ -239,8 +239,9 @@ websites:
 
   - name: Chris Reeve Knives
     url: https://www.chrisreeve.com
-    poll_interval: 20
+    poll_interval: 10
     enabled: true
+    notes: Boosted for Blade Show week — Umnumzaan hot; revert to 20 after 2026-06-12
 
   - name: Curtiss Custom Knives
     url: https://www.curtisscustomknives.com
@@ -254,8 +255,9 @@ websites:
 
   - name: Demko Knives
     url: https://demkoknives.com
-    poll_interval: 20
+    poll_interval: 10
     enabled: true
+    notes: Boosted for Blade Show week — AD20/AD22 MagnaCut hot; revert to 20 after 2026-06-12
 
   - name: McNees Knives
     url: https://mcneesknives.com
@@ -311,6 +313,117 @@ websites:
     url: https://prometheusdesignwerx.com/collections/folders
     poll_interval: 20
     enabled: true
+
+  # ── Blade Show 2026 — Grail Cannon ────────────────────────────────────────
+  # Post-show aftermarket targets. The flip wave hits Sun night → Wed.
+  # These are time-sensitive — crank poll intervals during show week.
+
+  # Retailer show-specific landing pages
+  - name: Blade HQ — Blade Show Drops
+    url: https://www.bladehq.com/cat--Knife-Show-New-Product--599
+    poll_interval: 10
+    enabled: true
+    notes: Blade Show new product page — show exclusives land here
+
+  - name: Blade HQ — New Arrivals
+    url: https://www.bladehq.com/cat--New-Arrivals--153
+    poll_interval: 10
+    enabled: true
+    notes: Post-show flood of new stock
+
+  - name: Blade HQ — Exclusives
+    url: https://www.bladehq.com/cat--BladeHQ-Exclusives--199
+    poll_interval: 15
+    enabled: true
+    notes: BHQ-only colorways and steels
+
+  - name: Blade HQ — Coming Soon
+    url: https://www.bladehq.com/cat--Coming-Soon--298
+    poll_interval: 15
+    enabled: true
+    notes: Pre-orders for show reveals
+
+  - name: DLT Trading — Blade Show Drops
+    url: https://www.dlttrading.com/15-days-of-bladeshow
+    poll_interval: 10
+    enabled: true
+    notes: Daily curated drops from Blade Show makers — sells out same day
+
+  - name: EKnives — Blade Show
+    url: https://eknives.com/blade-show/
+    poll_interval: 10
+    enabled: true
+    notes: Biggest dealer booth (#405) — show exclusives and restocks
+
+  - name: EKnives — New Arrivals
+    url: https://eknives.com/new/
+    poll_interval: 15
+    enabled: true
+    notes: Post-show inventory dumps
+
+  - name: KnifeCenter — Blade Show
+    url: https://www.knifecenter.com/listing/just-in-from-2026-blade-show-texas
+    poll_interval: 15
+    enabled: true
+    notes: Show-specific listing page — check for Atlanta version too
+
+  - name: Arizona Custom Knives — Recently Added
+    url: https://www.arizonacustomknives.com/recently-added/
+    poll_interval: 15
+    enabled: true
+    notes: Consignment grails — new listings daily at 3:30pm ET, show-goer flips
+
+  # Maker direct — Blade Show hot makers (boosted poll during show week)
+  - name: Holt Bladeworks
+    url: https://holtbladeworks.com
+    poll_interval: 10
+    enabled: true
+    notes: Specter, Haptic, Morpheus — lottery drops, grail tier
+
+  - name: Grimsmo Knives
+    url: https://grimsmoknives.com
+    poll_interval: 10
+    enabled: true
+    notes: Norseman, Saga, Rask — CNC grail tier
+
+  - name: Koenig Knives
+    url: https://koenigknives.com
+    poll_interval: 10
+    enabled: true
+    notes: Arius — hot at Blade Show, sells out fast
+
+  - name: Chaves Knives Direct
+    url: https://chavesknives.com
+    poll_interval: 15
+    enabled: true
+    notes: Redencion 229, Ultramar — show exclusives
+
+  - name: Zero Tolerance
+    url: https://www.zt.kaiusa.com/all-products.html
+    poll_interval: 15
+    enabled: true
+    notes: 20th anniversary model — hot at Blade Show 2026
+
+  - name: Iron Ethos
+    url: https://ironethos.com
+    poll_interval: 20
+    enabled: true
+    notes: New maker, EDC fixed blades — Blade Show 2026 debut
+
+  # News/coverage — catch announcements before they hit retailers
+  - name: KnifeNews — All News
+    url: https://knifenews.com/all-news/
+    poll_interval: 15
+    enabled: true
+    site_type: news
+    notes: Fastest coverage of Blade Show reveals and drops
+
+  - name: Adept Knives — Blade Show Coverage
+    url: https://www.adeptknives.com/blogs/adept-knives/blade-show-atlanta-2026-complete-news-new-knife-releases-live-coverage-hub
+    poll_interval: 15
+    enabled: true
+    site_type: news
+    notes: Live-updating Blade Show 2026 coverage hub
 
   # ── Boss Watchlist ─────────────────────────────────────────────────────────
 
@@ -425,8 +538,9 @@ feeds:
 
   - name: Reddit r/bladesinstock
     url: https://www.reddit.com/r/bladesinstock.rss
-    poll_interval: 15
+    poll_interval: 10
     enabled: true
+    notes: Boosted for Blade Show week — revert to 15 after 2026-06-12
 
   - name: Reddit r/knifeclub
     url: https://www.reddit.com/r/knifeclub.rss
@@ -440,8 +554,9 @@ feeds:
 
   - name: Reddit r/knife_swap
     url: https://www.reddit.com/r/knife_swap.rss
-    poll_interval: 20
+    poll_interval: 10
     enabled: true
+    notes: Boosted for Blade Show week — revert to 20 after 2026-06-12
 
   - name: Reddit r/EDCexchange
     url: https://www.reddit.com/r/EDCexchange.rss
