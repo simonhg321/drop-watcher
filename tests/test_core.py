@@ -1319,10 +1319,7 @@ class TestExpandMaker:
 
 class TestWebWatcherSkipsGlobal:
     def test_user_site_list_excludes_empty_url(self):
-        import importlib, sys
-        sys.path.insert(0, 'agents')
-        import web_watcher
-        importlib.reload(web_watcher)
+        import web_watcher  # agents/ is on sys.path via the module-level insert above
         watchers = [
             {'id': '1', 'url': 'https://shop.com/x', 'keywords': 'a', 'active': 1},
             {'id': '2', 'url': '',                  'keywords': 'a', 'maker': 'CRK', 'active': 1},
