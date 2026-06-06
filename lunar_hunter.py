@@ -44,6 +44,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 import paths
 import db
 import collection_fetch
+import safe_fetch
 from alerter import send_email
 from sms_alerter import _send_twilio_sms
 
@@ -111,17 +112,9 @@ MAX_RESPONSE_BYTES = 3 * 1024 * 1024
 
 
 def fetch_page(url, ssl_permissive=False):
-    """Minimal fetch_page compatible with collection_fetch (size-capped, never raises)."""
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=15, stream=True,
-                         verify=not ssl_permissive)
-        r.raise_for_status()
-        content = r.content[:MAX_RESPONSE_BYTES]
-        r.close()
-        return content.decode('utf-8', errors='replace')
-    except requests.RequestException as e:
-        log.warning(f"fetch failed {url}: {e}")
-        return None
+    """SSRF-guarded, size-capped fetch (never raises) — shared impl in safe_fetch."""
+    return safe_fetch.fetch_text(url, max_bytes=MAX_RESPONSE_BYTES,
+                                 ssl_permissive=ssl_permissive, headers=HEADERS, log=log)
 
 
 def _lunar_match(text, scoped):

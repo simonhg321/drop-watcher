@@ -116,3 +116,47 @@ def safe_get(url, headers=None, timeout=10, max_redirects=4):
             continue
         return r
     raise ValueError("Too many redirects.")
+
+
+def fetch_text(url, max_bytes=2 * 1024 * 1024, ssl_permissive=False, timeout=15,
+               headers=None, max_redirects=4, log=None):
+    """SSRF-safe, size-capped page fetch. Returns decoded text, or None on any
+    failure/unsafe target (NEVER raises) — the contract the cron fetchers expect.
+
+    Validates the URL and EVERY redirect hop against is_safe_url, follows at most
+    max_redirects, streams the body and hard-caps it at max_bytes. Single guarded
+    impl shared by dealer_scout / lunar_hunter fetch_page (which fetch user-added
+    or external domains) so the SSRF guard lives in one place, not three.
+    """
+    import requests
+    from urllib.parse import urljoin
+
+    def _warn(msg):
+        if log is not None:
+            log.warning(msg)
+
+    current = url
+    try:
+        for _ in range(max_redirects + 1):
+            safe, reason = is_safe_url(current)
+            if not safe:
+                _warn(f"Refusing to fetch unsafe URL {current}: {reason}")
+                return None
+            r = requests.get(current, headers=headers, timeout=timeout, stream=True,
+                             verify=not ssl_permissive, allow_redirects=False)
+            if r.is_redirect or r.status_code in (301, 302, 303, 307, 308):
+                loc = r.headers.get('Location', '')
+                r.close()
+                if not loc:
+                    return None
+                current = urljoin(current, loc)
+                continue
+            r.raise_for_status()
+            content = r.content[:max_bytes]
+            r.close()
+            return content.decode('utf-8', errors='replace')
+        _warn(f"Too many redirects for {url}")
+        return None
+    except requests.RequestException as e:
+        _warn(f"fetch failed {url}: {e}")
+        return None

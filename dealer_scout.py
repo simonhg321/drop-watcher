@@ -54,6 +54,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 import paths
 import db
 import collection_fetch
+import safe_fetch
 from ai_interpreter import classify_dealer
 from alerter import send_email
 
@@ -79,16 +80,10 @@ MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 
 def fetch_page(url, ssl_permissive=False):
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=15, stream=True,
-                         verify=not ssl_permissive)
-        r.raise_for_status()
-        content = r.content[:MAX_RESPONSE_BYTES]
-        r.close()
-        return content.decode('utf-8', errors='replace')
-    except requests.RequestException as e:
-        log.warning(f"fetch failed {url}: {e}")
-        return None
+    # SSRF-guarded shared fetch — this scrapes user-ADDED candidate domains, so an
+    # unguarded GET here is the same hole we closed in web_watcher. (S52)
+    return safe_fetch.fetch_text(url, max_bytes=MAX_RESPONSE_BYTES,
+                                 ssl_permissive=ssl_permissive, headers=HEADERS, log=log)
 
 
 def domain_from_url(url):

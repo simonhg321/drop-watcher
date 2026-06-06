@@ -945,3 +945,24 @@ class TestPageFingerprint:
         a = web_watcher.page_fingerprint('page version one', [])
         b = web_watcher.page_fingerprint('page version two', [])
         assert a != b
+
+
+class TestFetchText:
+    """safe_fetch.fetch_text — shared SSRF-guarded, never-raising fetch used by the
+    cron scrapers (dealer_scout fetches user-added domains). (S52)"""
+
+    def test_blocks_loopback(self):
+        from safe_fetch import fetch_text
+        assert fetch_text('http://127.0.0.1:5001/') is None
+
+    def test_blocks_metadata_ip(self):
+        from safe_fetch import fetch_text
+        assert fetch_text('http://169.254.169.254/latest/meta-data/') is None
+
+    def test_blocks_non_http(self):
+        from safe_fetch import fetch_text
+        assert fetch_text('file:///etc/passwd') is None
+
+    def test_never_raises_on_garbage(self):
+        from safe_fetch import fetch_text
+        assert fetch_text('http://') is None  # no hostname → None, not an exception
