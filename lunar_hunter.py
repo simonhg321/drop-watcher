@@ -30,6 +30,7 @@ HGR
 import os
 import sys
 import re
+import base64
 import html as html_mod
 import hashlib
 import logging
@@ -110,6 +111,16 @@ log = logging.getLogger('lunar_hunter')
 HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'}
 MAX_RESPONSE_BYTES = 3 * 1024 * 1024
 
+# ── eBay Browse API ─────────────────────────────────────────────────────────
+# The authenticated API path — NOT the scraper path that 403s from this datacenter
+# IP on /itm/ and /sch/ pages. Dormant until creds are set (mirrors the SMS skip):
+# create a free Production app at developer.ebay.com → set DW_EBAY_CLIENT_ID +
+# DW_EBAY_CLIENT_SECRET in /etc/drop-watcher/.env, no code change to go live.
+EBAY_TOKEN_URL  = 'https://api.ebay.com/identity/v1/oauth2/token'
+EBAY_SEARCH_URL = 'https://api.ebay.com/buy/browse/v1/item_summary/search'
+EBAY_SCOPE      = 'https://api.ebay.com/oauth/api_scope'
+EBAY_QUERY      = 'chris reeve lunar landing'
+
 
 def fetch_page(url, ssl_permissive=False):
     """SSRF-guarded, size-capped fetch (never raises) — shared impl in safe_fetch."""
@@ -172,6 +183,92 @@ def scan_reddit():
                 })
                 hits += 1
         log.info(f"Reddit r/{sub} — {len(feed.entries)} posts, {hits} lunar match(es)")
+    return finds
+
+
+def _ebay_active():
+    """True when both eBay API creds are present — i.e. the eBay scanner is live
+    (vs. dormant). Used by scan_ebay and the armed-notice fleet list."""
+    return bool(os.environ.get('DW_EBAY_CLIENT_ID') and os.environ.get('DW_EBAY_CLIENT_SECRET'))
+
+
+def _ebay_token(client_id, client_secret):
+    """Fetch an eBay application access token (client-credentials grant).
+
+    Returns the token string, or None on any failure (never raises — one bad eBay
+    call must not abort the hunt)."""
+    try:
+        basic = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+        r = requests.post(
+            EBAY_TOKEN_URL,
+            headers={'Authorization': f'Basic {basic}',
+                     'Content-Type': 'application/x-www-form-urlencoded'},
+            data={'grant_type': 'client_credentials', 'scope': EBAY_SCOPE},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.json().get('access_token')
+    except Exception as e:
+        log.warning(f"eBay — token fetch failed: {e}")
+        return None
+
+
+def _ebay_search(token):
+    """Query the Browse API for the grail, newest first. Returns the raw
+    itemSummaries list (or [] on any failure)."""
+    try:
+        r = requests.get(
+            EBAY_SEARCH_URL,
+            headers={'Authorization': f'Bearer {token}',
+                     'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US'},
+            params={'q': EBAY_QUERY, 'sort': 'newlyListed', 'limit': 50},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.json().get('itemSummaries') or []
+    except Exception as e:
+        log.warning(f"eBay — search failed: {e}")
+        return []
+
+
+def _ebay_finds_from_summaries(summaries):
+    """Map Browse API item summaries → find dicts, keeping only true Lunar Landing
+    listings. eBay best-match is fuzzy, so each title is re-checked with the shared
+    unscoped matcher (Reeve context required) to drop unrelated 'lunar' knives."""
+    finds = []
+    for s in summaries or []:
+        title = s.get('title', '') or ''
+        if not _lunar_match(title, scoped=False):
+            continue
+        price = s.get('price') or {}
+        finds.append({
+            'source':   'eBay',
+            'title':    title or 'Chris Reeve Lunar Landing',
+            'url':      s.get('itemWebUrl', '') or '',
+            'in_stock': None,                 # active listing != dealer stock → "LISTED"
+            'price':    price.get('value', '') if isinstance(price, dict) else '',
+            'deep':     True,
+        })
+    return finds
+
+
+def scan_ebay():
+    """Scan eBay for the Lunar Landing via the Browse API.
+
+    Dormant when creds are unset (logs once, returns []) — same pattern as the SMS
+    skip — so the rig ships inert and goes live the moment DW_EBAY_CLIENT_ID /
+    DW_EBAY_CLIENT_SECRET are present in the environment."""
+    if not _ebay_active():
+        log.info("eBay — no DW_EBAY_CLIENT_ID/SECRET set, skipping (dormant)")
+        return []
+
+    token = _ebay_token(os.environ['DW_EBAY_CLIENT_ID'], os.environ['DW_EBAY_CLIENT_SECRET'])
+    if not token:
+        return []
+
+    summaries = _ebay_search(token)
+    finds = _ebay_finds_from_summaries(summaries)
+    log.info(f"eBay — {len(summaries)} result(s), {len(finds)} lunar match(es)")
     return finds
 
 
@@ -291,6 +388,12 @@ def build_armed_email():
                     for s in SOURCES)
     fleet += (f'<li style="margin:4px 0;color:#bccaeb">Reddit '
               f'<span style="color:#46557a">— {html_mod.escape("r/" + ", r/".join(REDDIT_SUBS))}</span></li>')
+    if _ebay_active():
+        fleet += ('<li style="margin:4px 0;color:#bccaeb">eBay '
+                  '<span style="color:#46557a">— Browse API, newest first</span></li>')
+    blind = list(BLIND_SPOTS)
+    if not _ebay_active():
+        blind.append('eBay (no API creds set — dormant)')
     inner = (f'<p style="color:#dfe6f2;font-size:14px;">The Lunar Landing hunt is '
              f'<b style="color:#39d98a;">ARMED</b> and running every 8 minutes.</p>'
              f'<div style="background:#0b101f;border:1px solid #1f2c4a;padding:16px;margin:16px 0;">'
@@ -300,11 +403,12 @@ def build_armed_email():
              f'item + live stock. The instant a Lunar Landing appears — in stock or sold out — '
              f'you get a hit.</p>'
              f'<p style="color:#46557a;font-size:11px;margin-top:14px;">Known blind spots '
-             f'(bot-blocked, not auto-scanned): {", ".join(BLIND_SPOTS)}.</p>')
+             f'(bot-blocked, not auto-scanned): {", ".join(blind)}.</p>')
+    fleet_names = [s['name'] for s in SOURCES] + (['eBay'] if _ebay_active() else [])
     return "🌙 Lunar Landing hunt is ARMED", _shell(inner), (
         "Lunar Landing hunt ARMED — running every 8 min.\n\nFleet: "
-        + ", ".join(s['name'] for s in SOURCES)
-        + f"\nBlind spots (bot-blocked): {', '.join(BLIND_SPOTS)}\n")
+        + ", ".join(fleet_names)
+        + f"\nBlind spots (bot-blocked): {', '.join(blind)}\n")
 
 
 def build_find_sms(finds):
@@ -340,6 +444,10 @@ def run():
         all_finds.extend(scan_reddit())
     except Exception as e:
         log.error(f"Reddit — scan error: {e}")
+    try:
+        all_finds.extend(scan_ebay())
+    except Exception as e:
+        log.error(f"eBay — scan error: {e}")
 
     fresh = []
     for f in all_finds:

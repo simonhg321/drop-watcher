@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS watchers (
     alert_count INTEGER DEFAULT 0,
     consecutive_not_found INTEGER DEFAULT 0,
     last_acked TEXT,
-    ageout_email_sent TEXT
+    ageout_email_sent TEXT,
+    maker TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_watchers_email ON watchers(email);
 CREATE INDEX IF NOT EXISTS idx_watchers_unsub_token ON watchers(unsubscribe_token);
@@ -170,6 +171,7 @@ def _migrate(conn):
     for col, ddl in (
         ('last_acked',        'ALTER TABLE watchers ADD COLUMN last_acked TEXT'),
         ('ageout_email_sent', 'ALTER TABLE watchers ADD COLUMN ageout_email_sent TEXT'),
+        ('maker',             'ALTER TABLE watchers ADD COLUMN maker TEXT'),
     ):
         if col not in cols:
             conn.execute(ddl)
@@ -263,10 +265,10 @@ def add_watcher(watcher_dict):
         db.execute("""
             INSERT INTO watchers (id, email, url, keywords, name, priority, phone,
                 sms_approved, sms_verify_code, sms_verify_expires, active, verify_token,
-                unsubscribe_token, created, last_alert, alert_count)
+                unsubscribe_token, created, last_alert, alert_count, maker)
             VALUES (:id, :email, :url, :keywords, :name, :priority, :phone,
                 :sms_approved, :sms_verify_code, :sms_verify_expires, :active, :verify_token,
-                :unsubscribe_token, :created, :last_alert, :alert_count)
+                :unsubscribe_token, :created, :last_alert, :alert_count, :maker)
         """, {
             'id': watcher_dict['id'],
             'email': watcher_dict['email'],
@@ -284,6 +286,7 @@ def add_watcher(watcher_dict):
             'created': watcher_dict['created'],
             'last_alert': watcher_dict.get('last_alert'),
             'alert_count': watcher_dict.get('alert_count', 0),
+            'maker': watcher_dict.get('maker', ''),
         })
 
 

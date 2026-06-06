@@ -1055,3 +1055,138 @@ class TestCollectionFetch:
         assert 'Sebenza' in line and 'IN STOCK' in line and '$500' in line and 'grail' in line
         sold = cf._product_line({'title': 'X', 'vendor': 'Y', 'available': False, 'price': '1', 'tags': []})
         assert 'SOLD OUT' in sold
+
+
+class TestEbayScan:
+    """lunar_hunter eBay Browse API scanner — the authenticated path that sidesteps
+    the IP-level 403s on eBay item/search pages. Dormant until creds are set. (S53)"""
+
+    @pytest.fixture
+    def lh(self, tmp_path, monkeypatch):
+        # Point logging at tmp so importing lunar_hunter writes no real-log side effect.
+        monkeypatch.setenv('DW_LOG_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import lunar_hunter as _lh
+        importlib.reload(_lh)
+        return _lh
+
+    def _resp(self, payload, status=200):
+        r = MagicMock(status_code=status)
+        r.json.return_value = payload
+        r.raise_for_status.return_value = None
+        return r
+
+    def test_scan_ebay_dormant_without_creds(self, lh, monkeypatch):
+        monkeypatch.delenv('DW_EBAY_CLIENT_ID', raising=False)
+        monkeypatch.delenv('DW_EBAY_CLIENT_SECRET', raising=False)
+
+        def no_http(*a, **k):
+            raise AssertionError('scan_ebay made an HTTP call with creds unset')
+        monkeypatch.setattr(lh.requests, 'post', no_http)
+        monkeypatch.setattr(lh.requests, 'get', no_http)
+
+        assert lh.scan_ebay() == []
+
+    def test_ebay_token_parses_access_token(self, lh, monkeypatch):
+        monkeypatch.setattr(lh.requests, 'post',
+                            lambda *a, **k: self._resp({'access_token': 'TKN123', 'expires_in': 7200}))
+        assert lh._ebay_token('id', 'secret') == 'TKN123'
+
+    def test_ebay_token_none_on_failure(self, lh, monkeypatch):
+        def boom(*a, **k):
+            raise RuntimeError('network down')
+        monkeypatch.setattr(lh.requests, 'post', boom)
+        assert lh._ebay_token('id', 'secret') is None
+
+    def test_finds_from_summaries_filters_unrelated(self, lh):
+        summaries = [
+            {'title': 'Chris Reeve Lunar Landing CGG Damascus',
+             'itemWebUrl': 'https://www.ebay.com/itm/1', 'price': {'value': '2500.00'}},
+            {'title': 'CRKT Lunar folding pocket knife',  # 'lunar' but not Reeve → must drop
+             'itemWebUrl': 'https://www.ebay.com/itm/2', 'price': {'value': '40.00'}},
+        ]
+        finds = lh._ebay_finds_from_summaries(summaries)
+        assert len(finds) == 1
+        f = finds[0]
+        assert f['source'] == 'eBay'
+        assert f['url'] == 'https://www.ebay.com/itm/1'
+        assert f['price'] == '2500.00'
+        assert f['in_stock'] is None     # active listing != dealer stock → "LISTED"
+        assert f['deep'] is True
+        assert 'Lunar Landing' in f['title']
+
+    def test_finds_from_summaries_handles_missing_price(self, lh):
+        finds = lh._ebay_finds_from_summaries([
+            {'title': 'Chris Reeve Lunar Landing', 'itemWebUrl': 'https://www.ebay.com/itm/3'},
+        ])
+        assert len(finds) == 1
+        assert finds[0]['price'] == ''
+
+    def test_scan_ebay_end_to_end_mocked(self, lh, monkeypatch):
+        monkeypatch.setenv('DW_EBAY_CLIENT_ID', 'id')
+        monkeypatch.setenv('DW_EBAY_CLIENT_SECRET', 'secret')
+        monkeypatch.setattr(lh.requests, 'post',
+                            lambda *a, **k: self._resp({'access_token': 'T'}))
+        monkeypatch.setattr(lh.requests, 'get',
+                            lambda *a, **k: self._resp({'itemSummaries': [
+                                {'title': 'Chris Reeve Lunar Landing CGG',
+                                 'itemWebUrl': 'https://www.ebay.com/itm/9',
+                                 'price': {'value': '3000'}}]}))
+        finds = lh.scan_ebay()
+        assert len(finds) == 1
+        assert finds[0]['url'] == 'https://www.ebay.com/itm/9'
+        assert finds[0]['source'] == 'eBay'
+
+    def test_scan_ebay_search_failure_returns_empty(self, lh, monkeypatch):
+        monkeypatch.setenv('DW_EBAY_CLIENT_ID', 'id')
+        monkeypatch.setenv('DW_EBAY_CLIENT_SECRET', 'secret')
+        monkeypatch.setattr(lh.requests, 'post',
+                            lambda *a, **k: self._resp({'access_token': 'T'}))
+
+        def boom(*a, **k):
+            raise RuntimeError('ebay 500')
+        monkeypatch.setattr(lh.requests, 'get', boom)
+        assert lh.scan_ebay() == []
+
+    def test_ebay_active_reflects_creds(self, lh, monkeypatch):
+        monkeypatch.delenv('DW_EBAY_CLIENT_ID', raising=False)
+        monkeypatch.delenv('DW_EBAY_CLIENT_SECRET', raising=False)
+        assert lh._ebay_active() is False
+        monkeypatch.setenv('DW_EBAY_CLIENT_ID', 'id')
+        monkeypatch.setenv('DW_EBAY_CLIENT_SECRET', 'secret')
+        assert lh._ebay_active() is True
+
+    def test_armed_email_lists_ebay_in_fleet_when_active(self, lh, monkeypatch):
+        monkeypatch.setenv('DW_EBAY_CLIENT_ID', 'id')
+        monkeypatch.setenv('DW_EBAY_CLIENT_SECRET', 'secret')
+        _subj, html, txt = lh.build_armed_email()
+        assert 'eBay' in html
+        assert 'eBay' not in ', '.join(lh.BLIND_SPOTS)  # constant unchanged
+        # active → not parked in the blind-spot sentence
+        assert 'eBay (no API creds' not in html
+
+    def test_armed_email_marks_ebay_blind_when_dormant(self, lh, monkeypatch):
+        monkeypatch.delenv('DW_EBAY_CLIENT_ID', raising=False)
+        monkeypatch.delenv('DW_EBAY_CLIENT_SECRET', raising=False)
+        _subj, html, txt = lh.build_armed_email()
+        assert 'eBay (no API creds' in html
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GLOBAL WATCH MODEL — maker column (S54)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestGlobalWatchModel:
+    def test_add_watcher_persists_maker_and_empty_url(self, tmp_env):
+        import db, uuid
+        wid = str(uuid.uuid4())[:8]
+        db.add_watcher({
+            'id': wid, 'email': 'a@b.com', 'url': '', 'keywords': 'damascus,cgg',
+            'maker': 'Chris Reeve', 'unsubscribe_token': 't', 'active': True,
+            'created': '2026-06-06T00:00:00+00:00',
+        })
+        with db.get_db() as c:
+            row = c.execute("SELECT url, maker FROM watchers WHERE id=?", (wid,)).fetchone()
+        assert row['url'] == '' and row['maker'] == 'Chris Reeve'
