@@ -80,8 +80,10 @@ def _curated_domains():
         log.warning(f"_curated_domains: could not load {paths.SOURCES_YAML}: {e}")
         return set()
     out = set()
-    for s in data.get('sources', []) or []:
-        d = domain_from_url(s.get('url', ''))
+    # sources.yaml top-level keys are 'websites' (curated dealer/site URLs) and 'feeds'.
+    # A user-entered URL we already scrape should NOT re-trigger the knife-gate.
+    for s in (data.get('websites') or []) + (data.get('feeds') or []):
+        d = domain_from_url(s.get('url', '') if isinstance(s, dict) else '')
         if d:
             out.add(d)
     return out

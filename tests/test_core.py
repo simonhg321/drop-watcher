@@ -1415,8 +1415,9 @@ class TestWatchEndpointGlobal:
         # paid AI call) must be skipped entirely, and the watch still created.
         c, ws = client
         import paths, yaml
+        # Real sources.yaml uses the 'websites' top-level key (not 'sources').
         with open(paths.SOURCES_YAML, 'w') as f:
-            yaml.safe_dump({'sources': [{'url': 'https://knownshop.com/collections/all'}]}, f)
+            yaml.safe_dump({'websites': [{'url': 'https://knownshop.com/collections/all'}]}, f)
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer', MagicMock()) as mock_cls:
             r = c.post('/api/watch', json={'url': 'https://knownshop.com/x',
