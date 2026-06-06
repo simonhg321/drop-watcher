@@ -129,6 +129,43 @@
     line-height: 1.4;
   }
 
+  /* MAKER ALIAS EXPANSION CHIPS */
+  .expand { margin-top: 8px; min-height: 20px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .expand .lead { font-family: 'Crimson Pro', serif; font-size: 12px; color: var(--ash); }
+  .chip {
+    font-size: 10px; letter-spacing: 0.06em; color: var(--flame);
+    border: 1px solid rgba(230,126,34,0.35); background: rgba(230,126,34,0.07);
+    padding: 2px 7px; border-radius: 2px;
+  }
+
+  /* WHERE-TO-WATCH SEGMENTED CONTROL */
+  .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+  .seg-input { display: none; }
+  .seg-label { flex: 1; min-width: 200px; border: 1px solid var(--iron); padding: 14px; cursor: pointer; transition: all 0.15s; user-select: none; }
+  .seg-label .t { font-size: 12px; letter-spacing: 0.06em; color: var(--silver); text-transform: uppercase; }
+  .seg-label .d { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ash); margin-top: 4px; line-height: 1.4; }
+  .seg-input:checked + .seg-label { border-color: var(--flame); background: rgba(230,126,34,0.08); }
+  .seg-input:checked + .seg-label .t { color: var(--flame); }
+
+  #urlWrap { display: none; margin-top: 14px; }
+  #urlWrap.show { display: block; }
+  .urlnote {
+    font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--ash); margin-top: 8px;
+    border-left: 2px solid var(--iron); padding-left: 12px; line-height: 1.5;
+  }
+  .urlnote b { color: var(--flame); font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+
+  /* INLINE FORM ERROR */
+  .form-error { display: none; color: var(--ember); font-size: 12px; margin-top: 6px; font-family: 'Share Tech Mono', monospace; }
+
+  /* LIVE PREVIEW CARD */
+  .preview-card { max-width: 640px; margin: 28px auto 0; padding: 0 32px; width: 100%; }
+  .pc-inner { border: 1px solid var(--iron); background: var(--steel); padding: 16px 18px; }
+  .pc-h { font-size: 10px; letter-spacing: 0.2em; color: var(--ash); text-transform: uppercase; margin-bottom: 8px; }
+  .pc-line { font-size: 13px; color: var(--silver); line-height: 1.7; }
+  .pc-line b { color: var(--flame); }
+  .pc-line .x { color: #7a3b3b; }
+
   /* PRIORITY PILLS */
   .priority-group { display: flex; gap: 8px; flex-wrap: wrap; }
   .pill-input { display: none; }
@@ -298,16 +335,40 @@
   <div class="form-card">
 
     <div class="field">
-      <label>URL to watch <span class="req">*</span></label>
-      <input type="text" name="url" id="urlInput" placeholder="https://example.com/product-page" required>
-      <div class="hint">Paste any page URL — a store, a product listing, a brand's drop page, anything.</div>
-      <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
+      <label>Maker / brand <span class="req" id="makerReq">*</span></label>
+      <input type="text" name="maker" id="maker" placeholder="Chris Reeve" autocomplete="off">
+      <div class="hint">Who makes it. Known makers expand automatically — so you don't have to list every spelling.</div>
+      <div class="expand" id="expand"></div>
+      <div class="form-error" id="makerError">Pick a maker — required when watching all our shops.</div>
     </div>
 
     <div class="field">
-      <label>What to watch for <span class="req">*</span></label>
-      <textarea name="keywords" placeholder="Nike Dunk, RTX 5090, add to cart, limited edition, back in stock, new arrival..." required></textarea>
-      <div class="hint">Keywords, phrases, or describe what you're looking for. The more specific, the better.</div>
+      <label>Cool-list — the grail terms <span class="req">*</span></label>
+      <textarea name="keywords" id="cool" placeholder="damascus, cgg, sebenza 25" required></textarea>
+      <div class="hint">The specific things you're hunting. We alert when your <b>maker</b> drops with <b>any</b> of these.</div>
+    </div>
+
+    <div class="field">
+      <label>Where to watch</label>
+      <div class="seg">
+        <input type="radio" name="where" id="w-all" class="seg-input" checked onchange="toggleUrl()">
+        <label for="w-all" class="seg-label">
+          <div class="t">★ All our shops</div>
+          <div class="d">Every knife shop we track — 80+ dealers. Best net for a grail.</div>
+        </label>
+        <input type="radio" name="where" id="w-url" class="seg-input" onchange="toggleUrl()">
+        <label for="w-url" class="seg-label">
+          <div class="t">A specific URL</div>
+          <div class="d">You have one shop in mind. We'll add it to the net too.</div>
+        </label>
+      </div>
+      <div id="urlWrap">
+        <input type="text" name="url" id="urlInput" placeholder="https://shop.example.com/collections/chris-reeve">
+        <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
+        <div class="urlnote">New to us? We do a quick <b>AI knife-check</b>. If it's knives, your watch goes
+        live right away — and the shop is queued for Simon's <b>weekly review</b> to join the shared net for everyone.
+        <br>Not knives? We'll tell you — Drop Watcher is knives-only for now.</div>
+      </div>
     </div>
 
     <div class="field">
@@ -356,6 +417,20 @@
 
   </div>
 </form>
+
+<!-- live "what this means" preview -->
+<div class="preview-card" id="previewCard">
+  <div class="pc-inner">
+    <div class="pc-h">What this watch will do</div>
+    <div class="pc-line" id="pcLine">
+      Fire when a drop mentions <b id="pvMaker">your maker</b> <b>and</b> <b id="pvCool">a cool-list term</b>,
+      across <b id="pvWhere">all our shops</b>.
+    </div>
+    <div class="pc-line" style="margin-top:6px;font-family:'Crimson Pro',serif;color:var(--ash);">
+      e.g. &ldquo;Chris Reeve Damascus Sebenza 25&rdquo; &#10003; &nbsp; &middot; &nbsp; &ldquo;Spyderco Damascus&rdquo; <span class="x">&#10007; (wrong maker)</span>
+    </div>
+  </div>
+</div>
 
 <div class="success" id="successMsg">
   <div class="check" id="successIcon">✓</div>
@@ -430,6 +505,56 @@ document.querySelector('[name="phone"]').addEventListener('input', function() {
   document.getElementById('smsConsentField').style.display = this.value.trim() ? 'block' : 'none';
 });
 
+// ── Maker alias expansion + where-toggle + live preview ─────────────────────
+// demo-only maker expansion (real version reads makers.yaml aliases server-side)
+const ALIASES = {
+  'chris reeve': ['crk','reeve','sebenza','inkosi','mnandi','umnumzaan'],
+  'hinderer':    ['rhk','rick hinderer','xm-18','xm-24','halftrack'],
+  'spyderco':    ['para 3','paramilitary','manix','delica'],
+};
+const makerEl = document.getElementById('maker');
+const expandEl = document.getElementById('expand');
+const coolEl = document.getElementById('cool');
+
+function renderExpand() {
+  const v = makerEl.value.trim().toLowerCase();
+  expandEl.innerHTML = '';
+  const hit = ALIASES[v];
+  if (hit) {
+    const lead = document.createElement('span');
+    lead.className = 'lead'; lead.textContent = 'also matches: ';
+    expandEl.appendChild(lead);
+    hit.forEach(a => { const c = document.createElement('span'); c.className = 'chip'; c.textContent = a; expandEl.appendChild(c); });
+  }
+  updatePreview();
+}
+
+function urlMode() { return document.getElementById('w-url').checked; }
+
+function toggleUrl() {
+  document.getElementById('urlWrap').classList.toggle('show', urlMode());
+  if (!urlMode()) {
+    // hide URL-check status when leaving URL mode
+    document.getElementById('urlStatus').style.display = 'none';
+    document.getElementById('makerError').style.display = 'none';
+  }
+  updatePreview();
+}
+
+function updatePreview() {
+  document.getElementById('pvMaker').textContent = makerEl.value.trim() || 'your maker';
+  const cl = coolEl.value.trim();
+  document.getElementById('pvCool').textContent = cl ? '[' + cl + ']' : 'a cool-list term';
+  document.getElementById('pvWhere').textContent = urlMode() ? 'all our shops + your URL' : 'all our shops';
+}
+
+makerEl.addEventListener('input', function() {
+  if (makerEl.value.trim()) document.getElementById('makerError').style.display = 'none';
+});
+makerEl.addEventListener('input', renderExpand);
+coolEl.addEventListener('input', updatePreview);
+renderExpand();
+
 // ── URL check on blur ──────────────────────────────────────────────────────
 let urlChecked = false;
 let urlOk = false;
@@ -451,6 +576,7 @@ function looksLikeHomepage(raw) {
 }
 
 document.getElementById('urlInput').addEventListener('blur', async function() {
+  if (!urlMode()) return;  // only check when "specific URL" is selected
   const url = this.value.trim();
   if (!url) {
     document.getElementById('urlStatus').style.display = 'none';
@@ -487,35 +613,49 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   e.preventDefault();
   const form = this;
   const btn = document.getElementById('submitBtn');
+  const isUrlMode = urlMode();
+  const maker = form.querySelector('[name="maker"]').value.trim();
 
-  if (!urlChecked) {
-    setUrlStatus('checking', 'Checking URL...');
-    try {
-      const res = await fetch('/api/check-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: form.querySelector('[name="url"]').value })
-      });
-      const data = await res.json();
-      urlChecked = true;
-      urlOk = data.ok;
-      if (data.ok && data.warning) {
-        setUrlStatus('warn', data.warning);
-      } else {
-        setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+  // ── Client-side guard: "All our shops" mode requires a maker ──
+  if (!isUrlMode && !maker) {
+    document.getElementById('makerError').style.display = 'block';
+    document.getElementById('maker').focus();
+    return;
+  }
+  document.getElementById('makerError').style.display = 'none';
+
+  // ── URL-check only matters in "specific URL" mode ──
+  if (isUrlMode) {
+    if (!urlChecked) {
+      setUrlStatus('checking', 'Checking URL...');
+      try {
+        const res = await fetch('/api/check-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: form.querySelector('[name="url"]').value })
+        });
+        const data = await res.json();
+        urlChecked = true;
+        urlOk = data.ok;
+        if (data.ok && data.warning) {
+          setUrlStatus('warn', data.warning);
+        } else {
+          setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+        }
+      } catch(e) {
+        urlChecked = true;
+        urlOk = false;
+        setUrlStatus('fail', 'Could not check this URL. Try again.');
       }
-    } catch(e) {
-      urlChecked = true;
-      urlOk = false;
-      setUrlStatus('fail', 'Could not check this URL. Try again.');
     }
+    if (!urlOk) return;
   }
 
-  if (!urlOk) return;
   btn.classList.add('loading');
 
   const payload = {
-    url: form.querySelector('[name="url"]').value,
+    url: isUrlMode ? form.querySelector('[name="url"]').value : '',
+    maker: maker,
     keywords: form.querySelector('[name="keywords"]').value,
     priority: form.querySelector('[name="priority"]:checked').value,
     email: form.querySelector('[name="email"]').value,
@@ -535,6 +675,7 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       document.getElementById('watchForm').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
       document.querySelector('.stats-bar').style.display = 'none';
+      document.getElementById('previewCard').style.display = 'none';
       document.getElementById('confirmedEmail').textContent = payload.email;
       document.getElementById('successMsg').style.display = 'block';
       document.getElementById('successMsg').style.padding = '80px 32px';
