@@ -249,10 +249,9 @@ def run():
     for watcher in active:
         wid   = watcher['id']
         w_url = watcher.get('url', '').lower()
-        w_domain = domain_from_url(w_url)
-        w_norm = normalize_watch_url(w_url)
         kws   = watcher.get('keywords', '')
         email = watcher['email']
+        maker = watcher.get('maker', '')
 
         is_global = not w_url
         for drop in drops:
@@ -274,10 +273,13 @@ def run():
                 # Skip user-watch drops (those belong to their exact-URL owner).
                 if is_user_drop:
                     continue
-                matches = global_watch_matches(watcher.get('maker', ''), kws, searchable)
+                matches = global_watch_matches(maker, kws, searchable)
                 if not matches:
                     continue
             else:
+                # w_domain/w_norm are only needed for the non-global (URL-scoped) path.
+                w_domain = domain_from_url(w_url)
+                w_norm   = normalize_watch_url(w_url)
                 # Match scope: a user-watch drop is produced from ONE specific page, so it
                 # may only match the watcher of that exact URL — otherwise two watches on
                 # the same domain (different paths/keywords) cross-contaminate now that the

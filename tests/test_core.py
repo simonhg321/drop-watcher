@@ -972,6 +972,78 @@ class TestGlobalMatch:
         text = "crk inkosi insingo damascus drop"   # 'crk' alias, no literal 'chris reeve'
         assert global_watch_matches('Chris Reeve', 'damascus', text) == ['damascus']
 
+    def test_global_watch_skips_user_drop_fires_on_curated(self, tmp_env):
+        """A GLOBAL watcher must NOT fire on a (user)-sourced drop; it MUST fire on a
+        curated drop with identical text. Exercises run() end-to-end. (S54 Issue 1)"""
+        import per_user_alerter
+        import uuid
+
+        token = str(uuid.uuid4())
+        global_watcher = {
+            'id': 'gw001',
+            'email': 'global@example.com',
+            'url': '',           # empty URL → global watch
+            'keywords': 'damascus',
+            'maker': 'Chris Reeve',
+            'name': 'Global Watcher',
+            'phone': '',
+            'sms_approved': False,
+            'active': True,
+            'verify_token': None,
+            'unsubscribe_token': token,
+            'created': datetime.now(timezone.utc).isoformat(),
+            'last_alert': None,
+            'alert_count': 0,
+        }
+
+        now = datetime.now(timezone.utc)
+        # Both drops contain the same text that would match the global watcher.
+        # Only the source tag differs.
+        user_drop = {
+            'timestamp': now.isoformat(),
+            'url': 'https://www.knifejoy.com/collections/chris-reeve',
+            'source': 'KnifeJoy (user)',      # (user)-sourced → global must skip
+            'page_summary': 'chris reeve knives damascus in stock',
+            'notable_items': [],
+            'keywords_found': [],
+            'page_excerpt': '',
+            'priority': 'high',
+            'alert_worthy': True,
+        }
+        curated_drop = {
+            'timestamp': now.isoformat(),
+            'url': 'https://www.bladehq.com/collections/chris-reeve',
+            'source': 'BladeHQ',              # curated → global MUST fire
+            'page_summary': 'chris reeve knives damascus in stock',
+            'notable_items': [],
+            'keywords_found': [],
+            'page_excerpt': '',
+            'priority': 'high',
+            'alert_worthy': True,
+        }
+
+        with patch('per_user_alerter.db.get_active_watchers', return_value=[global_watcher]), \
+             patch('per_user_alerter.load_recent_drops', return_value=[user_drop, curated_drop]), \
+             patch('per_user_alerter.db.is_cooldown_active', return_value=False), \
+             patch('per_user_alerter.db.mark_cooldown'), \
+             patch('per_user_alerter.db.update_watcher'), \
+             patch('per_user_alerter.send_email', return_value=True) as mock_send:
+
+            per_user_alerter.run()
+
+        # Must have been called exactly once — for the curated drop only.
+        assert mock_send.call_count == 1, (
+            f"Expected exactly 1 alert (curated drop only), got {mock_send.call_count}. "
+            "Global watch must skip (user)-sourced drops."
+        )
+        # Verify the alert was for the curated drop URL, not the user drop.
+        _subj, _html, _txt, kwargs = (
+            mock_send.call_args[0] + (mock_send.call_args[1],)
+        )
+        assert 'bladehq' in _txt.lower() or 'bladehq' in _html.lower(), (
+            "Alert email should reference the curated (BladeHQ) drop, not the user drop"
+        )
+
 
 class TestFetchText:
     """safe_fetch.fetch_text — shared SSRF-guarded, never-raising fetch used by the
