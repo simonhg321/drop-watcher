@@ -1432,6 +1432,36 @@ class TestWatchEndpointGlobal:
 # MAKER ALIAS EXPANSION (makers.py) — S54
 # ═══════════════════════════════════════════════════════════════════════════════
 
+class TestSynonyms:
+    """Keyword synonym expansion (synonyms.py) — a cool-list term also matches its
+    synonyms (cgg ↔ unique graphics). Reads the in-repo keyword_synonyms.yaml. (S54)"""
+
+    def test_expand_known_group_is_bidirectional(self):
+        from synonyms import expand_keyword
+        a = set(expand_keyword('cgg'))
+        b = set(expand_keyword('Unique Graphics'))
+        assert 'cgg' in a and 'unique graphics' in a
+        assert a == b
+
+    def test_expand_unknown_is_literal(self):
+        from synonyms import expand_keyword
+        assert expand_keyword('damascus') == ['damascus']
+
+    def test_expand_blank(self):
+        from synonyms import expand_keyword
+        assert expand_keyword('') == [] and expand_keyword(None) == []
+
+    def test_kw_matches_any_fires_on_synonym(self):
+        from synonyms import kw_matches_any
+        assert kw_matches_any('cgg', 'chris reeve sebenza unique graphics edition')
+        assert not kw_matches_any('cgg', 'plain titanium sebenza, no graphic')
+
+    def test_keywords_match_uses_synonyms(self):
+        from per_user_alerter import keywords_match
+        # cool-list 'cgg' should fire on text that only says 'unique graphics'
+        assert keywords_match('chris reeve unique graphics drop', 'cgg') == ['cgg']
+
+
 class TestExpandMaker:
     def test_known_maker_expands_to_aliases(self):
         from makers import expand_maker

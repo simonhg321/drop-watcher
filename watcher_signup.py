@@ -33,6 +33,7 @@ import paths
 import db
 from matching import kw_matches
 from makers import expand_maker
+from synonyms import kw_matches_any
 from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
@@ -656,7 +657,7 @@ def my_alerts(token):
                 maker_terms = expand_maker(wf['maker'])
                 if not maker_terms or not any(kw_matches(m, searchable) for m in maker_terms):
                     continue
-                if wf['keywords'] and not any(kw_matches(k, searchable) for k in wf['keywords']):
+                if wf['keywords'] and not any(kw_matches_any(k, searchable) for k in wf['keywords']):
                     continue
                 matched_drops.append(d)
                 break
@@ -666,7 +667,7 @@ def my_alerts(token):
                     continue
             elif not wf['domain'] or wf['domain'] != drop_domain:
                 continue
-            if wf['keywords'] and not any(kw_matches(k, searchable) for k in wf['keywords']):
+            if wf['keywords'] and not any(kw_matches_any(k, searchable) for k in wf['keywords']):
                 continue
             matched_drops.append(d)
             break

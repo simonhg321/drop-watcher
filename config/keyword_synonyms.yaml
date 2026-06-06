@@ -1,0 +1,12 @@
+# keyword_synonyms.yaml — a cool-list term automatically also matches its synonyms.
+#
+# Groups are BIDIRECTIONAL: entering any term in a group matches the whole group,
+# so a user who types "CGG" also catches "Unique Graphics" (what some dealers call
+# the same thing) without having to know every name. Keep terms lowercase.
+#
+# Used by synonyms.py (expand_keyword / kw_matches_any), which feeds per_user_alerter
+# and the my-alerts matcher. Unknown terms expand to just themselves — matching is
+# never narrowed, only broadened where a group exists.
+groups:
+  # Chris Reeve "Computer-Generated Graphic" — KnifeJoy & others call it "Unique Graphics".
+  - [cgg, unique graphic, unique graphics, computer generated graphic, computer-generated graphic]

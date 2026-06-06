@@ -30,6 +30,7 @@ DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with
 
 from alerter import send_email
 from matching import kw_matches
+from synonyms import kw_matches_any
 from urls import normalize_watch_url, domain_from_url
 from makers import expand_maker
 import nkd
@@ -61,7 +62,8 @@ def load_recent_drops():
 def keywords_match(searchable_text, keywords_str):
     """Returns list of matched keywords."""
     keywords = [k.strip().lower() for k in re.split(r'[,\n]+', keywords_str) if k.strip()]
-    return [kw for kw in keywords if kw_matches(kw, searchable_text)]
+    # kw_matches_any expands each term through its synonym group (e.g. cgg ↔ unique graphics)
+    return [kw for kw in keywords if kw_matches_any(kw, searchable_text)]
 
 
 def global_watch_matches(maker, keywords_str, searchable_text):
