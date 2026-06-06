@@ -475,7 +475,7 @@
   <a href="#feedback">Feedback</a>
   <a href="/blade-show.html">Blade Show</a>
   <a href="/what-we-watch.html">What We Watch</a>
-  <a href="/watchlist.html">Watch</a>
+  <a href="https://the-castaways-m3630ig.gamma.site/" target="_blank" rel="noopener noreferrer">Castaways</a>
   <a href="/stats.html">Stats</a>
   <a href="/watchlist.html" style="margin-left:auto;background:#27ae60;color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">SET A WATCH</a>
   <a href="/get-my-link.html" style="background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
@@ -806,6 +806,54 @@ function submitFeedback(e) {
 <script>
   function dismissWhatsNew(){ try{localStorage.setItem('dw_seen_maker_watch','1')}catch(e){}; document.getElementById('whatsNew').style.display='none'; }
   (function(){ try{ if(!localStorage.getItem('dw_seen_maker_watch')){ var m=document.getElementById('whatsNew'); m.style.display='flex'; } }catch(e){} })();
+</script>
+
+<!-- Community Manager hiring popup -->
+<div id="cmPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2000;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--steel);border:1px solid var(--flame);max-width:420px;width:100%;padding:28px;font-family:'Share Tech Mono',monospace;position:relative;">
+    <button onclick="closeCmPopup()" aria-label="Close" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--ash);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+    <div style="color:var(--flame);font-size:11px;letter-spacing:.25em;text-transform:uppercase;">We're hiring</div>
+    <h2 style="font-family:'Bebas Neue',sans-serif;color:var(--white);font-size:30px;letter-spacing:.02em;margin:6px 0 12px;">Community Manager wanted</h2>
+    <p style="font-family:'Crimson Pro',serif;color:var(--silver);font-size:15px;line-height:1.5;">Know the knife world? Help us run the community and grow the grail signal. <b style="color:var(--white);">Apply within.</b></p>
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="mailto:info@instockornot.club?subject=Community%20Manager" style="background:var(--ember);color:#fff;text-decoration:none;padding:11px 20px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;">Email us</a>
+      <button onclick="cmUseForm()" style="background:none;border:1px solid var(--flame);color:var(--flame);padding:11px 20px;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Use the form</button>
+      <button onclick="closeCmPopup()" style="background:none;border:1px solid var(--iron);color:var(--ash);padding:11px 20px;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Maybe later</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var KEY = 'cmPopupShown';
+  function shown() { try { return sessionStorage.getItem(KEY) === '1'; } catch (e) { return !!window.__cm; } }
+  function mark()  { try { sessionStorage.setItem(KEY, '1'); } catch (e) { window.__cm = true; } }
+  window.openCmPopup = function () {
+    if (shown()) return false;
+    var p = document.getElementById('cmPopup'); if (!p) return false;
+    p.style.display = 'flex'; mark(); return true;
+  };
+  window.closeCmPopup = function () {
+    var p = document.getElementById('cmPopup'); if (p) p.style.display = 'none';
+  };
+  window.cmUseForm = function () {
+    closeCmPopup();
+    var s = document.getElementById('fbSubject'); if (s) s.value = 'Community Manager application';
+    var f = document.getElementById('feedback'); if (f) f.scrollIntoView({ behavior: 'smooth' });
+    var c = document.getElementById('fbComment'); if (c) setTimeout(function () { c.focus(); }, 450);
+  };
+  // Trigger A: first Feedback nav click this session → popup instead of the jump
+  var fb = document.querySelector('.dw-nav a[href="#feedback"]');
+  if (fb) fb.addEventListener('click', function (e) { if (!shown()) { e.preventDefault(); openCmPopup(); } });
+  // Trigger B: scroll to bottom of page
+  window.addEventListener('scroll', function () {
+    if (shown()) return;
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80) openCmPopup();
+  }, { passive: true });
+  // Dismiss on overlay click / Esc
+  var pop = document.getElementById('cmPopup');
+  if (pop) pop.addEventListener('click', function (e) { if (e.target === pop) closeCmPopup(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCmPopup(); });
+})();
 </script>
 </body>
 </html>
