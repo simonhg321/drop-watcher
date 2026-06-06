@@ -1,0 +1,6 @@
+# Dev/test dependencies. Install with: pip install -r requirements-dev.txt
+# Runtime deps:
+-r requirements.txt
+
+# Test runner — tests/test_core.py imports pytest and uses tmp_path/fixtures.
+pytest
