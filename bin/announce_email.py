@@ -9,9 +9,10 @@ Modes:
 From: Drop Watcher <alerts@instockornot.club>   Reply-To: simon@instockornot.club
 Each recipient gets their own one-click unsubscribe link (CAN-SPAM).
 """
-import os, sys, sqlite3, httpx
+import os, sys, sqlite3, httpx, yaml
 
 DB = os.environ.get("DW_DATA_DIR", "/var/lib/drop-watcher") + "/dropwatcher.db"
+SOURCES_YAML = os.environ.get("DW_CONFIG_DIR", "/etc/drop-watcher") + "/sources.yaml"
 ENV_FILE = os.environ.get("DW_ENV_FILE", "/etc/drop-watcher/.env")
 FROM_ADDRESS = "Drop Watcher <alerts@instockornot.club>"
 REPLY_TO = "simon@instockornot.club"
@@ -20,7 +21,7 @@ RESEND_API_URL = "https://api.resend.com/emails"
 # Internal/test accounts never included in --send
 EXCLUDE = {"simonhg@gmail.com", "simon@instockornot.club", "gibson.simon1@gmail.com"}
 
-SUBJECT = "A note from Drop Watcher — what's new, and a small ask"
+SUBJECT = "New in Drop Watcher: watch a maker, not a page"
 
 
 def load_env(path):
@@ -38,25 +39,40 @@ def unsub_url(token):
     return f"https://instockornot.club/api/unsubscribe/{token}"
 
 
+_N_SOURCES = None
+
+
+def source_count():
+    """Live count of the sources we actually scrape: enabled websites + feeds
+    (sources.yaml). Cached. Falls back to '' on any read error so the copy never
+    prints a bogus 0."""
+    global _N_SOURCES
+    if _N_SOURCES is None:
+        try:
+            d = yaml.safe_load(open(SOURCES_YAML)) or {}
+            sites = [x for x in (d.get("websites") or []) if (x or {}).get("enabled", True)]
+            _N_SOURCES = len(sites) + len(d.get("feeds") or [])
+        except Exception:
+            _N_SOURCES = 0
+    return _N_SOURCES or ""
+
+
 def body_text(token):
-    return f"""Hey — Simon here, the guy who built Drop Watcher.
+    return f"""Hey —
 
-You're one of the first group of people using Drop Watcher, so I wanted to reach out personally and say thank you. Your watches are live and working — the system's been busy lately (160+ drops a day across the sites we track).
+Quick one. You can now set a watch without hunting down a URL. You can use
+your own URL, or our entire list of {source_count()} sources we scrape.
 
-I started Drop Watcher because I wanted to build things again, and because I wanted something like it to find knives for me. I figured if I'm going to build it for myself, all I really need to do to share it is have a slightly more robust email solution — and that was really it. It doesn't cost much to run, and I love that people are using it.
+Just tell Drop Watcher a maker (e.g. Chris Reeve) and the thing you're after
+(damascus, CGG, Sebenza 25) — that's it. We'll watch every knife shop we
+track. The instant it shows up anywhere, you get the alert.
 
-A couple of things that got better recently:
+Still want to watch one specific page? That works exactly like before.
 
-- Alerts now deep-link straight to the matched product — not just the store page. Less hunting, faster to the "add to cart."
-
-- New "cool makers" list — every maker we track, grouped by tier. We now look at the maker and distributor URLs that users enter, and if we haven't seen them before and they focus on knives, we add them to the database. That means we get better over time. You can grab our list of makers here: https://instockornot.club/our-cool-makers.html
-
-The small ask: Drop Watcher is free, and word-of-mouth is the only way it grows. If you know other knife/EDC people who are tired of missing drops, send them the link — https://instockornot.club. If you're in forums with others who might be interested, please spread the link. The site gets better the more people use it.
-
-Thanks for being here early. Reply to this anytime — it comes to me.
+Set one up: https://instockornot.club/watchlist.html
 
 — Simon
-simon@instockornot.club
+instockornot.club
 
 —
 You're getting this because you have an active watch at instockornot.club.
