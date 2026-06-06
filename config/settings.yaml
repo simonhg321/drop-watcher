@@ -21,3 +21,6 @@ agent:
   failure_threshold: 3
   # Seconds to wait before retrying after a failure
   retry_delay_seconds: 60
+
+# Max new (uncurated) shops one email can introduce per day via the signup form. 0 = off.
+max_new_shops_per_email_per_day: 5

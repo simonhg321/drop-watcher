@@ -32,7 +32,14 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 import paths
 import db
 from matching import kw_matches
-from safe_fetch import is_safe_url
+from safe_fetch import is_safe_url, safe_get
+from urls import domain_from_url
+from config_load import load_yaml
+
+try:
+    from ai_interpreter import classify_dealer
+except ImportError:
+    from agents.ai_interpreter import classify_dealer
 
 load_dotenv(paths.ENV_FILE, override=True)
 
@@ -43,6 +50,29 @@ BASE_URL         = 'https://instockornot.club'
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+# ── New-shop knife-gate helpers ───────────────────────────────────────────────
+
+def _fetch_page_text(url):
+    try:
+        r = safe_get(url, timeout=12)
+        return (r.text or '')[:20000] if r is not None else ''
+    except Exception:
+        return ''
+
+
+def _curated_domains():
+    try:
+        data = load_yaml(paths.SOURCES_YAML) or {}
+    except (FileNotFoundError, OSError):
+        return set()
+    out = set()
+    for s in data.get('sources', []) or []:
+        d = domain_from_url(s.get('url', ''))
+        if d:
+            out.add(d)
+    return out
 
 
 # ── URL normalization ────────────────────────────────────────────────────────
@@ -257,16 +287,17 @@ def send_verification_email(entry):
 def watch():
     data = request.get_json(force=True)
 
-    # Validate required fields
-    for field in ['url', 'keywords', 'email']:
+    # Validate required fields (url is now OPTIONAL — blank url = global watch)
+    for field in ['keywords', 'email']:
         if not data.get(field, '').strip():
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
     # ── Input validation ─────────────────────────────────────────────────────
     email = data['email'].strip().lower()
-    url   = data['url'].strip()
+    url   = data.get('url', '').strip()
     keywords = data['keywords'].strip()
     name  = data.get('name', '').strip()
+    maker = data.get('maker', '').strip()[:100]
     phone = data.get('phone', '').strip()
     priority = data.get('priority', 'high')
 
@@ -274,19 +305,81 @@ def watch():
     if not re.match(r'^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$', email) or len(email) > 254:
         return jsonify({'error': 'Invalid email address.'}), 400
 
-    # URL: must be http(s), reasonable length, strip tracking params
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-    url = normalize_url(url)
-    if len(url) > 2048:
-        return jsonify({'error': 'URL is too long (max 2048 chars).'}), 400
+    is_global = (url == '')
 
-    # SSRF guard at write-time: reject internal/metadata targets before they're stored
-    # and polled every 15 min. quick_keyword_check (preview) already uses safe_get, but
-    # it fails open, so the stored URL needs its own gate. (S51 P1a)
-    safe, reason = is_safe_url(url)
-    if not safe:
-        return jsonify({'error': 'That URL is not allowed.'}), 400
+    if is_global:
+        # Global watch: maker is required, no URL to normalize/guard.
+        if not maker:
+            return jsonify({'error': 'Pick a maker to watch all our shops.'}), 400
+    else:
+        # URL: must be http(s), reasonable length, strip tracking params
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        url = normalize_url(url)
+        if len(url) > 2048:
+            return jsonify({'error': 'URL is too long (max 2048 chars).'}), 400
+
+        # SSRF guard at write-time: reject internal/metadata targets before they're stored
+        # and polled every 15 min. quick_keyword_check (preview) already uses safe_get, but
+        # it fails open, so the stored URL needs its own gate. (S51 P1a)
+        safe, reason = is_safe_url(url)
+        if not safe:
+            return jsonify({'error': 'That URL is not allowed.'}), 400
+
+        # ── New-shop knife-gate (S54) ─────────────────────────────────────────
+        # If the URL points at a domain we don't already curate and haven't already
+        # queued for review, AI-classify it: knives-only for now. On YES we create the
+        # scoped watch AND queue the shop for weekly human review (never auto-fleet it).
+        dom = domain_from_url(url)
+        if dom and dom not in _curated_domains() and db.get_dealer_candidate(dom) is None:
+            # Per-email daily cap on introducing brand-new shops (abuse guard).
+            try:
+                settings = load_yaml(paths.SETTINGS_YAML) or {}
+            except (FileNotFoundError, OSError):
+                settings = {}
+            cap = int(settings.get('max_new_shops_per_email_per_day', 5) or 0)
+            if cap > 0:
+                recent = db.count_recent_new_shop_watches(
+                    email, hours=24, known_domains=_curated_domains())
+                if recent >= cap:
+                    return jsonify({'error': "You've added a lot of new shops today — "
+                                             "try again tomorrow."}), 429
+
+            page_text = _fetch_page_text(url)
+            verdict = None
+            if page_text:
+                try:
+                    verdict = classify_dealer(url, page_text)
+                except Exception as e:
+                    log.error(f"classify_dealer failed for {dom}: {e}")
+                    verdict = None
+
+            if verdict is not None:
+                if not verdict.get('is_dealer'):
+                    return jsonify({'error': 'Drop Watcher is knives-only for now — '
+                                             'more coming soon.'}), 400
+                # knives=YES → queue for weekly review (do NOT auto-add to fleet)
+                brands = verdict.get('brands')
+                if isinstance(brands, (list, tuple)):
+                    brands = ', '.join(str(b) for b in brands)
+                try:
+                    db.upsert_dealer_candidate(
+                        domain=dom,
+                        is_dealer=True,
+                        category=verdict.get('category', ''),
+                        brands=brands or '',
+                        confidence=float(verdict.get('confidence') or 0),
+                        reason='user signup',
+                        sample_url=url,
+                        user_count=1,
+                    )
+                except Exception as e:
+                    log.error(f"upsert_dealer_candidate failed for {dom}: {e}")
+            else:
+                # Classifier unavailable/empty — don't lose the user; create the
+                # watch anyway and skip the review-queue step.
+                log.warning(f"new domain {dom}: classifier returned nothing, "
+                            f"creating watch without queueing")
 
     # Keywords: reasonable length
     if len(keywords) > 1000:
@@ -308,7 +401,7 @@ def watch():
     existing = db.find_watcher_by_email_url(email, url)
     if existing:
         log.info(f"Duplicate watcher for {email} / {url} — updating keywords")
-        db.update_watcher(existing['id'], keywords=keywords, priority=priority)
+        db.update_watcher(existing['id'], keywords=keywords, priority=priority, maker=maker)
         if not existing.get('active'):
             vt = existing.get('verify_token') or str(uuid.uuid4())
             db.update_watcher(existing['id'], verify_token=vt)
@@ -331,6 +424,7 @@ def watch():
         'unsubscribe_token': shared_token,
         'url':               url,
         'keywords':          keywords,
+        'maker':             maker,
         'email':             email,
         'name':              name,
         'priority':          priority,
@@ -366,8 +460,8 @@ def watch():
         except Exception as e:
             log.error(f"Failed to send SMS verification: {e}")
 
-    # Quick keyword preview — show user what we found right now
-    matches = quick_keyword_check(url, keywords)
+    # Quick keyword preview — show user what we found right now (skip for global watches)
+    matches = quick_keyword_check(url, keywords) if not is_global else []
     resp = {'status': 'created', 'id': entry['id']}
     if matches:
         resp['preview'] = matches

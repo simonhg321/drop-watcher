@@ -181,6 +181,13 @@ class TestSignupAPI:
             import watcher_signup
             importlib.reload(watcher_signup)
             watcher_signup.app.config['TESTING'] = True
+            # tmp_env has an empty sources.yaml, so every domain looks "new" and would
+            # hit the knife-gate (real network + AI). Stub both so signup tests stay
+            # offline and deterministic: curated domains classify as knife dealers.
+            watcher_signup._fetch_page_text = lambda u: 'knives in stock'
+            watcher_signup.classify_dealer = lambda u, t: {
+                'is_dealer': True, 'category': 'knife/EDC retailer',
+                'brands': ['Chris Reeve'], 'confidence': 0.9, 'reason': 'test'}
             with watcher_signup.app.test_client() as c:
                 yield c
 
@@ -211,12 +218,14 @@ class TestSignupAPI:
     @patch('watcher_signup.send_verification_email', return_value=True)
     @patch('watcher_signup.quick_keyword_check', return_value=[])
     def test_signup_missing_url(self, mock_check, mock_email, client):
-        """POST /api/watch without URL returns 400."""
+        """POST /api/watch without URL is now a GLOBAL watch — still 400 if no maker
+        is supplied (url optional, but global watches require a maker). (S54)"""
         resp = client.post('/api/watch', json={
             'keywords': 'hinderer',
             'email': 'test@example.com',
         })
         assert resp.status_code == 400
+        assert 'maker' in resp.get_json()['error'].lower()
 
     @patch('watcher_signup.send_verification_email', return_value=True)
     @patch('watcher_signup.quick_keyword_check', return_value=[])
@@ -1288,6 +1297,79 @@ class TestGlobalWatchModel:
         with db.get_db() as c:
             row = c.execute("SELECT url, maker FROM watchers WHERE id=?", (wid,)).fetchone()
         assert row['url'] == '' and row['maker'] == 'Chris Reeve'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW-SHOP CAP (db.count_recent_new_shop_watches) — S54
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestNewShopCap:
+    def test_counts_recent_watches_to_unknown_domains(self, tmp_env):
+        import db, uuid
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        for u in ['https://newshop.com/a', 'https://knifejoy.com/x']:
+            db.add_watcher({'id': str(uuid.uuid4())[:8], 'email': 'c@d.com', 'url': u,
+                            'keywords': 'k', 'unsubscribe_token': 't', 'active': True, 'created': now})
+        n = db.count_recent_new_shop_watches('c@d.com', hours=24, known_domains={'knifejoy.com'})
+        assert n == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# /api/watch — optional URL + maker + knife-gate (S54)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestWatchEndpointGlobal:
+    @pytest.fixture
+    def client(self, tmp_env):
+        import importlib, paths, db
+        importlib.reload(paths); db.DB_PATH = os.environ['DW_DB']
+        if 'watcher_signup' in sys.modules: del sys.modules['watcher_signup']
+        with patch.dict(os.environ, {'RESEND_API_KEY': 'test-key'}):
+            import watcher_signup; importlib.reload(watcher_signup)
+            watcher_signup.app.config['TESTING'] = True
+            with watcher_signup.app.test_client() as c:
+                yield c, watcher_signup
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    def test_global_requires_maker(self, _e, client):
+        c, _ws = client
+        r = c.post('/api/watch', json={'url': '', 'keywords': 'damascus', 'email': 'g@h.com'})
+        assert r.status_code == 400 and 'maker' in r.get_json()['error'].lower()
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_global_watch_created(self, _c, _e, client):
+        c, _ws = client
+        r = c.post('/api/watch', json={'url': '', 'maker': 'Chris Reeve', 'keywords': 'damascus', 'email': 'g@h.com'})
+        assert r.status_code in (200, 201)
+        import db
+        ws = db.get_watchers_by_email('g@h.com')
+        assert any((w['url'] or '') == '' and w['maker'] == 'Chris Reeve' for w in ws)
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_new_domain_not_knives_rejected(self, _c, _e, client):
+        c, ws = client
+        ws._fetch_page_text = lambda u: 'shoes and socks'
+        # Test domains don't resolve — bypass the write-time SSRF guard so we exercise
+        # the knife-gate, not DNS. (SSRF is covered in TestSignupSSRF.)
+        with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+             patch.object(ws, 'classify_dealer', return_value={'is_dealer': False, 'confidence': 0.9, 'category': 'apparel'}):
+            r = c.post('/api/watch', json={'url': 'https://sneakers-xyz.com/x', 'keywords': 'jordan', 'email': 'g@h.com'})
+        assert r.status_code == 400 and 'knives' in r.get_json()['error'].lower()
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_new_domain_knives_creates_and_queues(self, _c, _e, client):
+        c, ws = client
+        ws._fetch_page_text = lambda u: 'chris reeve sebenza knives in stock'
+        with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+             patch.object(ws, 'classify_dealer', return_value={'is_dealer': True, 'confidence': 0.95, 'category': 'knife dealer', 'brands': 'Chris Reeve'}):
+            r = c.post('/api/watch', json={'url': 'https://newknives-xyz.com/crk', 'keywords': 'damascus', 'email': 'g@h.com'})
+        assert r.status_code in (200, 201)
+        import db
+        assert db.get_dealer_candidate('newknives-xyz.com') is not None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

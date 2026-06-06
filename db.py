@@ -291,7 +291,7 @@ def add_watcher(watcher_dict):
 
 
 WATCHER_UPDATABLE_FIELDS = {
-    'keywords', 'priority', 'phone', 'name',
+    'keywords', 'priority', 'phone', 'name', 'maker',
     'sms_approved', 'sms_verify_code', 'sms_verify_expires',
     'active', 'verify_token',
     'last_alert', 'alert_count', 'consecutive_not_found',
@@ -356,6 +356,20 @@ def find_watcher_by_email_url(email, url):
             (email.lower(), url)
         ).fetchone()
         return dict(row) if row else None
+
+
+def count_recent_new_shop_watches(email, hours, known_domains):
+    """How many watches this email created in the last `hours` that point to a domain
+    NOT in known_domains (i.e. new shops they introduced). For the signup abuse cap."""
+    from urls import domain_from_url
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+    known = {d.lower() for d in known_domains}
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT url FROM watchers WHERE email=? AND created>=?", (email.lower(), cutoff)
+        ).fetchall()
+    return sum(1 for r in rows if (r['url'] or '').strip()
+               and domain_from_url(r['url']) not in known)
 
 
 def get_sms_approved_watchers():
