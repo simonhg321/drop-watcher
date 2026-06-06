@@ -836,3 +836,55 @@ class TestP0Bugfixes:
         out = generate_security.generate_html(data)
         assert '<script>alert(1)</script>' not in out   # never rendered raw
         assert '&lt;script&gt;' in out                  # escaped instead
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P1 SECURITY — S51 code-review (SSRF guard on the recurring fetch + signup)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestP1Security:
+    """SSRF must be blocked on the stored/recurring watch-fetch path, not just preview."""
+
+    def test_fetch_page_refuses_loopback(self):
+        import web_watcher
+        # Must return None WITHOUT issuing the request (is_safe_url blocks pre-connect).
+        assert web_watcher.fetch_page('http://127.0.0.1:5001/') is None
+
+    def test_fetch_page_refuses_metadata_ip(self):
+        import web_watcher
+        assert web_watcher.fetch_page('http://169.254.169.254/latest/meta-data/') is None
+
+    def test_fetch_page_refuses_non_http(self):
+        import web_watcher
+        assert web_watcher.fetch_page('file:///etc/passwd') is None
+
+
+class TestSignupSSRF:
+    """Signup must reject internal targets at write-time (before they're stored + polled)."""
+
+    @pytest.fixture
+    def client(self, tmp_env):
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        db.DB_PATH = os.environ['DW_DB']
+        if 'watcher_signup' in sys.modules:
+            del sys.modules['watcher_signup']
+        with patch.dict(os.environ, {'RESEND_API_KEY': 'test-key'}):
+            import watcher_signup
+            importlib.reload(watcher_signup)
+            watcher_signup.app.config['TESTING'] = True
+            with watcher_signup.app.test_client() as c:
+                yield c
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.quick_keyword_check', return_value=[])
+    def test_signup_rejects_internal_url(self, mock_check, mock_email, client, tmp_env):
+        resp = client.post('/api/watch', json={
+            'url': 'http://169.254.169.254/latest/meta-data/',
+            'keywords': 'token', 'email': 'attacker@example.com',
+        })
+        assert resp.status_code == 400
+        import db
+        assert db.get_watchers_by_email('attacker@example.com') == []  # never stored

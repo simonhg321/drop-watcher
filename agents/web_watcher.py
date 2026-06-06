@@ -40,6 +40,8 @@ load_dotenv(paths.ENV_FILE)
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 from ai_interpreter import analyze_page, analyze_user_page
 import collection_fetch
+from safe_fetch import is_safe_url
+from urllib.parse import urljoin
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 CONFIG_DIR = paths.CONFIG_DIR
@@ -219,29 +221,54 @@ HEADERS = {
 }
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024  # 2MB — reject oversized pages
+MAX_REDIRECTS = 4
 
 def fetch_page(url, ssl_permissive=False):
+    # SSRF guard: this fetches user-submitted watch URLs every cycle, so an attacker
+    # could otherwise store http://169.254.169.254/ or http://127.0.0.1:5001/ and have
+    # the scraper hit it server-side. Validate the URL AND every redirect hop (curated
+    # dealers legitimately redirect http->https / www->apex, so we follow but re-check).
+    safe, reason = is_safe_url(url)
+    if not safe:
+        log.warning(f"Refusing to fetch unsafe URL {url}: {reason}")
+        return None
     try:
         session = requests.Session()
         if ssl_permissive:
             session.mount('https://', PermissiveSSLAdapter())
             log.debug(f"Using permissive SSL for {url}")
-        response = session.get(
-            url,
-            headers=HEADERS,
-            timeout=15,
-            verify=not ssl_permissive,
-            stream=True
-        )
-        response.raise_for_status()
-        content_length = response.headers.get('Content-Length')
-        if content_length and int(content_length) > MAX_RESPONSE_BYTES:
-            log.warning(f"Skipping {url} — Content-Length {content_length} exceeds 2MB limit")
+        current = url
+        for _ in range(MAX_REDIRECTS + 1):
+            response = session.get(
+                current,
+                headers=HEADERS,
+                timeout=15,
+                verify=not ssl_permissive,
+                stream=True,
+                allow_redirects=False,
+            )
+            if response.is_redirect or response.status_code in (301, 302, 303, 307, 308):
+                loc = response.headers.get('Location', '')
+                response.close()
+                if not loc:
+                    return None
+                current = urljoin(current, loc)
+                safe, reason = is_safe_url(current)
+                if not safe:
+                    log.warning(f"Refusing redirect to unsafe URL {current}: {reason}")
+                    return None
+                continue
+            response.raise_for_status()
+            content_length = response.headers.get('Content-Length')
+            if content_length and int(content_length) > MAX_RESPONSE_BYTES:
+                log.warning(f"Skipping {current} — Content-Length {content_length} exceeds 2MB limit")
+                response.close()
+                return None
+            content = response.content[:MAX_RESPONSE_BYTES]
             response.close()
-            return None
-        content = response.content[:MAX_RESPONSE_BYTES]
-        response.close()
-        return content.decode('utf-8', errors='replace')
+            return content.decode('utf-8', errors='replace')
+        log.warning(f"Too many redirects for {url}")
+        return None
     except requests.RequestException as e:
         log.warning(f"Failed to fetch {url}: {e}")
         return None

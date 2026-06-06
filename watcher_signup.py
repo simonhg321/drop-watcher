@@ -32,6 +32,7 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 import paths
 import db
 from matching import kw_matches
+from safe_fetch import is_safe_url
 
 load_dotenv(paths.ENV_FILE, override=True)
 
@@ -280,6 +281,13 @@ def watch():
     if len(url) > 2048:
         return jsonify({'error': 'URL is too long (max 2048 chars).'}), 400
 
+    # SSRF guard at write-time: reject internal/metadata targets before they're stored
+    # and polled every 15 min. quick_keyword_check (preview) already uses safe_get, but
+    # it fails open, so the stored URL needs its own gate. (S51 P1a)
+    safe, reason = is_safe_url(url)
+    if not safe:
+        return jsonify({'error': 'That URL is not allowed.'}), 400
+
     # Keywords: reasonable length
     if len(keywords) > 1000:
         return jsonify({'error': 'Keywords too long (max 1000 chars).'}), 400
@@ -441,6 +449,7 @@ def resend_link():
     return jsonify({"status": "sent"})
 
 @app.route('/api/my-watch/<watch_id>', methods=['DELETE'])
+@limiter.limit("10 per minute")
 def stop_watching(watch_id):
     token = request.args.get('token') or request.headers.get('X-Token')
     if not token:
