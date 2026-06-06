@@ -1190,3 +1190,26 @@ class TestGlobalWatchModel:
         with db.get_db() as c:
             row = c.execute("SELECT url, maker FROM watchers WHERE id=?", (wid,)).fetchone()
         assert row['url'] == '' and row['maker'] == 'Chris Reeve'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAKER ALIAS EXPANSION (makers.py) — S54
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestExpandMaker:
+    def test_known_maker_expands_to_aliases(self):
+        from makers import expand_maker
+        terms = expand_maker('Chris Reeve')
+        assert 'chris reeve' in terms and 'crk' in terms   # name + alias, lowercased
+
+    def test_alias_input_resolves_same_maker(self):
+        from makers import expand_maker
+        assert set(expand_maker('crk')) == set(expand_maker('Chris Reeve'))
+
+    def test_unknown_maker_returns_literal(self):
+        from makers import expand_maker
+        assert expand_maker('Acme Forge') == ['acme forge']
+
+    def test_blank_returns_empty(self):
+        from makers import expand_maker
+        assert expand_maker('') == [] and expand_maker(None) == []
