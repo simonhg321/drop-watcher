@@ -39,6 +39,15 @@
     .badge .dot { color: var(--ember); }
     .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 8vw, 84px); line-height: 0.98; letter-spacing: 0.02em; color: var(--white); max-width: 14ch; margin: 0 auto; }
     .hero h1 .flame { color: var(--flame); }
+    .shimmer {
+      background: linear-gradient(90deg, var(--flame) 0%, #ffd27f 25%, #fff3d6 50%, #ffd27f 75%, var(--flame) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: 200% center; } }
+    @media (prefers-reduced-motion: reduce) { .shimmer { animation: none; } }
     .hero .sub { font-family: 'Crimson Pro', serif; font-size: clamp(16px, 2.5vw, 21px); color: var(--silver); max-width: 620px; margin: 22px auto 0; line-height: 1.5; }
     .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 34px; }
     .btn { display: inline-block; text-decoration: none; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; padding: 14px 28px; min-height: 44px; }
@@ -113,7 +122,7 @@
 <!-- HERO -->
 <header class="hero">
   <div class="badge"><span class="dot">●</span> Blade Show 2026 · Live — Atlanta, June 5–7</div>
-  <h1>Software that watches every drop. <span class="flame">You hear about the grails for salez.</span></h1>
+  <h1>Software that watches every drop. <span class="flame">You hear about the grails for <span class="shimmer">salez</span>.</span></h1>
   <p class="sub">Blade Show is the biggest drop event in the knife world. Show-exclusives and limited runs flood the shops and sell out in minutes. We watch all of it — so you don't have to refresh a single page.</p>
   <div class="cta-row">
     <a class="btn btn-primary" href="/watchlist.html">Set a Watch</a>
