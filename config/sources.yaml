@@ -406,6 +406,12 @@ websites:
     poll_interval: 20
     enabled: true
 
+  # auto-added 2026-06-06 by dealer_scout — knife/EDC specialty retailer (conf 0.95; brands: Benchmade, Spyderco, Microtech, Civivi, Kizer)
+  - name: Blade City
+    url: https://blade-city.com
+    poll_interval: 20
+    enabled: true
+
 feeds:
   - name: Steel Flame Instagram
     url: https://rss.app/feeds/PLACEHOLDER_STEEL_FLAME.xml
