@@ -888,3 +888,60 @@ class TestSignupSSRF:
         assert resp.status_code == 400
         import db
         assert db.get_watchers_by_email('attacker@example.com') == []  # never stored
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MATCHING PRIMITIVE — direct boundary assertions (S51 P4: was 0 direct tests)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestMatching:
+    """kw_matches boundary logic — a word-like keyword must not fire inside a larger word."""
+
+    def test_alnum_keyword_is_boundary_bounded(self):
+        from matching import kw_matches
+        assert not kw_matches('axe', 'fully relaxed fit')      # not inside 'relaxed'
+        assert not kw_matches('tin', 'continental divide')     # not inside 'continental'
+        assert kw_matches('axe', 'a broad axe here')           # standalone word
+        assert kw_matches('tin', 'a tin opener')               # standalone word
+
+    def test_boundaries_are_non_alnum_not_just_space(self):
+        from matching import kw_matches
+        assert kw_matches('xm-18', 'hinderer xm-18, blue')     # comma boundary
+        assert kw_matches('para3', '(para3)')                  # paren boundaries
+
+    def test_punctuation_edged_keyword_is_plain_substring(self):
+        from matching import kw_matches
+        # leading punctuation → boundary anchoring doesn't apply, plain substring
+        assert kw_matches('<script', 'evil <script>alert</script>')
+
+    def test_empty_keyword_never_matches(self):
+        from matching import kw_matches
+        assert not kw_matches('', 'anything at all')
+
+    def test_compiled_pattern_is_cached(self):
+        from matching import _bounded_pattern
+        assert _bounded_pattern('damascus') is _bounded_pattern('damascus')  # lru_cache hit
+
+
+class TestPageFingerprint:
+    """Normalized change-detection: cosmetic churn must NOT bust the cache (no paid AI);
+    real stock/title changes MUST. (S51 P3b)"""
+
+    def test_cosmetic_change_same_fingerprint_for_shopify(self):
+        import web_watcher
+        prods = [{'title': 'Sebenza 31', 'available': True}]
+        a = web_watcher.page_fingerprint('cart(0) ... 5 viewing now', prods)
+        b = web_watcher.page_fingerprint('cart(2) ... 19 viewing now', prods)  # cosmetic only
+        assert a == b
+
+    def test_stock_change_differs(self):
+        import web_watcher
+        a = web_watcher.page_fingerprint('x', [{'title': 'Sebenza 31', 'available': False}])
+        b = web_watcher.page_fingerprint('x', [{'title': 'Sebenza 31', 'available': True}])
+        assert a != b
+
+    def test_non_shopify_falls_back_to_raw_text(self):
+        import web_watcher
+        a = web_watcher.page_fingerprint('page version one', [])
+        b = web_watcher.page_fingerprint('page version two', [])
+        assert a != b

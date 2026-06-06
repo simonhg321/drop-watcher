@@ -175,6 +175,8 @@ def _migrate(conn):
             conn.execute(ddl)
 
 
+_initialized_paths = set()  # DB paths whose schema this process has already ensured
+
 @contextmanager
 def get_db():
     """Get a database connection with WAL mode and busy timeout."""
@@ -183,7 +185,12 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=5000")
-    _init_db(conn)
+    # Schema is IF-NOT-EXISTS + an idempotent migration; running it on every conn
+    # open (hundreds/hr across the cron fleet) is wasted work. Do it once per process
+    # per DB path. (S51 P3a)
+    if DB_PATH not in _initialized_paths:
+        _init_db(conn)
+        _initialized_paths.add(DB_PATH)
     try:
         yield conn
         conn.commit()

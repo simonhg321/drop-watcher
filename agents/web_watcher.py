@@ -93,6 +93,19 @@ def build_keywords(cool_list, makers_config):
 def fingerprint(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
+def page_fingerprint(text, products):
+    """Change-detection fingerprint over a NORMALIZED projection of the page.
+
+    Raw-text fingerprints flip on cosmetic churn (cart counts, CSRF tokens,
+    'N people viewing') and bust the cache, triggering a paid AI call when nothing
+    meaningful changed. For Shopify pages the meaningful state is the set of
+    (title, in-stock?) tuples; non-structured pages fall back to raw text. (S51 P3b)
+    """
+    if products:
+        proj = sorted((str(p.get('title', '')), bool(p.get('available'))) for p in products)
+        return hashlib.md5(repr(proj).encode('utf-8')).hexdigest()
+    return fingerprint(text)
+
 # ── Structured products for deep-linking matched items ────────────────────────
 PRODUCTS_STORE_CAP = 80
 
@@ -382,7 +395,7 @@ def run():
 
             failure_count[url] = 0
 
-            fp     = fingerprint(text)
+            fp     = page_fingerprint(text, products)
             old_fp = page_cache.get(url, {}).get('fingerprint')
 
             page_cache[url] = {
@@ -498,7 +511,7 @@ def run():
 
             failure_count[uurl] = 0
 
-            fp = fingerprint(text)
+            fp = page_fingerprint(text, products)
             old_fp = page_cache.get(uurl, {}).get('fingerprint')
 
             page_cache[uurl] = {

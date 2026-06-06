@@ -5,6 +5,14 @@ dashboard render) so the two never diverge on what counts as a match. Keep this
 module side-effect free so the Flask app can import it cheaply.
 """
 import re
+from functools import lru_cache
+
+
+@lru_cache(maxsize=4096)
+def _bounded_pattern(kw):
+    """Compiled boundary-anchored pattern for a keyword, cached so the alert loop
+    doesn't re-escape + recompile the same ~90 live keywords on every drop."""
+    return re.compile(r'(?<![a-z0-9])' + re.escape(kw) + r'(?![a-z0-9])')
 
 
 def kw_matches(kw, text):
@@ -19,5 +27,5 @@ def kw_matches(kw, text):
     if not kw:
         return False
     if kw[0].isalnum() and kw[-1].isalnum():
-        return re.search(r'(?<![a-z0-9])' + re.escape(kw) + r'(?![a-z0-9])', text) is not None
+        return _bounded_pattern(kw).search(text) is not None
     return kw in text
