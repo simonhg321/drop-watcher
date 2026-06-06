@@ -32,6 +32,7 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 import paths
 import db
 from matching import kw_matches
+from makers import expand_maker
 from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
@@ -596,6 +597,7 @@ def my_watch(token):
         'email':    w.get('email'),
         'name':     w.get('name'),
         'url':      w.get('url'),
+        'maker':    w.get('maker', ''),
         'keywords': w.get('keywords'),
         'priority': w.get('priority'),
         'active':   bool(w.get('active')),
@@ -626,6 +628,8 @@ def my_alerts(token):
         norm = re.sub(r'^https?://(www\.)?', '', url).rstrip('/')
         watch_filters.append({'domain': domain, 'norm': norm, 'keywords': kws, 'url': url_raw,
                               'keywords_raw': w.get('keywords', ''),
+                              'maker': w.get('maker', ''),
+                              'is_global': not url_raw.strip(),
                               'id': w.get('id'),
                               'token': w.get('unsubscribe_token')})
 
@@ -643,6 +647,19 @@ def my_alerts(token):
         searchable   = f"{summary} {notable} {kw_found} {excerpt}"
 
         for wf in watch_filters:
+            # Global (no-URL) watch: match maker (or alias) + cool-list across EVERY
+            # curated drop; skip user-watch drops (they belong to their exact-URL owner).
+            # Mirrors per_user_alerter.global_watch_matches.
+            if wf['is_global']:
+                if is_user_drop:
+                    continue
+                maker_terms = expand_maker(wf['maker'])
+                if not maker_terms or not any(kw_matches(m, searchable) for m in maker_terms):
+                    continue
+                if wf['keywords'] and not any(kw_matches(k, searchable) for k in wf['keywords']):
+                    continue
+                matched_drops.append(d)
+                break
             # User-watch drops match only their exact URL; curated/feed drops by domain.
             if is_user_drop:
                 if not wf['norm'] or wf['norm'] != drop_norm:

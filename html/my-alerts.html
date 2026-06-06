@@ -201,7 +201,7 @@ if (!token) {
     let watchCards = watches.map(w => `
       <div class="watcher-card">
         <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:center">
-          <div class="field"><div class="label">Watching</div><div class="value"><a href="${safeHref(w.url || '')}" target="_blank" rel="noopener" style="color:var(--ember);text-decoration:none;border-bottom:1px dotted var(--ember)">${esc(w.url || '')}</a></div></div>
+          <div class="field"><div class="label">Watching</div><div class="value">${ (w.url && w.url.trim()) ? `<a href="${safeHref(w.url)}" target="_blank" rel="noopener" style="color:var(--ember);text-decoration:none;border-bottom:1px dotted var(--ember)">${esc(w.url)}</a>` : `<span style="color:var(--ember);font-weight:bold;letter-spacing:0.05em">⚡ ALL SHOPS${ w.maker ? ' — ' + esc(w.maker) : '' }</span>` }</div></div>
           <div class="field"><div class="label">Keywords</div><div class="value">${esc(w.keywords_raw || '')}</div></div>
         </div>
         <button class="stop-btn" data-id="${esc(w.id || '')}" style="margin:0">STOP</button>
