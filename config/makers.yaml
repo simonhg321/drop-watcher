@@ -47,7 +47,10 @@ makers:
         - g10
 
   - name: Chris Reeve Knives
-    aliases: [crk, chris reeve, sebenza, inkosi, impinda, mnandi, umnumzaan, inyoni, pacific, backpacker, umfaan, nyala, ti-lock, sikayo, yarborough, sable, shadow, mountaineer, ubejane, neil roberts warrior, green beret, professional soldier]
+    # Aliases are distinctive CRK names only. Generic English words (pacific, backpacker,
+    # sable, shadow, mountaineer, green beret, professional soldier) were dropped 2026-06-06
+    # so a global maker-watch can't false-match unrelated drops on a common word.
+    aliases: [crk, chris reeve, sebenza, inkosi, impinda, mnandi, umnumzaan, inyoni, umfaan, nyala, ti-lock, sikayo, yarborough, ubejane, neil roberts warrior]
     priority: high
     notable_models:
       critical:
