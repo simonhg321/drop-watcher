@@ -947,6 +947,32 @@ class TestPageFingerprint:
         assert a != b
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# GLOBAL WATCH MATCHING (per_user_alerter.global_watch_matches)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestGlobalMatch:
+    def test_global_fires_on_maker_and_coollist(self):
+        from per_user_alerter import global_watch_matches
+        text = "chris reeve knives large sebenza 25 in damascus — in stock"
+        assert global_watch_matches('Chris Reeve', 'damascus, cgg', text) == ['damascus']
+
+    def test_global_no_fire_wrong_maker(self):
+        from per_user_alerter import global_watch_matches
+        text = "spyderco paramilitary 2 damascus sprint run"
+        assert global_watch_matches('Chris Reeve', 'damascus', text) == []
+
+    def test_global_no_fire_maker_without_coollist(self):
+        from per_user_alerter import global_watch_matches
+        text = "chris reeve small sebenza 31 magnacut — in stock"
+        assert global_watch_matches('Chris Reeve', 'damascus, cgg', text) == []
+
+    def test_global_alias_satisfies_maker(self):
+        from per_user_alerter import global_watch_matches
+        text = "crk inkosi insingo damascus drop"   # 'crk' alias, no literal 'chris reeve'
+        assert global_watch_matches('Chris Reeve', 'damascus', text) == ['damascus']
+
+
 class TestFetchText:
     """safe_fetch.fetch_text — shared SSRF-guarded, never-raising fetch used by the
     cron scrapers (dealer_scout fetches user-added domains). (S52)"""

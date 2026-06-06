@@ -31,6 +31,7 @@ DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with
 from alerter import send_email
 from matching import kw_matches
 from urls import normalize_watch_url, domain_from_url
+from makers import expand_maker
 import nkd
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
@@ -61,6 +62,17 @@ def keywords_match(searchable_text, keywords_str):
     """Returns list of matched keywords."""
     keywords = [k.strip().lower() for k in re.split(r'[,\n]+', keywords_str) if k.strip()]
     return [kw for kw in keywords if kw_matches(kw, searchable_text)]
+
+
+def global_watch_matches(maker, keywords_str, searchable_text):
+    """Global (no-URL) watch: fire iff the text names the maker (or an alias) AND at
+    least one cool-list keyword. Returns the matched cool-list terms (empty = no fire)."""
+    maker_terms = expand_maker(maker)
+    if not maker_terms:
+        return []
+    if not any(kw_matches(m, searchable_text) for m in maker_terms):
+        return []
+    return keywords_match(searchable_text, keywords_str)
 
 
 MATCHED_PRODUCTS_CAP = 8
@@ -242,21 +254,11 @@ def run():
         kws   = watcher.get('keywords', '')
         email = watcher['email']
 
+        is_global = not w_url
         for drop in drops:
             drop_url    = (drop.get('url') or '').lower()
             drop_domain = domain_from_url(drop_url)
             is_user_drop = (drop.get('source') or '').endswith('(user)')
-
-            # Match scope: a user-watch drop is produced from ONE specific page, so it
-            # may only match the watcher of that exact URL — otherwise two watches on
-            # the same domain (different paths/keywords) cross-contaminate now that the
-            # searchable text includes the full page excerpt. Curated/feed drops still
-            # fan out to every watcher on the domain.
-            if is_user_drop:
-                if not w_norm or w_norm != normalize_watch_url(drop_url):
-                    continue
-            elif not w_domain or w_domain != drop_domain:
-                continue
 
             # Build searchable text from the real page content (excerpt + the AI's
             # detected keyword hits), not just its prose summary — so literal keywords
@@ -267,9 +269,28 @@ def run():
             excerpt   = (drop.get('page_excerpt') or '').lower()
             searchable = f"{summary} {notable} {kw_found} {excerpt}"
 
-            matches = keywords_match(searchable, kws)
-            if not matches:
-                continue
+            if is_global:
+                # Global watch: match maker+cool-list against EVERY curated drop.
+                # Skip user-watch drops (those belong to their exact-URL owner).
+                if is_user_drop:
+                    continue
+                matches = global_watch_matches(watcher.get('maker', ''), kws, searchable)
+                if not matches:
+                    continue
+            else:
+                # Match scope: a user-watch drop is produced from ONE specific page, so it
+                # may only match the watcher of that exact URL — otherwise two watches on
+                # the same domain (different paths/keywords) cross-contaminate now that the
+                # searchable text includes the full page excerpt. Curated/feed drops still
+                # fan out to every watcher on the domain.
+                if is_user_drop:
+                    if not w_norm or w_norm != normalize_watch_url(drop_url):
+                        continue
+                elif not w_domain or w_domain != drop_domain:
+                    continue
+                matches = keywords_match(searchable, kws)
+                if not matches:
+                    continue
 
             # Check per-URL-per-keyword cooldown
             ck = cooldown_key(wid, drop_url, matches)
