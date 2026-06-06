@@ -4,20 +4,20 @@
 Single source of truth for turning a user-entered maker ("Chris Reeve", "crk")
 into the set of match terms (name + all aliases, lowercased). Unknown makers fall
 back to the literal string so a global watch still works for any brand."""
-import os
 from functools import lru_cache
 
 import paths
 from config_load import load_yaml
 
-MAKERS_FILE = os.path.join(paths.CONFIG_DIR, 'makers.yaml')
 
-
-@lru_cache(maxsize=1)
-def _maker_index():
-    """{alias_or_name(lower): [name+aliases lowercased]} for every maker."""
+@lru_cache(maxsize=8)
+def _maker_index(makers_file):
+    """{alias_or_name(lower): [name+aliases lowercased]} for every maker in the file.
+    Cached per path so a config-dir change (e.g. tests) doesn't serve stale data.
+    Cron jobs are fresh processes; if this ever runs in a long-lived daemon and
+    makers.yaml is edited, call _maker_index.cache_clear()."""
     index = {}
-    data = load_yaml(MAKERS_FILE) or {}
+    data = load_yaml(makers_file) or {}
     for m in data.get('makers', []) or []:
         name = (m.get('name') or '').strip()
         aliases = [a.strip() for a in (m.get('aliases') or []) if a and a.strip()]
@@ -36,7 +36,7 @@ def expand_maker(maker):
         return []
     key = maker.strip().lower()
     try:
-        hit = _maker_index().get(key)
+        hit = _maker_index(paths.MAKERS_YAML).get(key)
     except Exception:
         hit = None
     return list(hit) if hit else [key]
