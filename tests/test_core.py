@@ -1498,3 +1498,140 @@ class TestWebWatcherSkipsGlobal:
         assert 'https://shop.com/x' in urls
         assert '' not in urls and None not in urls
         assert len(sites) == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SITE FEEDBACK — sanitizer + /api/feedback route (S54)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestFeedbackSanitizer:
+    """sanitize_feedback flattens untrusted input to plain text and caps length."""
+
+    @pytest.fixture(autouse=True)
+    def _import(self):
+        import watcher_signup
+        self.sanitize = watcher_signup.sanitize_feedback
+
+    def test_strips_html_tags(self):
+        out = self.sanitize('<script>alert(1)</script>hello <b>there</b>')
+        assert '<' not in out and '>' not in out
+        assert 'hello' in out and 'there' in out
+
+    def test_removes_code_fences_and_backticks(self):
+        out = self.sanitize('look ```rm -rf /``` at `this`')
+        assert '`' not in out
+
+    def test_flattens_markdown_links_keeps_text(self):
+        out = self.sanitize('see [click me](http://evil.example/x)')
+        assert 'click me' in out
+        assert 'evil.example' not in out and '](' not in out
+
+    def test_strips_leading_markdown_structure(self):
+        out = self.sanitize('# Big header\n> quoted\n- bullet')
+        assert 'Big header' in out and 'quoted' in out and 'bullet' in out
+        assert not out.lstrip().startswith('#')
+        assert '\n>' not in out and not out.splitlines()[1].startswith('>')
+
+    def test_strips_zero_width_and_control_chars(self):
+        out = self.sanitize('he​llo‮world\x07')
+        assert '​' not in out and '‮' not in out and '\x07' not in out
+        assert 'hello' in out.replace(' ', '')
+
+    def test_caps_at_max_words(self):
+        out = self.sanitize(' '.join(['word'] * 700), max_words=600)
+        # 600 words + the [truncated] marker
+        assert out.count('word') == 600
+        assert '[truncated]' in out
+
+    def test_under_cap_not_truncated(self):
+        out = self.sanitize('just a short note')
+        assert '[truncated]' not in out
+        assert out == 'just a short note'
+
+    def test_empty_returns_empty(self):
+        assert self.sanitize('') == ''
+        assert self.sanitize(None) == ''
+        assert self.sanitize('   \n\t ') == ''
+
+
+class TestFeedbackAPI:
+    """POST /api/feedback emails Simon and posts a NOT FLEET blog entry."""
+
+    @pytest.fixture
+    def client(self, tmp_env):
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        db.DB_PATH = os.environ['DW_DB']
+        if 'watcher_signup' in sys.modules:
+            del sys.modules['watcher_signup']
+        with patch.dict(os.environ, {'RESEND_API_KEY': 'test-key', 'DW_BLOG_TOKEN': 'test-token'}):
+            import watcher_signup
+            importlib.reload(watcher_signup)
+            watcher_signup.app.config['TESTING'] = True
+            with watcher_signup.app.test_client() as c:
+                yield c
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=True)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_happy_path(self, mock_email, mock_blog, client):
+        resp = client.post('/api/feedback', json={
+            'subject': 'Great site', 'email': 'fan@example.com',
+            'comment': 'Love the maker watch feature.',
+        })
+        assert resp.status_code == 200
+        assert resp.get_json()['ok'] is True
+        assert mock_email.called and mock_blog.called
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=True)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_empty_comment_rejected(self, mock_email, mock_blog, client):
+        resp = client.post('/api/feedback', json={'subject': 'x', 'comment': '   '})
+        assert resp.status_code == 400
+        assert not mock_email.called and not mock_blog.called
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=True)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_comment_of_only_markup_rejected(self, mock_email, mock_blog, client):
+        # Sanitizes to empty → 400 (markup-only is not real feedback)
+        resp = client.post('/api/feedback', json={'comment': '<b></b>`` '})
+        assert resp.status_code == 400
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=True)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_bad_email_rejected(self, mock_email, mock_blog, client):
+        resp = client.post('/api/feedback', json={
+            'comment': 'hi', 'email': 'not-an-email',
+        })
+        assert resp.status_code == 400
+        assert not mock_email.called
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=True)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_email_optional(self, mock_email, mock_blog, client):
+        resp = client.post('/api/feedback', json={'comment': 'no email here'})
+        assert resp.status_code == 200
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=False)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_blog_down_email_still_sent_succeeds(self, mock_email, mock_blog, client):
+        # Independent side effects: blog failing must not lose the feedback.
+        resp = client.post('/api/feedback', json={'comment': 'still works'})
+        assert resp.status_code == 200
+        assert mock_email.called
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=False)
+    @patch('watcher_signup.send_feedback_email', return_value=False)
+    def test_both_down_returns_error(self, mock_email, mock_blog, client):
+        resp = client.post('/api/feedback', json={'comment': 'oh no'})
+        assert resp.status_code == 502
+        assert resp.get_json()['ok'] is False
+
+    @patch('watcher_signup.post_feedback_to_blog', return_value=True)
+    @patch('watcher_signup.send_feedback_email', return_value=True)
+    def test_comment_is_sanitized_before_side_effects(self, mock_email, mock_blog, client):
+        client.post('/api/feedback', json={'comment': 'hi <script>x</script> there'})
+        # First positional arg to send_feedback_email is subject, second is comment
+        passed_comment = mock_email.call_args.args[1]
+        assert '<script>' not in passed_comment

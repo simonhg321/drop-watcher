@@ -428,6 +428,38 @@
       background: linear-gradient(90deg, transparent, var(--iron), transparent);
       margin: 0;
     }
+
+    /* Feedback form (footer) */
+    .footer-feedback { max-width: 520px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+    .footer-feedback h3 {
+      font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 0.25em;
+      text-transform: uppercase; color: var(--flame); text-align: center; margin: 0 0 14px;
+    }
+    .footer-feedback .ff-row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .footer-feedback input, .footer-feedback textarea {
+      width: 100%; box-sizing: border-box; background: var(--steel);
+      border: 1px solid var(--iron); color: var(--white);
+      font-family: 'Share Tech Mono', monospace; font-size: 16px; /* >=16px avoids iOS zoom */
+      padding: 12px;
+    }
+    .footer-feedback input:focus, .footer-feedback textarea:focus { outline: none; border-color: var(--flame); }
+    .footer-feedback textarea { min-height: 96px; resize: vertical; display: block; }
+    .footer-feedback .ff-meta {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--ash);
+    }
+    .footer-feedback button {
+      background: var(--ember); color: #fff; border: none; cursor: pointer;
+      font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 0.1em;
+      text-transform: uppercase; padding: 12px 24px; min-height: 44px;
+    }
+    .footer-feedback button:disabled { opacity: 0.5; cursor: default; }
+    .ff-status { font-family: 'Share Tech Mono', monospace; font-size: 12px; min-height: 16px; margin-top: 8px; text-align: center; }
+    .ff-status.ok { color: var(--flame); }
+    .ff-status.err { color: var(--ember); }
+    @media (max-width: 600px) {
+      .footer-feedback .ff-row { flex-direction: column; gap: 10px; }
+    }
   </style>
   <style>
     .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; }
@@ -685,6 +717,21 @@
         <a href="mailto:hello@instockornot.club">hello@instockornot.club</a>
       </div>
 
+      <!-- Feedback -->
+      <form class="footer-feedback" id="feedbackForm" onsubmit="return submitFeedback(event)">
+        <h3>Got feedback? Tell us.</h3>
+        <div class="ff-row">
+          <input type="text" id="fbSubject" name="subject" placeholder="Subject (optional)" maxlength="120" autocomplete="off">
+          <input type="email" id="fbEmail" name="email" placeholder="Email (optional — so we can reply)" maxlength="254" autocomplete="email">
+        </div>
+        <textarea id="fbComment" name="comment" placeholder="Your comment…" required maxlength="6000"></textarea>
+        <div class="ff-meta">
+          <span><span id="fbCount">0</span>/600 words</span>
+          <button type="submit" id="fbSubmit">Send</button>
+        </div>
+        <div class="ff-status" id="fbStatus" role="status" aria-live="polite"></div>
+      </form>
+
       <!-- Bottom bar -->
       <div class="footer-bottom">
         <span>instockornot.club &mdash; Est. 2026</span>
@@ -695,6 +742,50 @@
   </footer>
 
 <script src="/dw-track.js"></script>
+<script>
+(function () {
+  var ta = document.getElementById('fbComment');
+  var counter = document.getElementById('fbCount');
+  if (!ta || !counter) return;
+  function words(s) { s = (s || '').trim(); return s ? s.split(/\s+/) : []; }
+  ta.addEventListener('input', function () {
+    var w = words(ta.value);
+    if (w.length > 600) { ta.value = w.slice(0, 600).join(' '); w = words(ta.value); }
+    counter.textContent = w.length;
+  });
+})();
+function submitFeedback(e) {
+  e.preventDefault();
+  var status = document.getElementById('fbStatus');
+  var btn = document.getElementById('fbSubmit');
+  var comment = document.getElementById('fbComment').value;
+  if (!comment.trim()) { status.className = 'ff-status err'; status.textContent = 'Please enter a comment.'; return false; }
+  btn.disabled = true; status.className = 'ff-status'; status.textContent = 'Sending…';
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      subject: document.getElementById('fbSubject').value,
+      email: document.getElementById('fbEmail').value,
+      comment: comment
+    })
+  })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+      if (res.ok && res.j && res.j.ok) {
+        status.className = 'ff-status ok'; status.textContent = 'Thanks — got it.';
+        document.getElementById('feedbackForm').reset();
+        document.getElementById('fbCount').textContent = '0';
+      } else {
+        status.className = 'ff-status err';
+        status.textContent = (res.j && res.j.error) ? res.j.error : 'Could not send — please try again.';
+      }
+    })
+    .catch(function () { status.className = 'ff-status err'; status.textContent = 'Could not send — please try again.'; })
+    .finally(function () { btn.disabled = false; });
+  return false;
+}
+</script>
 <div id="whatsNew" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
   <div style="background:var(--steel);border:1px solid var(--flame);max-width:440px;margin:16px;padding:28px;font-family:'Share Tech Mono',monospace;">
     <div style="color:var(--flame);font-size:11px;letter-spacing:.25em;text-transform:uppercase;">New</div>
