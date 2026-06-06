@@ -241,7 +241,7 @@ websites:
     url: https://www.chrisreeve.com
     poll_interval: 10
     enabled: true
-    notes: Boosted for Blade Show week — Umnumzaan hot; revert to 20 after 2026-06-12
+    notes: 10-min poll standing — Umnumzaan/grail traffic (S54: kept 10 after Blade Show, no revert)
 
   - name: Curtiss Custom Knives
     url: https://www.curtisscustomknives.com
@@ -257,7 +257,7 @@ websites:
     url: https://demkoknives.com
     poll_interval: 10
     enabled: true
-    notes: Boosted for Blade Show week — AD20/AD22 MagnaCut hot; revert to 20 after 2026-06-12
+    notes: 10-min poll standing — AD20/AD22 MagnaCut (S54: kept 10 after Blade Show, no revert)
 
   - name: McNees Knives
     url: https://mcneesknives.com
@@ -540,7 +540,7 @@ feeds:
     url: https://www.reddit.com/r/bladesinstock.rss
     poll_interval: 10
     enabled: true
-    notes: Boosted for Blade Show week — revert to 15 after 2026-06-12
+    notes: 10-min poll standing (S54: kept 10 after Blade Show, no revert)
 
   - name: Reddit r/knifeclub
     url: https://www.reddit.com/r/knifeclub.rss
@@ -556,7 +556,7 @@ feeds:
     url: https://www.reddit.com/r/knife_swap.rss
     poll_interval: 10
     enabled: true
-    notes: Boosted for Blade Show week — revert to 20 after 2026-06-12
+    notes: 10-min poll standing (S54: kept 10 after Blade Show, no revert)
 
   - name: Reddit r/EDCexchange
     url: https://www.reddit.com/r/EDCexchange.rss
