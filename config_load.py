@@ -18,17 +18,27 @@ def load_yaml(path):
 def build_keywords(cool_list, makers_config):
     """Flatten cool_list keywords + maker names/aliases + collab aliases into a
     lowercased, de-duped keyword list for the pre-filter."""
+    # str()-coerce everything: a YAML token like 229 or 0044 parses as int and would
+    # crash .lower(); a collab entry (makers:[...] with no name) would KeyError. One bad
+    # config value must never take down the whole watcher.
     keywords = []
-    for bucket in cool_list.get('keywords', {}).values():
-        for kw in bucket:
-            keywords.append(kw.lower())
-    for maker in makers_config.get('makers', []):
-        keywords.append(maker['name'].lower())
-        for alias in maker.get('aliases', []):
-            keywords.append(alias.lower())
-    for collab in makers_config.get('collaborations', []):
-        for alias in collab.get('aliases', []):
-            keywords.append(alias.lower())
+    for bucket in (cool_list or {}).get('keywords', {}).values():
+        for kw in (bucket or []):
+            if str(kw).strip():
+                keywords.append(str(kw).lower())
+    for maker in (makers_config or {}).get('makers', []) or []:
+        if not isinstance(maker, dict):
+            continue
+        name = maker.get('name')
+        if name:
+            keywords.append(str(name).lower())
+        for alias in (maker.get('aliases') or []):
+            if str(alias).strip():
+                keywords.append(str(alias).lower())
+    for collab in (makers_config or {}).get('collaborations', []) or []:
+        for alias in (collab.get('aliases') or []):
+            if str(alias).strip():
+                keywords.append(str(alias).lower())
     return list(set(keywords))
 
 

@@ -1485,6 +1485,18 @@ class TestExpandMaker:
                for a in (m.get('aliases') or []) if not isinstance(a, str)]
         assert bad == [], f"non-string aliases (quote them in makers.yaml): {bad}"
 
+    def test_build_keywords_survives_int_alias_and_nameless_collab(self):
+        # This is what actually crash-looped web_watcher: an int alias hit .lower(),
+        # and a collab entry inside makers: (no 'name') would KeyError.
+        import config_load
+        cool = {'keywords': {'b': ['Show', 229]}}
+        makers = {'makers': [
+            {'name': 'Chris Reeve Knives', 'aliases': ['crk', 229]},
+            {'makers': ['Wilson Combat', 'Chris Reeve Knives'], 'aliases': ['wc sebenza']},
+        ]}
+        kws = config_load.build_keywords(cool, makers)
+        assert 'crk' in kws and '229' in kws and 'wc sebenza' in kws
+
     def test_index_survives_a_nonstring_alias(self):
         # Even if a bad alias slips in, the index must still build for everyone else.
         import makers
