@@ -1012,3 +1012,46 @@ class TestConfigLoad:
         from config_load import prefilter
         assert prefilter('New SEBENZA 31 in stock', ['sebenza'])
         assert not prefilter('nothing here', ['sebenza'])
+
+
+class TestCollectionFetch:
+    """collection_fetch — the Shopify deep-link engine (S52: was thinly tested)."""
+
+    def test_shopify_products_url_for_collection(self):
+        import collection_fetch as cf
+        assert cf.shopify_products_url('https://shop.com/collections/chris-reeve') == \
+            'https://shop.com/collections/chris-reeve/products.json'
+        assert cf.shopify_products_url('https://shop.com/collections/crk?sort=x') == \
+            'https://shop.com/collections/crk/products.json'
+
+    def test_shopify_products_url_none_for_non_collection(self):
+        import collection_fetch as cf
+        assert cf.shopify_products_url('https://shop.com/products/foo') is None
+        assert cf.shopify_products_url('https://shop.com/') is None
+
+    def test_parse_products_tags_list_and_string(self):
+        import collection_fetch as cf
+        base = 'https://shop.com/collections/x'
+        out = cf._parse_products([
+            {'title': 'A', 'handle': 'a', 'tags': ['steel', ' flame '], 'variants': [{'available': True, 'price': '10'}]},
+            {'title': 'B', 'handle': 'b', 'tags': 'damascus, knife', 'variants': [{'available': False, 'price': '20'}]},
+        ], base)
+        assert out[0]['tags'] == ['steel', 'flame']        # list, trimmed
+        assert out[1]['tags'] == ['damascus', 'knife']     # comma-string split
+        assert out[0]['available'] is True and out[1]['available'] is False
+
+    def test_parse_products_available_if_any_variant(self):
+        import collection_fetch as cf
+        out = cf._parse_products([
+            {'title': 'A', 'handle': 'a', 'variants': [{'available': False}, {'available': True}]},
+        ], 'https://shop.com/collections/x')
+        assert out[0]['available'] is True
+        assert out[0]['price'] == ''  # first variant had no price key
+
+    def test_product_line_format(self):
+        import collection_fetch as cf
+        line = cf._product_line({'title': 'Sebenza', 'vendor': 'CRK', 'available': True,
+                                 'price': '500', 'tags': ['grail']})
+        assert 'Sebenza' in line and 'IN STOCK' in line and '$500' in line and 'grail' in line
+        sold = cf._product_line({'title': 'X', 'vendor': 'Y', 'available': False, 'price': '1', 'tags': []})
+        assert 'SOLD OUT' in sold
