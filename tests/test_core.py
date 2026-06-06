@@ -1479,8 +1479,10 @@ class TestExpandMaker:
     def test_real_makers_yaml_has_no_nonstring_aliases(self):
         # Guard: a YAML alias like 229 or 0044 parses as int and (pre-fix) crashed the
         # whole maker index, silently breaking ALL global maker matching. Catch it here.
-        import paths, yaml
-        d = yaml.safe_load(open(paths.MAKERS_YAML)) or {}
+        # Read the REPO config deterministically (not paths.MAKERS_YAML, which may point
+        # at /etc and vary by environment).
+        import yaml
+        d = yaml.safe_load(open(os.path.join(ROOT, 'config', 'makers.yaml'))) or {}
         bad = [(m.get('name'), a) for m in d.get('makers', []) if isinstance(m, dict)
                for a in (m.get('aliases') or []) if not isinstance(a, str)]
         assert bad == [], f"non-string aliases (quote them in makers.yaml): {bad}"
