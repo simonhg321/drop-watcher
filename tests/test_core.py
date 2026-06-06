@@ -1476,6 +1476,26 @@ class TestExpandMaker:
         from makers import expand_maker
         assert expand_maker('Acme Forge') == ['acme forge']
 
+    def test_real_makers_yaml_has_no_nonstring_aliases(self):
+        # Guard: a YAML alias like 229 or 0044 parses as int and (pre-fix) crashed the
+        # whole maker index, silently breaking ALL global maker matching. Catch it here.
+        import paths, yaml
+        d = yaml.safe_load(open(paths.MAKERS_YAML)) or {}
+        bad = [(m.get('name'), a) for m in d.get('makers', []) if isinstance(m, dict)
+               for a in (m.get('aliases') or []) if not isinstance(a, str)]
+        assert bad == [], f"non-string aliases (quote them in makers.yaml): {bad}"
+
+    def test_index_survives_a_nonstring_alias(self):
+        # Even if a bad alias slips in, the index must still build for everyone else.
+        import makers
+        makers._maker_index.cache_clear()
+        with patch('makers.load_yaml', return_value={'makers': [
+                {'name': 'Chris Reeve Knives', 'aliases': ['crk', 'chris reeve']},
+                {'name': 'Bad Maker', 'aliases': [229]}]}):
+            idx = makers._maker_index('dummy-path')
+        makers._maker_index.cache_clear()
+        assert 'crk' in idx and '229' in idx  # both survive; int coerced to str
+
     def test_blank_returns_empty(self):
         from makers import expand_maker
         assert expand_maker('') == [] and expand_maker(None) == []
@@ -1635,3 +1655,52 @@ class TestFeedbackAPI:
         # First positional arg to send_feedback_email is subject, second is comment
         passed_comment = mock_email.call_args.args[1]
         assert '<script>' not in passed_comment
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEALER SCOUT — instant email the moment a NEW knife dealer is auto-added (S54)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestDealerScoutInstantAlert:
+    """_promote_one emails Simon instantly when a genuinely-new dealer is auto-added,
+    and stays quiet for domains we already watch."""
+
+    def _scout(self):
+        import importlib, db
+        db.DB_PATH = os.environ['DW_DB']
+        import dealer_scout
+        importlib.reload(dealer_scout)
+        return dealer_scout, db
+
+    def _seed(self, db, domain, conf=0.95):
+        db.upsert_dealer_candidate(domain, is_dealer=True, category='knife dealer',
+                                   brands='Chris Reeve', confidence=conf, reason='t',
+                                   sample_url=f'https://{domain}', user_count=1)
+        return db.get_dealer_candidate(domain)
+
+    def test_instant_email_on_new_autoadd(self, tmp_env):
+        ds, db = self._scout()
+        cand = self._seed(db, 'newdealer-xyz.com')
+        with patch.object(ds, '_append_dealer_to_sources', return_value=True), \
+             patch.object(ds, 'curated_domains', return_value=set()), \
+             patch.object(ds, 'send_email', return_value=True) as mock_send:
+            assert ds._promote_one(cand) is True
+        assert mock_send.call_count == 1
+        assert 'newdealer-xyz.com' in str(mock_send.call_args)
+
+    def test_no_email_when_already_curated(self, tmp_env):
+        ds, db = self._scout()
+        cand = self._seed(db, 'dupe-xyz.com')
+        with patch.object(ds, 'curated_domains', return_value={'dupe-xyz.com'}), \
+             patch.object(ds, 'send_email', return_value=True) as mock_send:
+            assert ds._promote_one(cand) is False
+        mock_send.assert_not_called()
+
+    def test_email_failure_does_not_break_autoadd(self, tmp_env):
+        # An instant-alert send failure must NOT undo the auto-add.
+        ds, db = self._scout()
+        cand = self._seed(db, 'flaky-mail-xyz.com')
+        with patch.object(ds, '_append_dealer_to_sources', return_value=True), \
+             patch.object(ds, 'curated_domains', return_value=set()), \
+             patch.object(ds, 'send_email', side_effect=Exception('resend down')):
+            assert ds._promote_one(cand) is True  # add still succeeds

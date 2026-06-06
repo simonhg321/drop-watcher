@@ -245,7 +245,7 @@ makers:
     priority: medium
 
   - name: Chaves Knives
-    aliases: [chaves, chaves knives, redencion, ultramar, chaves redencion, 229]
+    aliases: [chaves, chaves knives, redencion, ultramar, chaves redencion, '229']
     priority: high
     notable_models:
       critical:
@@ -391,7 +391,7 @@ makers:
         - mini goblin
 
   - name: Zero Tolerance
-    aliases: [zero tolerance, zt, 0044, 0562, 0350, 0452, 0393, 0562ti]
+    aliases: [zero tolerance, zt, '0044', '0562', '0350', '0452', '0393', '0562ti']
     priority: medium
     notable_models:
       critical:
@@ -420,7 +420,7 @@ makers:
         - alpha
 
   - name: Freeman Outdoor Gear
-    aliases: [freeman, freeman outdoor, 451]
+    aliases: [freeman, freeman outdoor, '451']
     priority: medium
     notable_models:
       high:

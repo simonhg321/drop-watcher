@@ -326,6 +326,7 @@ def _promote_one(cand):
     db.set_dealer_candidate_status(domain, 'promoted')
     db.mark_dealer_candidate_notified(domain)   # stamp = "surfaced to Simon" → drives the digest
     log.info(f"AUTO-ADDED {domain} (conf {cand['confidence']:.2f}, {cand['category']})")
+    send_dealer_alert(cand)                      # instant heads-up (best-effort; never undoes the add)
     return True
 
 
@@ -340,6 +341,42 @@ def promote():
     if added:
         _reload_web_watcher()
     return added
+
+
+def send_dealer_alert(cand):
+    """Instant heads-up the moment a NEW knife dealer is confirmed + auto-added.
+    Best-effort: a send failure is logged, never raised — it must not undo the add.
+    The weekly digest (send_digest) still runs as a roundup/backstop."""
+    try:
+        d      = html_mod.escape(cand['domain'])
+        name   = html_mod.escape(_dealer_name(cand['domain']))
+        cat    = html_mod.escape(cand.get('category') or '')
+        brands = html_mod.escape(cand.get('brands') or '—')
+        conf   = cand.get('confidence') or 0
+        subj = f"🔪 New knife dealer auto-added: {cand['domain']}"
+        html = (f'<div style="font-family:monospace;background:#0a0a0a;color:#e8e8e8;'
+                f'padding:24px;max-width:600px;">'
+                f'<h2 style="color:#e67e22;margin:0 0 6px;">🔪 DEALER SCOUT — NEW DEALER</h2>'
+                f'<p style="color:#ddd;">Just confirmed a knife/EDC dealer we weren\'t watching '
+                f'and auto-added it to the watch list (is_dealer + conf ≥ {AUTO_ADD_CONFIDENCE:.0%}).</p>'
+                f'<div style="background:#161616;border:1px solid #222;padding:14px;margin:8px 0;">'
+                f'<div style="color:#fff;font-size:15px;">{name} '
+                f'<span style="color:#666;font-size:12px;">· https://{d}</span></div>'
+                f'<div style="color:#888;font-size:12px;margin-top:4px;">{cat} · conf {conf:.2f} '
+                f'· brands: {brands}</div>'
+                f'<div style="color:#555;font-size:11px;margin-top:6px;">'
+                f'back out: <code>dealer_scout.py --reject {d}</code></div>'
+                f'</div></div>')
+        txt = (f"DEALER SCOUT — new knife dealer auto-added:\n\n"
+               f"  {_dealer_name(cand['domain'])}  https://{cand['domain']}\n"
+               f"  {cand.get('category') or ''} · conf {conf:.2f} · brands: {cand.get('brands') or '-'}\n\n"
+               f"Back out: dealer_scout.py --reject {cand['domain']}")
+        if send_email(subj, html, txt, to_addr=SCOUT_EMAIL):
+            log.info(f"instant dealer alert sent — {cand['domain']}")
+        else:
+            log.error(f"instant dealer alert failed — {cand['domain']}")
+    except Exception as e:
+        log.error(f"instant dealer alert error for {cand.get('domain')}: {e}")
 
 
 def send_digest():

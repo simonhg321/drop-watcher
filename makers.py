@@ -19,8 +19,12 @@ def _maker_index(makers_file):
     index = {}
     data = load_yaml(makers_file) or {}
     for m in data.get('makers', []) or []:
-        name = (m.get('name') or '').strip()
-        aliases = [a.strip() for a in (m.get('aliases') or []) if a and a.strip()]
+        if not isinstance(m, dict):
+            continue
+        # str()-coerce: a YAML alias like 229 or 0044 parses as int — one bad value
+        # must never crash the whole index (which silently breaks ALL maker matching).
+        name = str(m.get('name') or '').strip()
+        aliases = [str(a).strip() for a in (m.get('aliases') or []) if str(a).strip()]
         terms = [t.lower() for t in ([name] + aliases) if t]
         if not terms:
             continue
