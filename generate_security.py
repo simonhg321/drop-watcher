@@ -11,6 +11,7 @@ HGR
 
 import os
 import re
+import html as html_lib
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
@@ -245,7 +246,7 @@ def generate_html(data):
         rows = ''
         for ip, rate in sorted(data['rate_abusers'].items(), key=lambda x: x[1], reverse=True):
             ua_list = ', '.join(list(data['ip_ua'].get(ip, {'?'}))[:2])
-            rows += f'<tr><td class="ip">{ip}</td><td class="num-cell">{rate}</td><td class="ua-cell">{ua_list[:60]}</td></tr>\n'
+            rows += f'<tr><td class="ip">{html_lib.escape(ip)}</td><td class="num-cell">{rate}</td><td class="ua-cell">{html_lib.escape(ua_list[:60])}</td></tr>\n'
         rate_html = f"""
     <div class="panel threat">
       <h2>RATE ABUSERS <span class="badge">{len(data['rate_abusers'])}</span></h2>
@@ -259,7 +260,7 @@ def generate_html(data):
         rows = ''
         for ip, paths in sorted(data['scanners'].items(), key=lambda x: len(x[1]), reverse=True)[:15]:
             path_sample = ', '.join(sorted(set(paths))[:4])
-            rows += f'<tr><td class="ip">{ip}</td><td class="num-cell">{len(paths)}</td><td class="path-cell">{path_sample}</td></tr>\n'
+            rows += f'<tr><td class="ip">{html_lib.escape(ip)}</td><td class="num-cell">{len(paths)}</td><td class="path-cell">{html_lib.escape(path_sample)}</td></tr>\n'
         scanner_html = f"""
     <div class="panel threat">
       <h2>SCANNERS <span class="badge">{len(data['scanners'])}</span></h2>
@@ -272,7 +273,7 @@ def generate_html(data):
     if data['bad_ua_summary']:
         rows = ''
         for pattern, count in data['bad_ua_summary'].items():
-            rows += f'<tr><td class="ua-cell">{pattern}</td><td class="num-cell">{count} IPs</td></tr>\n'
+            rows += f'<tr><td class="ua-cell">{html_lib.escape(str(pattern))}</td><td class="num-cell">{count} IPs</td></tr>\n'
         bad_ua_html = f"""
     <div class="panel">
       <h2>BAD USER AGENTS</h2>
@@ -287,7 +288,7 @@ def generate_html(data):
         flag = ' <span class="threat-flag">!</span>' if is_threat else ''
         n404 = data['ip_404s'].get(ip, 0)
         n404_str = f'<span class="s404">{n404}</span>' if n404 > 0 else '0'
-        top_ip_rows += f'<tr><td class="ip">{ip}{flag}</td><td class="num-cell">{count:,}</td><td class="num-cell">{n404_str}</td><td class="num-cell">{fmt_bytes(data["ip_bytes"].get(ip, 0) if "ip_bytes" in data else 0)}</td></tr>\n'
+        top_ip_rows += f'<tr><td class="ip">{html_lib.escape(ip)}{flag}</td><td class="num-cell">{count:,}</td><td class="num-cell">{n404_str}</td><td class="num-cell">{fmt_bytes(data["ip_bytes"].get(ip, 0) if "ip_bytes" in data else 0)}</td></tr>\n'
 
     top_ips_html = f"""
     <div class="panel">
@@ -305,7 +306,7 @@ def generate_html(data):
             continue
         is_threat = ip in data['scanners'] or ip in data['rate_abusers']
         flag = ' <span class="threat-flag">!</span>' if is_threat else ''
-        top_404_rows += f'<tr><td class="ip">{ip}{flag}</td><td class="num-cell">{count}</td></tr>\n'
+        top_404_rows += f'<tr><td class="ip">{html_lib.escape(ip)}{flag}</td><td class="num-cell">{count}</td></tr>\n'
 
     top_404_html = ''
     if top_404_rows:
@@ -331,7 +332,7 @@ def generate_html(data):
     # ── Top paths ────────────────────────────────────────────────────────
     top_path_rows = ''
     for path, count in data['top_paths']:
-        top_path_rows += f'<tr><td class="path-cell">{path[:60]}</td><td class="num-cell">{count:,}</td></tr>\n'
+        top_path_rows += f'<tr><td class="path-cell">{html_lib.escape(path[:60])}</td><td class="num-cell">{count:,}</td></tr>\n'
 
     top_paths_html = f"""
     <div class="panel">

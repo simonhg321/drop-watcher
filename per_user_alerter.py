@@ -102,10 +102,11 @@ def build_alert_email(watcher, matches, drop):
     safe_url     = html_mod.escape(url)
     safe_matches = [html_mod.escape(m) for m in matches]
     unsub_token  = watcher['unsubscribe_token']
-    summary      = html_mod.escape(drop.get('page_summary', ''))
-    notable      = drop.get('notable_items', [])
+    # `or` (not a .get default) — the AI can emit JSON null for these keys, so the key
+    # is present with value None and a plain default never applies (S49 null-class bug).
+    summary      = html_mod.escape(drop.get('page_summary') or '')
+    notable      = drop.get('notable_items') or []
     safe_notable = [html_mod.escape(n) for n in notable[:5]]
-    priority     = html_mod.escape(drop.get('priority', 'medium'))
 
     # Deep-link to the specific in-stock products that matched the keyword(s).
     # Only Shopify drops carry a structured product list (drop['products']); for
@@ -206,7 +207,7 @@ def build_alert_email(watcher, matches, drop):
         f"Source: {drop.get('source', '')}\n"
         f"Page: {url}\n"
         f"Matched: {', '.join(matches)}\n"
-        f"Summary: {drop.get('page_summary', '')}\n\n"
+        f"Summary: {drop.get('page_summary') or ''}\n\n"
         f"{matched_text}"
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"

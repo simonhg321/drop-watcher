@@ -360,6 +360,24 @@ class TestSignupAPI:
         assert resp.status_code == 200
         assert resp.get_json()['status'] == 'sent'
 
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.quick_keyword_check', return_value=[])
+    def test_my_alerts_preserves_url_case(self, mock_check, mock_email, client, tmp_env):
+        """my-alerts must return the original-cased watch URL — Shopify handles are
+        case-sensitive, so a lowercased /collections/Chris-Reeve 404s (S51 bug b)."""
+        mixed = 'https://www.knifejoy.com/collections/Chris-Reeve'
+        resp = client.post('/api/watch', json={
+            'url': mixed, 'keywords': 'sebenza', 'email': 'case@example.com',
+        })
+        wid = resp.get_json()['id']
+        import db
+        db.update_watcher(wid, active=True)
+        token = db.get_watcher_by_id(wid)['unsubscribe_token']
+        resp = client.get(f'/api/my-alerts/{token}')
+        assert resp.status_code == 200
+        urls = [w['url'] for w in resp.get_json()['watches']]
+        assert mixed in urls, f"expected original case preserved, got {urls}"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 2. ALERT MATCHING (per_user_alerter.py)
@@ -754,3 +772,67 @@ class TestTokenReport:
         result = load_usage(days=1)
         assert len(result) == 1
         assert result[0]['caller'] == 'analyze_page'
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# P0 BUGFIXES — S51 code-review (2026-06-06, Session 52)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestP0Bugfixes:
+    """Regression tests for the href + AI-null P0 bugs from docs/2026-06-05-code-review-plan.md."""
+
+    # (a) collection_fetch: a handle-less product must NOT deep-link to the whole collection.
+    def test_parse_products_handleless_no_collection_deeplink(self):
+        import collection_fetch
+        base = 'https://shop.example.com/collections/knives'
+        prods = [{'title': 'Mystery Item', 'variants': [{'available': True, 'price': '10'}]}]  # no handle
+        out = collection_fetch._parse_products(prods, base)
+        assert len(out) == 1
+        assert out[0]['url'] != base           # never point an item link at the collection
+        assert not out[0]['url']               # empty → downstream skips deep-link, falls back to page link
+
+    def test_parse_products_with_handle_deeplinks(self):
+        import collection_fetch
+        base = 'https://shop.example.com/collections/knives'
+        prods = [{'title': 'Cool Knife', 'handle': 'cool-knife',
+                  'variants': [{'available': True, 'price': '99'}]}]
+        out = collection_fetch._parse_products(prods, base)
+        assert out[0]['url'] == 'https://shop.example.com/products/cool-knife'
+
+    # (d) build_alert_email must survive AI JSON nulls (priority/page_summary/notable_items == None).
+    def test_build_alert_email_survives_null_ai_fields(self):
+        import per_user_alerter
+        watcher = {'id': 'w1', 'name': 'Tester', 'unsubscribe_token': 'tok-123'}
+        drop = {
+            'url': 'https://shop.example.com/collections/knives',
+            'source': 'Example Shop',
+            'page_summary': None,
+            'notable_items': None,
+            'priority': None,
+            'products': None,
+        }
+        subject, html, text = per_user_alerter.build_alert_email(watcher, ['damascus'], drop)
+        assert 'damascus' in text.lower()
+        assert html  # rendered without raising
+        assert 'None' not in (text.split('View:')[0])  # null summary not stringified into the body
+
+    # (c) generate_security: log-derived values (UA, request path, IP) must be HTML-escaped
+    #     before rendering into security.html (stored XSS into Simon's admin browser).
+    def test_security_report_escapes_log_data(self):
+        import generate_security
+        payload = '<script>alert(1)</script>'
+        data = {
+            'total_requests': 1, 'unique_ips': 1, 'total_bytes': 10, 'scanner_attempts': 1,
+            'bad_ua_summary': {payload: 2},
+            'rate_abusers': {'1.2.3.4': 150},
+            'ip_ua': {'1.2.3.4': {payload}},
+            'scanners': {'5.6.7.8': ['/' + payload, '/.env']},
+            'top_ips': [('1.2.3.4', 150)],
+            'ip_404s': {}, 'ip_bytes': {},
+            'top_404_ips': [],
+            'status_counts': {200: 5},
+            'top_paths': [('/' + payload, 99)],
+        }
+        out = generate_security.generate_html(data)
+        assert '<script>alert(1)</script>' not in out   # never rendered raw
+        assert '&lt;script&gt;' in out                  # escaped instead

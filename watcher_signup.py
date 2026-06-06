@@ -489,10 +489,11 @@ def my_alerts(token):
     watch_filters = []
     for w in my_watches:
         kws = [k.strip().lower() for k in w.get('keywords', '').split(',') if k.strip()]
-        url = w.get('url', '').lower()
+        url_raw = w.get('url', '')        # original case — the clickable dashboard link
+        url = url_raw.lower()             # lowercased copy — for domain/norm matching only
         domain = re.sub(r'^https?://(www\.)?', '', url).split('/')[0]
         norm = re.sub(r'^https?://(www\.)?', '', url).rstrip('/')
-        watch_filters.append({'domain': domain, 'norm': norm, 'keywords': kws, 'url': url,
+        watch_filters.append({'domain': domain, 'norm': norm, 'keywords': kws, 'url': url_raw,
                               'keywords_raw': w.get('keywords', ''),
                               'id': w.get('id'),
                               'token': w.get('unsubscribe_token')})

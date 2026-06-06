@@ -81,7 +81,10 @@ def _parse_products(products, base_url):
         variants  = pr.get('variants', []) or []
         available = any(v.get('available') for v in variants)
         price     = variants[0].get('price', '') if variants else ''
-        purl      = f"{p.scheme}://{p.netloc}/products/{handle}" if handle else base_url
+        # No handle (3rd-party-feed items, gift-card/bundle pseudo-products) → no
+        # item-level deep-link. Leave url empty so the alerter skips it and falls back
+        # to the collection page link, rather than mislinking the item to the collection.
+        purl      = f"{p.scheme}://{p.netloc}/products/{handle}" if handle else ''
         out.append({
             'title': title,
             'vendor': vendor,
