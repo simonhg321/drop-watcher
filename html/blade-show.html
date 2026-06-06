@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>Drop Watcher — Blade Show 2026 Grail Alerts</title>
+  <meta name="description" content="Software that watches every knife drop during Blade Show 2026. We scrape 89 shops, maker sites, and community feeds and email you the second a grail goes up for sale — Shirogorov, Hinderer, CRK, Demko, Grimsmo and more.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://instockornot.club/blade-show.html">
+  <meta property="og:title" content="Drop Watcher — Blade Show 2026 Grail Alerts">
+  <meta property="og:description" content="Software that watches every drop. You hear about the grails for sale. Blade Show 2026, covered.">
+  <meta property="og:image" content="https://instockornot.club/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://instockornot.club/blade-show.html">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --steel: #1c1c1c; --iron: #2a2a2a;
+      --ember: #c0392b; --flame: #e67e22; --ash: #888;
+      --silver: #d0d0d0; --white: #f0f0f0;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--black); color: var(--white); font-family: 'Share Tech Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+
+    /* Nav (matches index.html) */
+    .dw-nav { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 32px; display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+    .dw-nav .logo { font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); text-decoration: none; letter-spacing: 0.05em; }
+    .dw-nav .logo span { color: var(--ember); }
+    .dw-nav a:not(.logo) { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-decoration: none; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+    .dw-nav a:not(.logo):hover, .dw-nav a:not(.logo).active { color: var(--white); }
+
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 72px 24px 56px; border-bottom: 1px solid var(--iron); }
+    .badge { display: inline-block; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--flame); border: 1px solid var(--flame); border-radius: 2px; padding: 6px 14px; margin-bottom: 28px; }
+    .badge .dot { color: var(--ember); }
+    .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 8vw, 84px); line-height: 0.98; letter-spacing: 0.02em; color: var(--white); max-width: 14ch; margin: 0 auto; }
+    .hero h1 .flame { color: var(--flame); }
+    .hero .sub { font-family: 'Crimson Pro', serif; font-size: clamp(16px, 2.5vw, 21px); color: var(--silver); max-width: 620px; margin: 22px auto 0; line-height: 1.5; }
+    .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 34px; }
+    .btn { display: inline-block; text-decoration: none; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; padding: 14px 28px; min-height: 44px; }
+    .btn-primary { background: var(--ember); color: #fff; }
+    .btn-primary:hover { background: var(--flame); }
+    .btn-ghost { border: 1px solid var(--iron); color: var(--silver); }
+    .btn-ghost:hover { border-color: var(--flame); color: var(--white); }
+
+    /* Sections */
+    section { padding: 56px 0; border-bottom: 1px solid var(--iron); }
+    .eyebrow { font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--flame); margin-bottom: 14px; }
+    h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px, 5vw, 46px); letter-spacing: 0.02em; color: var(--white); margin-bottom: 18px; }
+    p.lead { font-family: 'Crimson Pro', serif; font-size: 18px; line-height: 1.6; color: var(--silver); max-width: 680px; }
+    p.lead b { color: var(--white); }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 28px; }
+    .stat { background: var(--steel); border: 1px solid var(--iron); padding: 22px 16px; text-align: center; }
+    .stat .num { font-family: 'Bebas Neue', sans-serif; font-size: 44px; color: var(--flame); line-height: 1; }
+    .stat .lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); margin-top: 8px; }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 30px; }
+    .step { background: var(--steel); border: 1px solid var(--iron); padding: 24px; }
+    .step .n { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--ember); }
+    .step h3 { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.03em; color: var(--white); margin: 6px 0 10px; }
+    .step p { font-family: 'Crimson Pro', serif; font-size: 16px; line-height: 1.55; color: var(--silver); }
+
+    /* What we watch */
+    .watch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 30px; }
+    .watch-col { background: var(--steel); border: 1px solid var(--iron); padding: 22px; }
+    .watch-col h3 { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--flame); margin-bottom: 14px; }
+    .watch-col ul { list-style: none; }
+    .watch-col li { font-family: 'Crimson Pro', serif; font-size: 16px; color: var(--silver); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+    /* Grails */
+    .chips { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .chip { background: var(--steel); border: 1px solid var(--iron); border-left: 3px solid var(--flame); padding: 12px 16px; font-size: 14px; color: var(--white); }
+    .chip span { color: var(--ash); }
+    .chip.you { border-left-color: var(--ember); color: var(--flame); }
+
+    /* CTA band */
+    .cta-band { text-align: center; background: linear-gradient(180deg, var(--steel), var(--black)); }
+    .cta-band h2 { margin-bottom: 10px; }
+    .cta-band p { font-family: 'Crimson Pro', serif; font-size: 18px; color: var(--silver); margin-bottom: 26px; }
+
+    /* Footer */
+    footer { padding: 40px 24px; text-align: center; color: var(--ash); font-size: 12px; }
+    footer a { color: var(--ash); text-decoration: none; margin: 0 10px; letter-spacing: 0.06em; }
+    footer a:hover { color: var(--flame); }
+    .footer-bottom { margin-top: 16px; letter-spacing: 0.08em; }
+
+    @media (max-width: 700px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .steps, .watch-grid { grid-template-columns: 1fr; }
+      section { padding: 44px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="dw-nav">
+  <a href="/" class="logo">DROP <span>WATCHER</span></a>
+  <a href="/" >Home</a>
+  <a href="/blade-show.html" class="active">Blade Show</a>
+  <a href="/what-we-watch.html">What We Watch</a>
+  <a href="/watchlist.html">Watch</a>
+  <a href="/watchlist.html" style="margin-left:auto;background:#27ae60;color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">SET A WATCH</a>
+  <a href="/get-my-link.html" style="background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="badge"><span class="dot">●</span> Blade Show 2026 · Live — Atlanta, June 5–7</div>
+  <h1>Software that watches every drop. <span class="flame">You hear about the grails for salez.</span></h1>
+  <p class="sub">Blade Show is the biggest drop event in the knife world. Show-exclusives and limited runs flood the shops and sell out in minutes. We watch all of it — so you don't have to refresh a single page.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="/watchlist.html">Set a Watch</a>
+    <a class="btn btn-ghost" href="#how">How it works</a>
+  </div>
+</header>
+
+<!-- WHAT'S HAPPENING -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">What's happening</div>
+    <h2>The biggest drop wave of the year</h2>
+    <p class="lead">Blade Show Atlanta runs <b>June 5–7</b> with <b>900+ exhibitors</b>. The real action comes right after: show-exclusive and limited-run knives hit retailers and the secondary market from <b>Sunday night through Wednesday</b> — and the grails are gone within hours. The only way to catch them is to be watching the moment they post. That's the whole job, and it's automated.</p>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>Watch · Detect · Alert</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="n">01</div>
+        <h3>We watch</h3>
+        <p>89 knife shops, maker sites, and community feeds — checked as often as every 10 minutes during show week.</p>
+      </div>
+      <div class="step">
+        <div class="n">02</div>
+        <h3>We detect</h3>
+        <p>AI reads every listing and tells a real grail drop from ordinary restock noise — so you only hear about what matters.</p>
+      </div>
+      <div class="step">
+        <div class="n">03</div>
+        <h3>You get pinged</h3>
+        <p>An instant email the second your maker or grail goes up — linked straight to the product so you can grab it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT WE WATCH -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">What we watch</div>
+    <h2>The whole field, not one page</h2>
+    <p class="lead">No guessing, no single shop. Here's the coverage running right now:</p>
+    <div class="stats">
+      <div class="stat"><div class="num">89</div><div class="lbl">Live sources</div></div>
+      <div class="stat"><div class="num">47</div><div class="lbl">Makers tracked</div></div>
+      <div class="stat"><div class="num">10<span style="font-size:18px">min</span></div><div class="lbl">Poll (show week)</div></div>
+      <div class="stat"><div class="num">∞</div><div class="lbl">Pages you refresh</div></div>
+    </div>
+    <div class="watch-grid">
+      <div class="watch-col">
+        <h3>Retailers</h3>
+        <ul>
+          <li>Blade HQ — drops & exclusives</li>
+          <li>DLT Trading — 15 Days of Blade Show</li>
+          <li>KnifeCenter</li>
+          <li>EKnives</li>
+          <li>Arizona Custom Knives</li>
+        </ul>
+      </div>
+      <div class="watch-col">
+        <h3>Maker direct</h3>
+        <ul>
+          <li>Chris Reeve · Hinderer</li>
+          <li>Demko · Shirogorov</li>
+          <li>Grimsmo · Holt Bladeworks</li>
+          <li>Koenig · Chaves</li>
+          <li>Zero Tolerance · Emerson</li>
+        </ul>
+      </div>
+      <div class="watch-col">
+        <h3>Community</h3>
+        <ul>
+          <li>r/bladesinstock</li>
+          <li>r/knife_swap</li>
+          <li>KnifeNews</li>
+          <li>Adept Knives — live coverage</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GRAILS -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">On the hunt</div>
+    <h2>Grails we're watching for</h2>
+    <p class="lead">The ones that vanish fastest — plus whatever <b>you</b> name.</p>
+    <div class="chips">
+      <div class="chip">Shirogorov <span>Ursus / Quantum</span></div>
+      <div class="chip">Hinderer <span>Jurassic / XM-18</span></div>
+      <div class="chip">CRK <span>Umnumzaan</span></div>
+      <div class="chip">Demko <span>AD22 MagnaCut</span></div>
+      <div class="chip">Zero Tolerance <span>20th Anniversary</span></div>
+      <div class="chip">Grimsmo <span>Norseman</span></div>
+      <div class="chip">Holt <span>Specter</span></div>
+      <div class="chip">Koenig <span>Arius</span></div>
+      <div class="chip">Chaves <span>229 Integral</span></div>
+      <div class="chip you">…and your grail →</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Name your grail. We'll watch every shop.</h2>
+    <p>Free. No account. Just tell us the maker and the model.</p>
+    <a class="btn btn-primary" href="/watchlist.html">Set a Watch</a>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <a href="/">Home</a>
+    <a href="/what-we-watch.html">What We Watch</a>
+    <a href="/privacy.html">Privacy</a>
+    <a href="mailto:info@instockornot.club">info@instockornot.club</a>
+  </div>
+  <div class="footer-bottom">instockornot.club &mdash; Est. 2026 &nbsp;·&nbsp; H &nbsp; G &nbsp; S</div>
+</footer>
+
+<script src="/dw-track.js"></script>
+</body>
+</html>
