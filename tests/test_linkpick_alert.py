@@ -70,3 +70,25 @@ def test_resolve_alert_candidate_returns_text_and_href():
         keywords=["White 360 camera"], makers=["Ubiquiti"])
     assert c["href"].endswith("/uvc-g6-180")
     assert c["text"] == "G6 180"   # title + link now agree, both the right product
+
+
+# Real #6289 shape: no candidate is actually the queried item, but generic tokens
+# ("fixed","blade") let a wrong product score on token overlap. Must return None.
+NO_MATCH_CANDS = [
+    {"text": "Half-Face Blades Ringstrike Fixed Blade",
+     "href": "https://southernedges.com/products/half-face-blades-ringstrike-fixed-blade"},
+    {"text": "Chris Reeve Small Sebenza 31 Forever Flag",
+     "href": "https://southernedges.com/products/chris-reeve-small-sebenza-31-forever-flag"},
+]
+
+
+def test_best_candidate_returns_none_below_floor():
+    # "Lile DOT Fixed Blade Knife" has no real candidate here → must not mislink.
+    assert linkpick.best_candidate(NO_MATCH_CANDS, "Lile DOT Fixed Blade Knife") is None
+
+
+def test_best_candidate_still_resolves_strong_match():
+    # A genuine match (distinctive tokens present) must still resolve above the floor.
+    c = linkpick.best_candidate(NO_MATCH_CANDS, "Chris Reeve Small Sebenza 31 Forever Flag")
+    assert c is not None
+    assert c["href"].endswith("/chris-reeve-small-sebenza-31-forever-flag")

@@ -34,6 +34,14 @@ FIND_SNIPPET_RADIUS = 90       # chars around each match
 FIND_MAX_MATCHES_PER_URL = 6
 LINK_INDEX_MAX = 40            # max product anchors stored per drop (bounds raw_json)
 
+# A candidate must clear this score to be trusted as a deep-link. Generic-word overlap
+# ("fixed blade") scores low; a real match (name in text, slug in href) scores high.
+# Below the floor → return None so the alert falls back to the page link, never a wrong
+# product. Tuned so the #6289 mislinks fail closed while real matches pass.
+# Empirically: Half-Face for "Lile DOT Fixed Blade Knife" (2 shared tokens + product path)
+# scores 14; G6-180 for its correct needle scores 15; so 15 is the clean separation point.
+MIN_CANDIDATE_SCORE = 15
+
 
 def same_site(host_a, host_b):
     """True if two hostnames are the same site (ignoring www / sub-domain)."""
@@ -112,9 +120,11 @@ def best_anchor(soup, needle):
 def best_candidate(candidates, needle):
     """Resolve the best stored candidate for `needle` as {'text','href'}, or None.
 
+    Returns None unless the best score clears MIN_CANDIDATE_SCORE — a weak (generic-word)
+    match must fall back to the page link, not deep-link to a wrong product.
     candidates: list of {'text','href'} dicts (or (text, href) tuples).
     """
-    best, best_score = None, 0
+    best, best_score = None, MIN_CANDIDATE_SCORE - 1
     for c in (candidates or []):
         if isinstance(c, dict):
             text, href = c.get('text', ''), c.get('href', '')
