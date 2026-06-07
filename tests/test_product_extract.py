@@ -199,3 +199,23 @@ def test_fetch_collection_falls_back_to_candidates_when_unstructured():
     text, products, candidates = cf.fetch_collection("https://x.com", fake_fetch)
     assert products is None          # nothing structured found
     assert isinstance(candidates, list)  # legacy fuzzy candidates still available
+
+
+import yaml
+
+
+def test_sources_extract_hints_shape_is_optional_dict():
+    # A source with hints parses into a dict under 'extract'; absence is fine.
+    doc = yaml.safe_load("""
+    - name: Stubborn Dealer
+      url: https://stubborn.example
+      extract:
+        card: li.product
+        title: .name
+        link: a.url
+        price: .cost
+    - name: Normal Dealer
+      url: https://normal.example
+    """)
+    assert doc[0]['extract']['card'] == 'li.product'
+    assert doc[1].get('extract') is None

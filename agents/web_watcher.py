@@ -367,7 +367,8 @@ def run():
             time.sleep(sleep_time)
 
             text, products, candidates = collection_fetch.fetch_collection(
-                url, fetch_page, ssl_permissive=ssl_permissive, log=log)
+                url, fetch_page, ssl_permissive=ssl_permissive, log=log,
+                hints=site.get('extract'))
             if text is None:
                 failure_count[url] = failure_count.get(url, 0) + 1
                 if failure_count[url] >= fail_thresh:
@@ -483,7 +484,7 @@ def run():
             log.info(f"Checking user site {uname} in {sleep_time}s (keywords: {', '.join(user_kws)})...")
             time.sleep(sleep_time)
 
-            text, products, candidates = collection_fetch.fetch_collection(uurl, fetch_page, log=log)
+            text, products, candidates = collection_fetch.fetch_collection(uurl, fetch_page, log=log, hints=None)
             if text is None:
                 failure_count[uurl] = failure_count.get(uurl, 0) + 1
                 # Record the attempt so a failing URL is throttled by the poll
