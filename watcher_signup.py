@@ -484,6 +484,17 @@ def watch():
 
     if already_verified:
         send_confirmation_email(entry)
+        # Already-verified users skip the verify step (where backfill normally fires),
+        # so send the "what we already know" digest for THIS new watch right away.
+        # Scoped to the new watch id so we don't re-scan their existing watches.
+        # Best-effort — never block watch creation.
+        try:
+            import backfill_alerter
+            bf = backfill_alerter.backfill_for_email(email, only_watcher_ids=[entry['id']])
+            if bf.get('sent'):
+                log.info(f"Backfill digest sent to {email} for new watch {entry['id']}: {bf['shown']} drops")
+        except Exception as e:
+            log.error(f"Backfill on watch-create failed for {email}: {e}")
     else:
         send_verification_email(entry)
 

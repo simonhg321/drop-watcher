@@ -605,6 +605,35 @@ class TestBackfill:
         assert res['matched_drops'] == 12
         assert res['shown'] == backfill_alerter.MAX_DROPS_PER_DIGEST
 
+    def test_resolve_drop_items_skips_sold_out(self):
+        # User watches can carry sold-out notable_items — must NOT be deep-linked.
+        from per_user_alerter import resolve_drop_items, _is_sold_out
+        assert _is_sold_out('CKF Peaceduke — SOLD OUT — $585') is True
+        assert _is_sold_out('CKF GTK Elementak — IN STOCK — $585') is False
+        assert _is_sold_out('Spyderco — NOTIFY ME') is True
+        drop = {'source': 'ncblade.com (user)', 'url': 'https://ncblade.com/x',
+                'notable_items': [
+                    'CKF Peaceduke 2.0 M398 — SOLD OUT — $700',
+                    'CKF GTK Elementak DLC M398 — IN STOCK — $585']}
+        items = resolve_drop_items(drop, ['ckf', 'm398'])
+        titles = ' '.join(it['title'] for it in items)
+        assert 'GTK Elementak' in titles
+        assert 'Peaceduke' not in titles      # sold-out item dropped from deep-links
+
+    def test_live_alert_email_deep_links_store_item(self):
+        # build_alert_email must deep-link a store item via link_candidates, not the page.
+        from per_user_alerter import build_alert_email
+        watcher = {'id': 'w1', 'name': 'Fan', 'email': 'f@x.com', 'unsubscribe_token': 'tok'}
+        drop = {'source': 'Knife Art', 'url': 'https://www.knifeart.com',
+                'page_summary': 'damascus in stock',
+                'notable_items': ['Spartan Harsey Folder Damascus - $450.00'],
+                'link_candidates': [
+                    {'text': 'Spartan Harsey Folder Damascus',
+                     'href': 'https://www.knifeart.com/products/spartan-harsey-damascus'}]}
+        subject, html, text = build_alert_email(watcher, ['damascus'], drop)
+        assert 'https://www.knifeart.com/products/spartan-harsey-damascus' in html
+        assert 'https://www.knifeart.com/products/spartan-harsey-damascus' in text
+
     def test_digest_items_deep_links(self):
         import backfill_alerter as ba
         # 1. structured products → real product URL
@@ -631,6 +660,39 @@ class TestBackfill:
         assert items[0]['price'] == '2,200.00'
         assert 'Heretic Hydra Damascus Recurve' in items[0]['title']
 
+        # 4. store collection w/ link_candidates → notable item resolves to its product
+        d4 = {'source': 'Knife Art', 'url': 'https://www.knifeart.com',
+              'notable_items': ['Spartan Harsey Folder Damascus - $450.00'],
+              'link_candidates': [
+                  {'text': 'Spartan Harsey Folder Damascus',
+                   'href': 'https://www.knifeart.com/products/spartan-harsey-folder-damascus'},
+                  {'text': 'Some Other Knife',
+                   'href': 'https://www.knifeart.com/products/some-other-knife'}]}
+        items = ba.digest_items(d4, ['damascus'])
+        assert items[0]['url'] == 'https://www.knifeart.com/products/spartan-harsey-folder-damascus'
+        assert items[0]['url'] != d4['url']               # deep-linked, not the homepage
+
+    def test_collection_fetch_returns_candidates_from_html(self):
+        # Non-Shopify HTML page → fetch_collection yields (text, None, candidates)
+        # with product anchors harvested for deep-linking.
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'agents'))
+        import collection_fetch
+        html = ('<html><body>'
+                '<a href="/products/chris-reeve-sebenza-31-damascus">CRK Sebenza 31 Damascus</a>'
+                '<a href="/cart">Cart</a>'
+                '<a href="/products/spartan-harsey-damascus">Spartan Harsey Damascus</a>'
+                '</body></html>')
+        def fake_fetch(url, ssl_permissive=False):
+            return html if 'products.json' not in url else None
+        text, products, candidates = collection_fetch.fetch_collection(
+            'https://examplestore.com/collections/all', fake_fetch)
+        assert text is not None
+        assert products is None                      # non-Shopify
+        hrefs = [c['href'] for c in candidates]
+        assert any('chris-reeve-sebenza-31-damascus' in h for h in hrefs)
+        assert all('/cart' not in h for h in hrefs)  # bad paths dropped
+
     def test_digest_includes_disclaimer(self):
         import backfill_alerter
         subject, html, text = backfill_alerter.build_backfill_digest(
@@ -640,6 +702,25 @@ class TestBackfill:
             assert 'info@instockornot.club' in body
             assert 'still being refined' in body
             assert 'better your keywords' in body
+
+    def test_backfill_scopes_to_only_watcher_ids(self, tmp_env):
+        import db, backfill_alerter, uuid
+        from datetime import datetime, timezone
+        # Two active global watches for one email: only the new one should be scanned.
+        tok = uuid.uuid4().hex
+        for kw, maker in [('ad22', 'Demko'), ('sebenza', 'Chris Reeve')]:
+            db.add_watcher({'id': kw[:6], 'email': 'multi@example.com', 'url': '',
+                            'keywords': kw, 'maker': maker, 'name': 'M', 'active': True,
+                            'unsubscribe_token': tok,
+                            'created': datetime.now(timezone.utc).isoformat(),
+                            'alert_count': 0, 'last_alert': None})
+        self._seed_drop(db, summary='WTS Demko AD22 compact')         # matches ad22 watch
+        self._seed_drop(db, summary='WTS Chris Reeve Sebenza 31', url='https://reddit.com/r/x/2')  # matches sebenza
+        with patch('backfill_alerter.send_email', return_value=True) as mock_send:
+            res = backfill_alerter.backfill_for_email('multi@example.com', only_watcher_ids=['ad22'])
+        # Only the ad22 watch's drop should be in scope → 1 matched drop, one send.
+        assert res['matched_drops'] == 1
+        assert mock_send.call_count == 1
 
     def test_test_addresses_excluded_by_default(self):
         import backfill_alerter

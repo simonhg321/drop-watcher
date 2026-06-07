@@ -33,3 +33,21 @@ real product URLs and every store item deep-links to the actual product, for all
 Existing corpus can't be backfilled (URLs were never stored).
 **Workaround in place:** reliable-links-only — real product URLs + Reddit/feed post URLs land
 on the item; store-collection items show exact name+price linked to the scraped page.
+**UPDATE 2026-06-07:** linkpick ported from Billboard (stark). `collection_fetch` now harvests
+product anchors into `link_candidates`; `per_user_alerter.resolve_drop_items` resolves matched
+items to real product pages (shared by live alert + backfill digest). Sold-out items are skipped
+(`_is_sold_out`). Deep-linking works for Shopify + non-Shopify stores + Reddit/feed.
+
+## BUG-010: No durable record of which emails/items we've sent → repeat alerts
+**Logged:** 2026-06-07
+**Severity:** Medium (user-facing — duplicate alerts erode trust)
+**Description:** The only dedup is the `cooldown` table keyed on (watcher_id, drop_url, matches)
+with a 6h TTL (`COOLDOWN_HOURS`). After 6h the same in-stock item can re-alert, and there is no
+permanent per-(user, item) sent-log. So a watcher can receive the same product repeatedly across
+days, and a manual resend (e.g. the S54 personal-note resend) has no way to know who already
+received a given item. `logs/alerts_sent.jsonl` exists but is stale/unused.
+**Fix:** add a durable `sent_items` table (watcher_id, item_url/key, first_sent, last_sent, count)
+written on every successful alert/digest send; consult it (not just the 6h cooldown) before
+sending. Lets us suppress lifetime repeats and gives resends an idempotency key.
+**Interim:** the S54 personal-note resend live-verifies availability at send time and is a
+deliberate one-off; it is not protected against re-running twice.

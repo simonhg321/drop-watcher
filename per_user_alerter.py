@@ -33,6 +33,7 @@ from matching import kw_matches
 from synonyms import kw_matches_any
 from urls import normalize_watch_url, domain_from_url
 from makers import expand_maker
+import linkpick
 import nkd
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
@@ -176,6 +177,81 @@ def select_matched_products(products, matches):
     return out
 
 
+_PRICE_RE = re.compile(r'\$[\d,]+(?:\.\d{2})?')
+
+# User-watch notable_items carry a status label and MAY include sold-out items (the
+# analyze_user_page prompt asks the AI to list them with status). We must never
+# deep-link those — a sold-out item lands on a dead/unbuyable page. Curated drops are
+# already in-stock-only, so this only ever fires on user watches.
+_SOLD_OUT_RE = re.compile(r'(sold[\s-]?out|out[\s-]?of[\s-]?stock|notify\s*me|unavailable|\boos\b)', re.I)
+
+
+def _is_sold_out(text):
+    """True if an item label signals it's not purchasable. 'in stock' never matches."""
+    return bool(_SOLD_OUT_RE.search(text or ''))
+
+
+def _split_title_price(text):
+    """Notable-item lines read like 'Maker Model Steel - $312.00 (in stock)'. Pull the
+    price out and trim the title to the part before the price tail."""
+    m = _PRICE_RE.search(text)
+    price = m.group(0).lstrip('$') if m else ''
+    title = text
+    if m:
+        idx = text.rfind(' - ', 0, m.start())
+        title = text[:idx] if idx != -1 else text[:m.start()]
+    return title.strip(' -–—'), price
+
+
+def item_page_link(drop):
+    """Most specific URL we can stand behind for a drop's item when no per-item URL
+    resolves: Reddit posts / feed entries ARE the listing; else the scraped page.
+    Never a fabricated /search (store search paths vary and 404)."""
+    return drop.get('entry_url') or drop.get('url') or ''
+
+
+def resolve_drop_items(drop, matches):
+    """Specific matched items for a drop, each {title, url, price}, deep-linked to the
+    actual product where possible. Single source of truth for both the live alert
+    email and the signup backfill digest. Returns [] when nothing item-level resolves
+    (caller decides whether to fall back to the page).
+
+    Priority:
+      1. structured Shopify products → canonical product URL
+      2. matched notable-item lines → deep-link via linkpick candidate resolution
+         (resolve by the product NAME, not the keyword — avoids the wrong-product bug)
+      3. keyword matched only the page excerpt → resolve one best candidate for the terms
+    """
+    prods = select_matched_products(drop.get('products') or [], matches)
+    if prods:
+        return [{'title': p.get('title') or p.get('url'),
+                 'url': p.get('url'),
+                 'price': p.get('price', '')} for p in prods]
+
+    candidates = drop.get('link_candidates') or []
+    link = item_page_link(drop)
+    items = []
+    needles = [m.lower() for m in matches if m]
+    for n in (drop.get('notable_items') or []):
+        if any(kw_matches(k, n.lower()) for k in needles):
+            if _is_sold_out(n):
+                continue   # never deep-link a sold-out item to a dead page
+            title, price = _split_title_price(n)
+            c = linkpick.best_candidate(candidates, linkpick.strip_status_prefix(title or n))
+            items.append({'title': title or n, 'url': (c['href'] if c else link), 'price': price})
+        if len(items) >= MATCHED_PRODUCTS_CAP:
+            break
+    if items:
+        return items
+
+    c = linkpick.resolve_alert_candidate(
+        candidates, notable_items=drop.get('notable_items'), keywords=matches)
+    if c:
+        title = linkpick.clean_title(c['text']) or linkpick.title_from_slug(c['href']) or drop.get('source', '')
+        return [{'title': title, 'url': c['href'], 'price': ''}]
+    return []
+
+
 def build_alert_email(watcher, matches, drop):
     name = watcher.get('name') or 'Watcher'
     url = drop.get('url', '')
@@ -191,10 +267,10 @@ def build_alert_email(watcher, matches, drop):
     notable      = drop.get('notable_items') or []
     safe_notable = [html_mod.escape(n) for n in notable[:5]]
 
-    # Deep-link to the specific in-stock products that matched the keyword(s).
-    # Only Shopify drops carry a structured product list (drop['products']); for
-    # everything else this stays empty and the email falls back to the page link.
-    matched_products = select_matched_products(drop.get('products') or [], matches)
+    # Deep-link to the specific in-stock items that matched. Shopify drops resolve via
+    # their structured product list; non-Shopify store drops resolve via scraped link
+    # candidates; Reddit/feed via the post URL. Empty → fall back to plain notable text.
+    matched_items = resolve_drop_items(drop, matches)
 
     nkd_html = ''
     nkd_text_line = ''
@@ -207,23 +283,16 @@ def build_alert_email(watcher, matches, drop):
       </p>'''
         nkd_text_line = f"\nDid you score one? Tell us: {nkd_url}\n"
 
-    notable_html = ''
-    if safe_notable:
-        items = ''.join(f'<li style="color:#e8e8e8;margin:4px 0">{n}</li>' for n in safe_notable)
-        notable_html = f'''
-      <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
-        <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Notable items</div>
-        <ul style="margin:0;padding-left:20px">{items}</ul>
-      </div>'''
-
-    # Matched items — direct deep-links to the in-stock products that matched.
+    # Matched items — deep-links to the specific in-stock items that matched. When
+    # nothing item-level resolves, fall back to the plain "Notable items" context list.
     matched_html = ''
-    if matched_products:
+    notable_html = ''
+    if matched_items:
         rows = ''
-        for p in matched_products:
-            p_url   = html_mod.escape(p.get('url', ''))
-            p_title = html_mod.escape(p.get('title', '') or p.get('url', ''))
-            price   = p.get('price', '')
+        for it in matched_items:
+            p_url   = html_mod.escape(it.get('url', ''))
+            p_title = html_mod.escape(it.get('title', '') or it.get('url', ''))
+            price   = it.get('price', '')
             price_s = f' <span style="color:#666">— ${html_mod.escape(str(price))}</span>' if price else ''
             rows += (f'<li style="margin:6px 0">'
                      f'<a href="{p_url}" style="color:#ff6b2b;text-decoration:none">{p_title}</a>'
@@ -232,6 +301,13 @@ def build_alert_email(watcher, matches, drop):
       <div style="background: #161616; border: 1px solid #2a1a0a; padding: 16px; margin: 20px 0;">
         <div style="color: #ff6b2b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Matched items — in stock now</div>
         <ul style="margin:0;padding-left:20px;list-style:none">{rows}</ul>
+      </div>'''
+    elif safe_notable:
+        items = ''.join(f'<li style="color:#e8e8e8;margin:4px 0">{n}</li>' for n in safe_notable)
+        notable_html = f'''
+      <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
+        <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Notable items</div>
+        <ul style="margin:0;padding-left:20px">{items}</ul>
       </div>'''
 
     email_html = f"""
@@ -279,11 +355,11 @@ def build_alert_email(watcher, matches, drop):
     """
 
     matched_text = ''
-    if matched_products:
+    if matched_items:
         lines = '\n'.join(
-            f"  - {p.get('title', '') or p.get('url', '')}"
-            f"{(' — $' + str(p.get('price'))) if p.get('price') else ''}\n    {p.get('url', '')}"
-            for p in matched_products
+            f"  - {it.get('title', '') or it.get('url', '')}"
+            f"{(' — $' + str(it.get('price'))) if it.get('price') else ''}\n    {it.get('url', '')}"
+            for it in matched_items
         )
         matched_text = f"Matched items (in stock now):\n{lines}\n\n"
 

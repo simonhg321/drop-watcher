@@ -35,6 +35,8 @@ from urllib.parse import urlparse, urljoin
 
 from bs4 import BeautifulSoup
 
+import linkpick
+
 SHOPIFY_LIMIT       = 100   # keep each products.json page well under fetch_page's 2MB cap
 SHOPIFY_MAX_PAGES   = 8      # up to 800 products — plenty for keyword watches
 HTML_MAX_PAGES      = 4     # generic ?page=N walk cap
@@ -48,6 +50,19 @@ def _strip_text(html):
     for tag in soup(_STRIP_TAGS):
         tag.decompose()
     return soup.get_text(separator=' ', strip=True)
+
+
+def _candidates_from_html(html, url):
+    """Product-looking anchors from a non-Shopify page, for deep-linking matched
+    items later (the alerter resolves the best one per matched product). Returns []
+    on any failure — candidates are a best-effort nicety, never a hard dependency."""
+    if not html:
+        return []
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+        return linkpick.extract_candidates(soup, url)
+    except Exception:
+        return []
 
 
 # ── Shopify ───────────────────────────────────────────────────────────────────
@@ -160,8 +175,12 @@ def _next_link(html, current_url):
 
 
 def fetch_paginated_html(url, fetch_page, ssl_permissive=False, log=None):
-    """Fetch page 1, then follow rel=next up to HTML_MAX_PAGES. Returns combined text."""
+    """Fetch page 1, then follow rel=next up to HTML_MAX_PAGES. Returns
+    (combined_text, candidates) — candidates are product-looking anchors harvested
+    from each page's raw html (before text-stripping) for deep-linking, deduped by
+    href across pages and capped. (None, []) if nothing fetched."""
     texts = []
+    cand_by_href = {}
     current = url
     pages = 0
     for _ in range(HTML_MAX_PAGES):
@@ -169,6 +188,8 @@ def fetch_paginated_html(url, fetch_page, ssl_permissive=False, log=None):
         if not html:
             break
         nxt = _next_link(html, current)        # read before stripping <link> tags
+        for c in _candidates_from_html(html, current):
+            cand_by_href.setdefault(c['href'], c)   # first (highest-ranked) wins
         texts.append(_strip_text(html))
         pages += 1
         if not nxt or nxt == current:
@@ -177,48 +198,52 @@ def fetch_paginated_html(url, fetch_page, ssl_permissive=False, log=None):
         if PAGE_SLEEP_SECONDS:
             time.sleep(PAGE_SLEEP_SECONDS)
     if not texts:
-        return None
+        return None, []
     if log and pages > 1:
         log.info(f"[collection_fetch] paginated HTML — walked {pages} pages for {url}")
-    return '\n'.join(texts)
+    return '\n'.join(texts), list(cand_by_href.values())[:linkpick.LINK_INDEX_MAX]
 
 
 # ── Orchestrator ────────────────────────────────────────────────────────────
 
 def fetch_collection(url, fetch_page, ssl_permissive=False, log=None):
-    """Pagination/Shopify-aware fetch. Returns (text, products).
+    """Pagination/Shopify-aware fetch. Returns (text, products, candidates).
 
     `text` is the combined page text (recovering JS-hidden products without a browser),
     or None if the URL could not be fetched at all. `products` is the structured list
     of {title, vendor, url, available, tags, price} when the page is a Shopify
     collection (for deep-linking matched items), else None — generic HTML pages don't
-    expose per-item URLs, so callers fall back to the collection link.
+    expose per-item URLs. `candidates` is a best-effort list of {text, href} product
+    anchors harvested from non-Shopify HTML so the alerter can still deep-link matched
+    items (resolved per matched product at alert time); [] for the Shopify path (its
+    products already carry canonical URLs).
     """
     try:
         text, products = fetch_shopify_collection(
             url, fetch_page, ssl_permissive=ssl_permissive, log=log)
         if text:
-            return text, products
+            return text, products, []
     except Exception as e:
         if log:
             log.warning(f"[collection_fetch] Shopify path failed for {url}: {e}")
 
     try:
-        paged = fetch_paginated_html(url, fetch_page, ssl_permissive=ssl_permissive, log=log)
+        paged, candidates = fetch_paginated_html(
+            url, fetch_page, ssl_permissive=ssl_permissive, log=log)
         if paged:
-            return paged, None
+            return paged, None, candidates
     except Exception as e:
         if log:
             log.warning(f"[collection_fetch] paginated path failed for {url}: {e}")
 
     html = fetch_page(url, ssl_permissive)
     if not html:
-        return None, None
-    return _strip_text(html), None
+        return None, None, []
+    return _strip_text(html), None, _candidates_from_html(html, url)
 
 
 def fetch_collection_text(url, fetch_page, ssl_permissive=False, log=None):
     """Text-only convenience wrapper around fetch_collection (back-compat)."""
-    text, _products = fetch_collection(
+    text, _products, _candidates = fetch_collection(
         url, fetch_page, ssl_permissive=ssl_permissive, log=log)
     return text

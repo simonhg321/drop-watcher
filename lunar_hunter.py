@@ -279,7 +279,7 @@ def scan_source(src):
     yield at most one page-level find linking to the collection.
     """
     scoped = src.get('scoped', True)
-    text, products = collection_fetch.fetch_collection(src['url'], fetch_page, log=log)
+    text, products, _candidates = collection_fetch.fetch_collection(src['url'], fetch_page, log=log)
     if text is None:
         log.warning(f"{src['name']} — unreachable")
         return []

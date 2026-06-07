@@ -366,7 +366,7 @@ def run():
             log.info(f"Checking {name} in {sleep_time}s...")
             time.sleep(sleep_time)
 
-            text, products = collection_fetch.fetch_collection(
+            text, products, candidates = collection_fetch.fetch_collection(
                 url, fetch_page, ssl_permissive=ssl_permissive, log=log)
             if text is None:
                 failure_count[url] = failure_count.get(url, 0) + 1
@@ -403,6 +403,7 @@ def run():
                             result['event'] = 'baseline_stock_found'
                             result['page_excerpt'] = text[:6000]
                             result['products'] = instock_products(products)
+                            result['link_candidates'] = candidates
                             if result.get('priority') == 'critical':
                                 result['priority'] = 'high'
                             write_alert(settings, result)
@@ -446,6 +447,7 @@ def run():
                     result['event'] = 'page_changed'
                     result['page_excerpt'] = text[:6000]
                     result['products'] = instock_products(products)
+                    result['link_candidates'] = candidates
                     summary = (result.get('page_summary') or '') + ((result.get('drop_announcement') or {}).get('description') or '')
                     if is_content_seen(name, summary):
                         log.info(f"{name} — content unchanged since last alert, suppressing duplicate")
@@ -481,7 +483,7 @@ def run():
             log.info(f"Checking user site {uname} in {sleep_time}s (keywords: {', '.join(user_kws)})...")
             time.sleep(sleep_time)
 
-            text, products = collection_fetch.fetch_collection(uurl, fetch_page, log=log)
+            text, products, candidates = collection_fetch.fetch_collection(uurl, fetch_page, log=log)
             if text is None:
                 failure_count[uurl] = failure_count.get(uurl, 0) + 1
                 # Record the attempt so a failing URL is throttled by the poll
@@ -544,6 +546,7 @@ def run():
                     result['event'] = 'user_watch_alert'
                     result['page_excerpt'] = text[:6000]
                     result['products'] = instock_products(products)
+                    result['link_candidates'] = candidates
                     write_alert(settings, result)
                     mark_content_seen(uname, summary)
                     mark_items_seen(uname, new_items)

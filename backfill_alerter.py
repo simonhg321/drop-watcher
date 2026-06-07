@@ -19,16 +19,14 @@ HGR
 import argparse
 import html as html_mod
 import logging
-import re
 from datetime import datetime, timezone
 
 import db
-from matching import kw_matches
 from per_user_alerter import (
     matches_for_watcher_drop,
     cooldown_key,
-    select_matched_products,
-    MATCHED_PRODUCTS_CAP,
+    resolve_drop_items,
+    item_page_link,
     disclaimer_html,
     DISCLAIMER_TEXT,
     COOLDOWN_HOURS,
@@ -100,72 +98,66 @@ def find_backfill_matches(watchers, drops):
     return shown, tuples
 
 
-_PRICE_RE = re.compile(r'\$[\d,]+(?:\.\d{2})?')
-
-
-def _split_title_price(text):
-    """Notable-item lines read like 'Maker Model Steel - $312.00 (in stock)'. Pull the
-    price out and trim the title to the part before the price tail."""
-    m = _PRICE_RE.search(text)
-    price = m.group(0).lstrip('$') if m else ''
-    title = text
-    if m:
-        idx = text.rfind(' - ', 0, m.start())
-        title = text[:idx] if idx != -1 else text[:m.start()]
-    return title.strip(' -–—'), price
-
-
-def _item_link(drop):
-    """The most specific URL we can stand behind for a notable item. Reddit posts and
-    feed entries ARE the listing, so use that; otherwise the actual page we scraped.
-    We deliberately do NOT fabricate /search URLs — store search paths vary and a
-    guessed link 404s (verified: Edgeworks works, EDC Lifestyle + Knife Art do not).
-    A working page beats a dead product guess."""
-    return drop.get('entry_url') or drop.get('url') or ''
-
-
 def digest_items(drop, matches):
-    """Resolve a drop into the specific matched items to show, each with the best
-    link we can stand behind. Priority: structured product URLs → matched notable-item
-    lines (name + price, linked to the post/page) → the page itself as a last resort."""
-    prods = select_matched_products(drop.get('products') or [], matches)
-    if prods:
-        return [{'title': p.get('title') or p.get('url'),
-                 'url': p.get('url'),
-                 'price': p.get('price', '')} for p in prods]
-
-    link = _item_link(drop)
-    items = []
-    needles = [m.lower() for m in matches if m]
-    for n in (drop.get('notable_items') or []):
-        nl = n.lower()
-        if any(kw_matches(k, nl) for k in needles):
-            title, price = _split_title_price(n)
-            items.append({'title': title or n, 'url': link, 'price': price})
-        if len(items) >= MATCHED_PRODUCTS_CAP:
-            break
+    """Specific matched items for the digest, each {title, url, price}, deep-linked via
+    the shared resolver (per_user_alerter.resolve_drop_items). The digest always shows
+    something, so when nothing item-level resolves it falls back to a single page row
+    (the live alert email instead drops the section and relies on its View Page button)."""
+    items = resolve_drop_items(drop, matches)
     if items:
         return items
-
-    # Keyword matched the page excerpt, not a discrete notable item — link the page.
+    link = item_page_link(drop)
     return [{'title': drop.get('source', '') or link, 'url': link, 'price': ''}]
 
 
-def build_backfill_digest(name, shown, unsub_token):
+def _is_still_available(url):
+    """Best-effort REAL-TIME availability for a product URL, checked at send time.
+    Returns True/False, or None when we can't cheaply tell (caller keeps None — only
+    confirmed-sold items are dropped). Uses Shopify's per-product `.js` endpoint; for
+    non-Shopify / Reddit / collection URLs we can't check cheaply, so → None (keep)."""
+    if not url or '/products/' not in url.lower():
+        return None
+    try:
+        import httpx
+        base = url.split('?')[0].rstrip('/')
+        r = httpx.get(base + '.js', headers={'User-Agent': 'Mozilla/5.0'},
+                      timeout=12, follow_redirects=True)
+        if r.status_code != 200:
+            return None
+        return bool(r.json().get('available'))
+    except Exception:
+        return None
+
+
+def build_backfill_digest(name, shown, unsub_token, note=None, verify=False):
     """One digest email listing drops already in stock that match the watcher.
-    `shown` is a list of (matches, drop). Returns (subject, html, text)."""
+    `shown` is a list of (matches, drop).
+      note   — optional personal note prepended above the results.
+      verify — when True, re-check each item's current availability at send time
+               (Shopify .js) and drop confirmed-sold items / now-empty drops.
+    Returns (subject, html, text)."""
     safe_name = html_mod.escape(name or 'Watcher')
-    n = len(shown)
+
+    # Resolve (and optionally live-verify) each drop's items up front so the subject
+    # count and the body agree after any sold-since-scrape items are dropped.
+    rows = []
+    for matches, drop in shown:
+        items = digest_items(drop, matches)
+        if verify:
+            items = [it for it in items if _is_still_available(it.get('url')) is not False]
+        if not items:
+            continue
+        rows.append((matches, drop, items))
+
+    n = len(rows)
     subject = f"[DROP WATCHER] {n} match{'es' if n != 1 else ''} already in stock"
 
     rows_html = ''
     rows_text = ''
-    for matches, drop in shown:
+    for matches, drop, items in rows:
         src = html_mod.escape(drop.get('source', ''))
         kw = '  ·  '.join(html_mod.escape(m) for m in matches)
 
-        # Resolve to the specific matched items, each with a product-landing link.
-        items = digest_items(drop, matches)
         li_html = ''.join(
             f'<li style="margin:6px 0"><a href="{html_mod.escape(it["url"])}" '
             f'style="color:#ff8c42;text-decoration:none">{html_mod.escape(it["title"])}</a>'
@@ -188,11 +180,19 @@ def build_backfill_digest(name, shown, unsub_token):
             f"{items_text}\n\n"
         )
 
+    note_html = ''
+    if note:
+        note_body = html_mod.escape(note).replace('\n', '<br>')
+        note_html = (f'<div style="background:#11161c;border-left:3px solid #e67e22;'
+                     f'padding:14px 16px;margin:0 0 20px;color:#d7d7d7;font-size:13px;'
+                     f'line-height:1.6;white-space:normal">{note_body}</div>')
+
     html = f"""
     <div style="font-family:monospace;background:#0a0a0a;color:#e8e8e8;padding:24px;max-width:600px">
       <h2 style="color:#ff2d2d;margin:0 0 16px">⚡ DROP WATCHER</h2>
       <p style="color:#aaa;margin:0 0 20px;font-size:13px">instockornot.club</p>
-      <p>Hey {safe_name} — you're live. Here's what's <strong>already in stock</strong>
+      {note_html}
+      <p>Hey {safe_name} — here's what's <strong>already in stock</strong>
          matching your watch{'es' if n != 1 else ''} right now:</p>
       {rows_html}
       <p style="margin:20px 0 0">
@@ -207,9 +207,11 @@ def build_backfill_digest(name, shown, unsub_token):
     </div>
     """
 
+    note_text = f"{note}\n\n{'-'*60}\n\n" if note else ''
     text = (
         f"DROP WATCHER — already in stock\n\n"
-        f"Hey {name or 'Watcher'} — you're live. Here's what already matches your "
+        f"{note_text}"
+        f"Hey {name or 'Watcher'} — here's what already matches your "
         f"watch{'es' if n != 1 else ''} right now:\n\n"
         f"{rows_text}"
         f"{DISCLAIMER_TEXT}\n"
@@ -219,13 +221,18 @@ def build_backfill_digest(name, shown, unsub_token):
     return subject, html, text
 
 
-def backfill_for_email(email, days=LOOKBACK_DAYS, dry_run=False, bcc=None):
-    """Match every active watch for `email` against the last `days` of drops and send
-    one digest of what is already in stock. Idempotent via per-(watcher,url,matches)
-    cooldown. `bcc` is an optional list of addresses to blind-copy (ops/audit).
-    Returns a summary dict; never raises on no-match (returns sent=False)."""
+def backfill_for_email(email, days=LOOKBACK_DAYS, dry_run=False, bcc=None,
+                       only_watcher_ids=None):
+    """Match active watches for `email` against the last `days` of drops and send one
+    digest of what is already in stock. Idempotent via per-(watcher,url,matches)
+    cooldown. `bcc` blind-copies (ops/audit). `only_watcher_ids` scopes to specific
+    watch ids (used when an already-verified user adds ONE new watch — so we don't
+    re-scan their existing watches). Returns a summary dict; never raises on no-match."""
     email_l = email.lower()
     watchers = [w for w in db.get_active_watchers() if w['email'].lower() == email_l]
+    if only_watcher_ids is not None:
+        wanted = set(only_watcher_ids)
+        watchers = [w for w in watchers if w['id'] in wanted]
     result = {'email': email, 'matched_drops': 0, 'shown': 0, 'sent': False}
     if not watchers:
         result['reason'] = 'no active watches'
