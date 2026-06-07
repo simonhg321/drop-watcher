@@ -42,6 +42,13 @@ OFFICIAL = {
     'Prometheus Design Werx':     'https://prometheusdesignwerx.com',
     'Tactile Knife Co':           'https://www.tactileknife.com',
     'Oz Machine Company':         'https://ozmachinecompany.com',
+    # Blade Show 2026 additions — verified maker-direct URLs from sources.yaml
+    'Holt Bladeworks':            'https://holtbladeworks.com',
+    'Grimsmo Knives':             'https://grimsmoknives.com',
+    'Koenig Knives':              'https://koenigknives.com',
+    'Zero Tolerance':             'https://www.zt.kaiusa.com/all-products.html',
+    'Iron Ethos':                 'https://ironethos.com',
+    'Chaves Knives':              'https://chavesknives.com',
 }
 
 TIER_LABELS = {
@@ -56,11 +63,19 @@ def parse_tiers():
     tiers = []          # [(label, [names])]
     current = None
     for line in open(MAKERS_YAML):
-        m = re.search(r'Tier\s*([123])', line)
-        if line.lstrip().startswith('#') and m:
-            current = (TIER_LABELS[m.group(1)], [])
-            tiers.append(current)
-            continue
+        if line.lstrip().startswith('#'):
+            m = re.search(r'Tier\s*([123])', line)
+            if m:
+                current = (TIER_LABELS[m.group(1)], [])
+                tiers.append(current)
+                continue
+            # Any other box-drawing header ("# ── Label ──") starts its own section
+            # (e.g. "Blade Show 2026 — Hot Makers"). Label = text between the rules.
+            h = re.search(r'#\s*─+\s*(\S.*?)\s*─+\s*$', line)
+            if h:
+                current = (h.group(1), [])
+                tiers.append(current)
+                continue
         if line.startswith('collaborations:'):
             current = None
             continue
@@ -86,15 +101,22 @@ def render():
     total   = sum(len(names) for _, names in tiers)
 
     sections = ''
+    seen = set()   # dedupe: a maker renders once even if it appears under two headers
     for label, names in tiers:
         cards = ''
         for name in names:
+            key = name.strip().lower()
+            if key in seen:
+                continue
+            seen.add(key)
             url, official = link_for(name)
             tag = ('<span class="badge official">official site ↗</span>' if official
                    else '<span class="badge search">search ↗</span>')
             cards += (f'      <a class="maker" href="{html_mod.escape(url)}" '
                       f'target="_blank" rel="noopener">'
                       f'<span class="mname">{html_mod.escape(name)}</span>{tag}</a>\n')
+        if not cards:        # skip empty sections (e.g. the Collaborations header,
+            continue         # whose entries render below via parse_collabs)
         sections += (f'  <div class="section-head">{html_mod.escape(label.upper())}</div>\n'
                      f'    <div class="grid">\n{cards}    </div>\n')
 
@@ -150,7 +172,7 @@ def render():
 </head>
 <body>
   <h1>OUR COOL <span>MAKERS</span></h1>
-  <p class="subtitle">Every maker Drop Watcher follows, in one list — {total} names across three tiers.
+  <p class="subtitle">Every maker Drop Watcher follows, in one list — {total} names, including our Blade Show 2026 additions.
     Save it, bookmark it, chase the grails yourself.</p>
   <div class="flame-line"></div>
 
