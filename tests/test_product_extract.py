@@ -93,3 +93,53 @@ def test_from_structured_data_malformed_block_skipped():
     </head></html>'''
     items = product_extract.from_structured_data(html, "https://x.com")
     assert {i["title"] for i in items} == {"Valid Knife"}   # malformed skipped, valid kept
+
+
+# ── Task 3: from_product_cards (tier 3 — generic + hints) ───────────────────
+
+# Lamnia-style: server-rendered /p/ anchors with prices nearby.
+CARDS_HTML = """
+<html><body>
+<div class="grid">
+  <div class="card"><a href="/en/p/121417/microtech-socom-elite-orange">Microtech Socom Elite Orange</a>
+    <span class="price">$405.24</span></div>
+  <div class="card"><a href="/en/p/118377/trc-apocalypse-prime">TRC Apocalypse Prime</a>
+    <span class="price">$312.00</span><span>Sold out</span></div>
+</div>
+<a href="/cart">Cart</a>
+</body></html>
+"""
+
+HINTS_HTML = """
+<html><body>
+<li class="prod"><h3 class="t">Widget A</h3><a class="lnk" href="/shop/widget-a">link</a>
+  <em class="p">$10.00</em></li>
+<li class="prod"><h3 class="t">Widget B</h3><a class="lnk" href="/shop/widget-b">link</a>
+  <em class="p">$20.00</em></li>
+</body></html>
+"""
+
+
+def test_from_product_cards_generic():
+    items = product_extract.from_product_cards(CARDS_HTML, "https://www.lamnia.com")
+    by_title = {i["title"]: i for i in items}
+    assert by_title["Microtech Socom Elite Orange"]["url"] == \
+        "https://www.lamnia.com/en/p/121417/microtech-socom-elite-orange"
+    assert by_title["Microtech Socom Elite Orange"]["price"] == "405.24"
+    assert by_title["Microtech Socom Elite Orange"]["available"] is True
+    assert by_title["TRC Apocalypse Prime"]["available"] is False  # "Sold out" nearby
+    # The /cart nav anchor must NOT become a product.
+    assert all("/cart" not in i["url"] for i in items)
+
+
+def test_from_product_cards_with_hints():
+    hints = {"card": "li.prod", "title": "h3.t", "link": "a.lnk", "price": "em.p"}
+    items = product_extract.from_product_cards(HINTS_HTML, "https://x.com", hints=hints)
+    by_title = {i["title"]: i for i in items}
+    assert by_title["Widget A"]["url"] == "https://x.com/shop/widget-a"
+    assert by_title["Widget B"]["price"] == "20.00"
+
+
+def test_from_product_cards_empty_when_no_products():
+    assert product_extract.from_product_cards(
+        "<html><body><a href='/about'>About</a></body></html>", "https://x.com") == []
