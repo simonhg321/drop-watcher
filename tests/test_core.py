@@ -476,6 +476,181 @@ class TestAlertMatching:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 2b. BACKFILL-ON-SIGNUP (backfill_alerter.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestMatchesForWatcherDrop:
+    """The shared matching primitive used by both live alerter and backfill."""
+
+    def test_global_needs_maker_and_keyword(self):
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Demko', 'keywords': 'ad22, compact'}
+        hit = {'source': 'Reddit', 'url': 'https://reddit.com/x',
+               'page_summary': 'WTS Demko AD22 compact', 'notable_items': []}
+        assert sorted(matches_for_watcher_drop(w, hit)) == ['ad22', 'compact']
+
+    def test_global_no_maker_mention_no_match(self):
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Demko', 'keywords': 'ad22, compact'}
+        # keyword present but maker (Demko) absent → global watch must not fire
+        miss = {'source': 'Reddit', 'url': 'https://reddit.com/x',
+                'page_summary': 'WTS a compact knife', 'notable_items': []}
+        assert matches_for_watcher_drop(w, miss) == []
+
+    def test_global_skips_user_drops(self):
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Demko', 'keywords': 'ad22'}
+        user_drop = {'source': 'someshop.com (user)', 'url': 'https://someshop.com',
+                     'page_summary': 'Demko AD22', 'notable_items': []}
+        assert matches_for_watcher_drop(w, user_drop) == []
+
+    def test_url_watch_needs_domain_and_keyword(self):
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'u1', 'url': 'https://knifejoy.com/c/hinderer',
+             'maker': '', 'keywords': 'damascus'}
+        same = {'source': 'KnifeJoy', 'url': 'https://knifejoy.com/c/hinderer',
+                'page_summary': 'New damascus xm-18', 'notable_items': []}
+        other = {'source': 'Other', 'url': 'https://elsewhere.com/x',
+                 'page_summary': 'damascus', 'notable_items': []}
+        assert matches_for_watcher_drop(w, same) == ['damascus']
+        assert matches_for_watcher_drop(w, other) == []
+
+
+class TestBackfill:
+    """backfill_alerter.py — one-time match against recent drop corpus."""
+
+    def _seed_global_watcher(self, db, email='fan@example.com', alert_count=0):
+        import uuid
+        from datetime import datetime, timezone
+        wid = uuid.uuid4().hex[:8]
+        db.add_watcher({
+            'id': wid, 'email': email, 'url': '', 'keywords': 'ad22, compact',
+            'maker': 'Demko', 'name': 'Fan', 'active': True,
+            'unsubscribe_token': uuid.uuid4().hex,
+            'created': datetime.now(timezone.utc).isoformat(),
+            'alert_count': alert_count, 'last_alert': None,
+        })
+        return wid
+
+    def _seed_drop(self, db, summary='WTS Demko AD22 compact', url='https://reddit.com/r/knife_swap/1'):
+        from datetime import datetime, timezone
+        db.add_drop({
+            'source': 'Reddit r/knife_swap', 'url': url,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'priority': 'medium', 'page_summary': summary, 'notable_items': [],
+        })
+
+    def test_dry_run_sends_nothing_but_reports(self, tmp_env):
+        import db, backfill_alerter
+        self._seed_global_watcher(db)
+        self._seed_drop(db)
+        with patch('backfill_alerter.send_email') as mock_send:
+            res = backfill_alerter.backfill_for_email('fan@example.com', dry_run=True)
+        mock_send.assert_not_called()
+        assert res['matched_drops'] == 1
+        assert res['sent'] is False
+
+    def test_real_run_sends_digest_and_marks(self, tmp_env):
+        import db, backfill_alerter
+        wid = self._seed_global_watcher(db)
+        self._seed_drop(db)
+        with patch('backfill_alerter.send_email', return_value=True) as mock_send:
+            res = backfill_alerter.backfill_for_email('fan@example.com')
+        assert mock_send.call_count == 1
+        assert res['sent'] is True
+        # counter bumped, last_alert set
+        w = db.get_watcher_by_id(wid)
+        assert w['alert_count'] == 1
+        assert w['last_alert'] is not None
+
+    def test_no_match_no_email(self, tmp_env):
+        import db, backfill_alerter
+        self._seed_global_watcher(db)
+        self._seed_drop(db, summary='WTS a random spyderco')  # no Demko mention
+        with patch('backfill_alerter.send_email', return_value=True) as mock_send:
+            res = backfill_alerter.backfill_for_email('fan@example.com')
+        mock_send.assert_not_called()
+        assert res['sent'] is False
+
+    def test_cooldown_active_skipped(self, tmp_env):
+        import db, backfill_alerter
+        from per_user_alerter import cooldown_key
+        wid = self._seed_global_watcher(db)
+        self._seed_drop(db, url='https://reddit.com/r/knife_swap/1')
+        # Pre-mark cooldown for the exact (watcher,url,matches) tuple
+        ck = cooldown_key(wid, 'https://reddit.com/r/knife_swap/1', ['ad22', 'compact'])
+        db.mark_cooldown(ck, recipient='fan@example.com')
+        with patch('backfill_alerter.send_email', return_value=True) as mock_send:
+            res = backfill_alerter.backfill_for_email('fan@example.com')
+        mock_send.assert_not_called()
+        assert res['sent'] is False
+
+    def test_send_failure_does_not_mark(self, tmp_env):
+        import db, backfill_alerter
+        wid = self._seed_global_watcher(db)
+        self._seed_drop(db)
+        with patch('backfill_alerter.send_email', return_value=False):
+            res = backfill_alerter.backfill_for_email('fan@example.com')
+        assert res['sent'] is False
+        w = db.get_watcher_by_id(wid)
+        assert w['alert_count'] == 0  # not bumped on failed send
+
+    def test_digest_caps_drops(self, tmp_env):
+        import db, backfill_alerter
+        self._seed_global_watcher(db)
+        for i in range(12):
+            self._seed_drop(db, url=f'https://reddit.com/r/knife_swap/{i}')
+        with patch('backfill_alerter.send_email', return_value=True):
+            res = backfill_alerter.backfill_for_email('fan@example.com')
+        assert res['matched_drops'] == 12
+        assert res['shown'] == backfill_alerter.MAX_DROPS_PER_DIGEST
+
+    def test_digest_items_deep_links(self):
+        import backfill_alerter as ba
+        # 1. structured products → real product URL
+        d1 = {'source': 'NCBlade', 'url': 'https://ncblade.com/collections/ckf',
+              'products': [{'title': 'CKF Damascus', 'url': 'https://ncblade.com/products/ckf-damascus',
+                            'price': '900', 'available': True, 'tags': ['damascus']}]}
+        items = ba.digest_items(d1, ['damascus'])
+        assert items[0]['url'] == 'https://ncblade.com/products/ckf-damascus'
+
+        # 2. Reddit post → the drop url IS the listing
+        d2 = {'source': 'Reddit r/knife_swap',
+              'url': 'https://www.reddit.com/r/Knife_Swap/comments/abc/wts_damascus/',
+              'notable_items': ['Pro-Tech Damascus - $3,495']}
+        items = ba.digest_items(d2, ['damascus'])
+        assert items[0]['url'] == d2['url']
+        assert items[0]['price'] == '3,495'
+
+        # 3. Store collection w/o product URL → show the item name+price, link the real
+        #    scraped page (we do NOT fabricate /search URLs — they 404 on many stores).
+        d3 = {'source': 'EDC Lifestyle', 'url': 'https://www.edclifestyle.com/pre-owned/',
+              'notable_items': ['Heretic Hydra Damascus Recurve - $2,200.00 (in stock)']}
+        items = ba.digest_items(d3, ['damascus'])
+        assert items[0]['url'] == d3['url']               # the real page, never a guess
+        assert items[0]['price'] == '2,200.00'
+        assert 'Heretic Hydra Damascus Recurve' in items[0]['title']
+
+    def test_digest_includes_disclaimer(self):
+        import backfill_alerter
+        subject, html, text = backfill_alerter.build_backfill_digest(
+            'Fan', [(['ad22'], {'source': 'Reddit', 'url': 'https://x.com',
+                                'page_summary': 'Demko AD22'})], 'tok123')
+        for body in (html, text):
+            assert 'info@instockornot.club' in body
+            assert 'still being refined' in body
+            assert 'better your keywords' in body
+
+    def test_test_addresses_excluded_by_default(self):
+        import backfill_alerter
+        emails = ['fan@example.com', 'info@instockornot.club', 'simonhg@gmail.com']
+        kept = backfill_alerter.filter_test_addresses(emails, include_tests=False)
+        assert kept == ['fan@example.com']
+        kept_all = backfill_alerter.filter_test_addresses(emails, include_tests=True)
+        assert kept_all == emails
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 3. AI INTERPRETER OUTPUT PARSING
 # ═══════════════════════════════════════════════════════════════════════════════
 

@@ -275,6 +275,8 @@ def send_verification_email(entry):
         f"Confirm your Drop Watcher alerts:\n  {verify_url}\n\n"
         f"Once confirmed, we'll start watching your page every 30 minutes.\n"
         f"When your keywords show up, you'll get an email immediately.\n\n"
+        f"Tip: the better your keywords, the better the results — specific maker names,\n"
+        f"models, and steels match far more cleanly than broad words.\n\n"
         f"HGR\ninstockornot.club\n"
     )
     body_html = (
@@ -284,6 +286,7 @@ def send_verification_email(entry):
         f'<p style="color:#d0d0d0;font-size:16px">Hey {safe_name} — one click to confirm.</p>' +
         f'<div style="text-align:center;margin:24px 0"><a href="{verify_url}" style="background:#c0392b;color:#fff;padding:16px 32px;text-decoration:none;font-size:14px;letter-spacing:2px;display:inline-block">CONFIRM ALERTS</a></div>' +
         '<p style="color:#888;font-size:13px;line-height:1.7">Once confirmed, we start watching your page every 30 minutes. When your keywords appear, you get an email right away.</p>' +
+        '<p style="color:#e8e8e8;font-size:13px;line-height:1.7;margin-top:12px"><strong>Tip:</strong> the better your keywords, the better the results — specific maker names, models, and steels match far more cleanly than broad words.</p>' +
         '<p style="color:#888;font-size:12px;margin-top:12px">If you did not sign up for Drop Watcher, ignore this email.</p>' +
         '<div style="margin-top:32px;padding-top:16px;border-top:1px solid #2a2a2a;text-align:center;color:#c0392b;font-size:16px;font-weight:bold">HGR</div>' +
         '</body></html>'
@@ -709,6 +712,18 @@ def verify(token):
     db.update_watchers_by_email(verified_email, active=True, verify_token=None)
     log.info(f"Verified: {w['email']} — activated all watches for this email")
     send_confirmation_email(w)
+
+    # Backfill: the live alerter only looks at the last ~15 min of drops, so a brand-new
+    # watcher would hear nothing until a fresh matching drop lands. Send a one-time digest
+    # of what's ALREADY in stock matching their watches. Best-effort — a backfill failure
+    # must never break verification.
+    try:
+        import backfill_alerter
+        bf = backfill_alerter.backfill_for_email(verified_email)
+        if bf.get('sent'):
+            log.info(f"Backfill digest sent to {verified_email}: {bf['shown']} drops")
+    except Exception as e:
+        log.error(f"Backfill on verify failed for {verified_email}: {e}")
 
     matches = quick_keyword_check(w['url'], w['keywords'])
     match_msg = ''

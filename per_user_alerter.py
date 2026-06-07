@@ -77,6 +77,80 @@ def global_watch_matches(maker, keywords_str, searchable_text):
     return keywords_match(searchable_text, keywords_str)
 
 
+def disclaimer_html():
+    """Early-days disclaimer + feedback ask, shared by every results email (live
+    alert + signup backfill) so the message stays consistent."""
+    return (
+        '<p style="color:#e8e8e8;font-size:12px;line-height:1.6;margin-top:24px;'
+        'border-top:1px solid #222;padding-top:16px">'
+        'These results are brand new and instockornot.club is still being refined — '
+        'we expect matches to get sharper the more Drop Watcher is used, and '
+        '<strong>the better your keywords, the better the results</strong>. '
+        'We\'re grateful to our new users. Got feedback? We\'d love it: '
+        '<a href="mailto:info@instockornot.club" style="color:#ff8c42">info@instockornot.club</a>'
+        '</p>'
+    )
+
+
+DISCLAIMER_TEXT = (
+    "\n--\n"
+    "These results are brand new and instockornot.club is still being refined — we expect\n"
+    "matches to get sharper the more Drop Watcher is used, and the better your keywords, the\n"
+    "better the results. We're grateful to our new users.\n"
+    "Got feedback? We'd love it: info@instockornot.club\n"
+)
+
+
+def drop_searchable_text(drop):
+    """Lowercased blob of a drop's real page content used for keyword matching:
+    prose summary + notable items + the AI's detected keyword hits + page excerpt.
+    Single source of truth so the live alerter and the signup backfill search the
+    exact same text."""
+    summary  = (drop.get('page_summary') or '').lower()
+    notable  = ' '.join(drop.get('notable_items') or []).lower()
+    kw_found = ' '.join(drop.get('keywords_found') or []).lower()
+    excerpt  = (drop.get('page_excerpt') or '').lower()
+    return f"{summary} {notable} {kw_found} {excerpt}"
+
+
+def matches_for_watcher_drop(watcher, drop):
+    """Matched keywords for ONE watcher against ONE drop, or [] if no match.
+
+    Pure: no cooldown, no I/O. This is the single matching decision shared by the
+    live windowed alerter (run) and the signup backfill (backfill_alerter), so the
+    two can never diverge on what counts as a match. Encapsulates the
+    global-vs-URL-scoped branch and user-drop scoping.
+    """
+    w_url = (watcher.get('url') or '').lower()
+    kws   = watcher.get('keywords', '')
+    maker = watcher.get('maker', '')
+    is_global = not w_url
+
+    drop_url     = (drop.get('url') or '').lower()
+    is_user_drop = (drop.get('source') or '').endswith('(user)')
+    searchable   = drop_searchable_text(drop)
+
+    if is_global:
+        # Global watch: match maker+cool-list against EVERY curated drop.
+        # Skip user-watch drops (those belong to their exact-URL owner).
+        if is_user_drop:
+            return []
+        return global_watch_matches(maker, kws, searchable)
+
+    # URL-scoped watch. A user-watch drop is produced from ONE specific page, so it
+    # may only match the watcher of that exact URL — otherwise two watches on the
+    # same domain cross-contaminate now that searchable includes the full excerpt.
+    # Curated/feed drops still fan out to every watcher on the domain.
+    w_domain = domain_from_url(w_url)
+    w_norm   = normalize_watch_url(w_url)
+    if is_user_drop:
+        if not w_norm or w_norm != normalize_watch_url(drop_url):
+            return []
+    elif not w_domain or w_domain != domain_from_url(drop_url):
+        return []
+    return keywords_match(searchable, kws)
+
+
 MATCHED_PRODUCTS_CAP = 8
 
 def select_matched_products(products, matches):
@@ -191,6 +265,8 @@ def build_alert_email(watcher, matches, drop):
       </p>
       {nkd_html}
 
+      {disclaimer_html()}
+
       <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
       <p style="color: #888; font-size: 12px;">
         Still want these alerts?
@@ -221,6 +297,7 @@ def build_alert_email(watcher, matches, drop):
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"{nkd_text_line}"
+        f"{DISCLAIMER_TEXT}"
         f"Keep this watch alive: https://instockornot.club/api/ack/{unsub_token}\n"
         f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
     )
@@ -250,51 +327,15 @@ def run():
 
     for watcher in active:
         wid   = watcher['id']
-        w_url = watcher.get('url', '').lower()
-        kws   = watcher.get('keywords', '')
         email = watcher['email']
-        maker = watcher.get('maker', '')
 
-        is_global = not w_url
         for drop in drops:
             drop_url    = (drop.get('url') or '').lower()
             drop_domain = domain_from_url(drop_url)
-            is_user_drop = (drop.get('source') or '').endswith('(user)')
 
-            # Build searchable text from the real page content (excerpt + the AI's
-            # detected keyword hits), not just its prose summary — so literal keywords
-            # like "damascus" or "add to cart" match what's actually on the page.
-            summary   = (drop.get('page_summary') or '').lower()
-            notable   = ' '.join(drop.get('notable_items') or []).lower()
-            kw_found  = ' '.join(drop.get('keywords_found') or []).lower()
-            excerpt   = (drop.get('page_excerpt') or '').lower()
-            searchable = f"{summary} {notable} {kw_found} {excerpt}"
-
-            if is_global:
-                # Global watch: match maker+cool-list against EVERY curated drop.
-                # Skip user-watch drops (those belong to their exact-URL owner).
-                if is_user_drop:
-                    continue
-                matches = global_watch_matches(maker, kws, searchable)
-                if not matches:
-                    continue
-            else:
-                # w_domain/w_norm are only needed for the non-global (URL-scoped) path.
-                w_domain = domain_from_url(w_url)
-                w_norm   = normalize_watch_url(w_url)
-                # Match scope: a user-watch drop is produced from ONE specific page, so it
-                # may only match the watcher of that exact URL — otherwise two watches on
-                # the same domain (different paths/keywords) cross-contaminate now that the
-                # searchable text includes the full page excerpt. Curated/feed drops still
-                # fan out to every watcher on the domain.
-                if is_user_drop:
-                    if not w_norm or w_norm != normalize_watch_url(drop_url):
-                        continue
-                elif not w_domain or w_domain != drop_domain:
-                    continue
-                matches = keywords_match(searchable, kws)
-                if not matches:
-                    continue
+            matches = matches_for_watcher_drop(watcher, drop)
+            if not matches:
+                continue
 
             # Check per-URL-per-keyword cooldown
             ck = cooldown_key(wid, drop_url, matches)
