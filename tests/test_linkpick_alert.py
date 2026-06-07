@@ -130,3 +130,31 @@ def test_resolve_drop_items_unlisted_item_does_not_mislink():
     }
     items = pua.resolve_drop_items(drop, ["Lile DOT Fixed Blade Knife"])
     assert all("half-face" not in i.get("url", "") for i in items)
+
+
+# ---------------------------------------------------------------------------
+# Task 8: integration regression #6289 — floor blocks wrong product on
+# UNSTRUCTURED drop (no structured products, fuzzy link_candidates path)
+# ---------------------------------------------------------------------------
+
+def test_resolve_drop_items_unstructured_floor_blocks_wrong_product():
+    # Literal #6289: an unstructured drop (no structured products) with a bag of fuzzy
+    # candidates. The queried item "Lile DOT Fixed Blade Knife" has NO real candidate;
+    # only generic tokens ("fixed","blade") overlap the half-face product. The Task 6
+    # confidence floor must reject it → page-link fallback, NEVER the half-face URL.
+    drop = {
+        "url": "https://southernedges.com",
+        "source": "Southern Edges",
+        # no structured products → resolve_drop_items consults link_candidates (the fuzzy path)
+        "notable_items": ["Lile DOT Fixed Blade Knife - $1,600.00"],
+        "link_candidates": [
+            {"text": "Half-Face Blades Ringstrike Fixed Blade",
+             "href": "https://southernedges.com/products/half-face-blades-ringstrike-fixed-blade"},
+            {"text": "Chris Reeve Small Sebenza 31 Forever Flag",
+             "href": "https://southernedges.com/products/chris-reeve-small-sebenza-31-forever-flag"},
+        ],
+    }
+    items = pua.resolve_drop_items(drop, ["Lile DOT Fixed Blade Knife"])
+    # Must not deep-link to a wrong product; page-link fallback is acceptable.
+    assert all("half-face" not in i.get("url", "") for i in items)
+    assert all(i.get("url", "") in ("", "https://southernedges.com") for i in items)
