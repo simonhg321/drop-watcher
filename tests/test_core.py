@@ -693,6 +693,19 @@ class TestBackfill:
         assert any('chris-reeve-sebenza-31-damascus' in h for h in hrefs)
         assert all('/cart' not in h for h in hrefs)  # bad paths dropped
 
+    def test_priority_intel_survives_numeric_models(self):
+        # YAML parses unquoted numeric models (Shirogorov 111, ZT 36) as ints;
+        # build_priority_intel must not crash on ', '.join (S54 crash-loop fix).
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'agents'))
+        import ai_interpreter as ai
+        cfg = {'makers': [
+            {'name': 'Shirogorov', 'notable_models': {'high': [111, '95t'], 'critical': []}},
+            {'name': 'Zero Tolerance', 'notable_models': {'critical': [36], 'high': []}},
+        ]}
+        intel = ai.build_priority_intel(cfg)
+        assert '111' in intel and '36' in intel   # ints rendered, no TypeError
+
     def test_digest_includes_disclaimer(self):
         import backfill_alerter
         subject, html, text = backfill_alerter.build_backfill_digest(

@@ -156,6 +156,13 @@ def build_priority_intel(makers_config):
         high_models = notable_models.get('high', [])
         critical_materials = notable_materials.get('critical', [])
 
+        # Coerce to str — YAML parses an unquoted numeric model/year (e.g. 2026) as an
+        # int, and ', '.join() raises TypeError on a non-str item. Hardened like
+        # build_keywords (S54). Keeps the scraper from crash-looping on a config typo.
+        critical_models    = [str(m) for m in critical_models]
+        high_models        = [str(m) for m in high_models]
+        critical_materials = [str(m) for m in critical_materials]
+
         if critical_models or critical_materials:
             lines.append(f"{name}:")
             if critical_models:
