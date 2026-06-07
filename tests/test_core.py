@@ -1402,10 +1402,14 @@ class TestCollectionFetch:
         assert cf.shopify_products_url('https://shop.com/collections/crk?sort=x') == \
             'https://shop.com/collections/crk/products.json'
 
-    def test_shopify_products_url_none_for_non_collection(self):
+    def test_shopify_products_url_root_for_non_collection(self):
+        # Non-collection URLs now fall back to root /products.json (S55 tier-1 widening)
         import collection_fetch as cf
-        assert cf.shopify_products_url('https://shop.com/products/foo') is None
-        assert cf.shopify_products_url('https://shop.com/') is None
+        assert cf.shopify_products_url('https://shop.com/products/foo') == \
+            'https://shop.com/products.json'
+        assert cf.shopify_products_url('https://shop.com/') == \
+            'https://shop.com/products.json'
+        assert cf.shopify_products_url('not-a-url') is None
 
     def test_parse_products_tags_list_and_string(self):
         import collection_fetch as cf

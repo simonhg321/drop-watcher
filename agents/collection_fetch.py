@@ -68,12 +68,21 @@ def _candidates_from_html(html, url):
 # ── Shopify ───────────────────────────────────────────────────────────────────
 
 def shopify_products_url(url):
-    """Return the products.json base for a Shopify collection URL, else None."""
+    """Return the products.json base for a Shopify URL, else None.
+
+    A /collections/<handle> URL → that collection's products.json. Any other URL on
+    a real host (homepage, /pages/..., a product page) → the site-root /products.json,
+    which every Shopify store exposes. Caller verifies the response actually parses as
+    Shopify JSON, so a root guess on a non-Shopify site simply fails downstream and the
+    chain falls through to the HTML path.
+    """
     p = urlparse(url)
-    m = re.match(r'(/collections/[^/?#]+)', p.path)
-    if not m:
+    if not p.scheme or not p.netloc:
         return None
-    return f"{p.scheme}://{p.netloc}{m.group(1)}/products.json"
+    m = re.match(r'(/collections/[^/?#]+)', p.path)
+    if m:
+        return f"{p.scheme}://{p.netloc}{m.group(1)}/products.json"
+    return f"{p.scheme}://{p.netloc}/products.json"
 
 
 def _parse_products(products, base_url):
