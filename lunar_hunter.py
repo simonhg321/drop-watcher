@@ -285,7 +285,7 @@ def scan_source(src):
         return []
 
     finds = []
-    if products:  # Shopify → deep-link each matching product
+    if products:  # structured products → deep-link each matching product
         for p in products:
             blob = (p.get('title', '') + ' ' + p.get('vendor', '') + ' '
                     + ' '.join(p.get('tags') or []) + ' ' + p.get('url', ''))

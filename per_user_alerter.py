@@ -157,10 +157,11 @@ MATCHED_PRODUCTS_CAP = 8
 def select_matched_products(products, matches):
     """In-stock products whose title or tags contain a matched keyword (substring).
 
-    `products` is the structured Shopify list stored on the drop ({title, url, tags,
-    available, price}); `matches` is the keywords that fired. Returns up to
-    MATCHED_PRODUCTS_CAP, so an alert links straight to the items rather than the
-    whole collection. Empty for non-Shopify drops (no structured products).
+    `products` is the structured product list stored on the drop ({title, url, tags,
+    available, price}), sourced from Shopify products.json, JSON-LD, or product-card
+    extraction; `matches` is the keywords that fired. Returns up to MATCHED_PRODUCTS_CAP,
+    so an alert links straight to the items rather than the whole collection. Returns []
+    when the drop has no structured products.
     """
     needles = [m.lower() for m in matches if m]
     if not needles:
@@ -217,7 +218,7 @@ def resolve_drop_items(drop, matches):
     (caller decides whether to fall back to the page).
 
     Priority:
-      1. structured Shopify products → canonical product URL
+      1. structured products → canonical product URL
       2. matched notable-item lines → deep-link via linkpick candidate resolution
          (resolve by the product NAME, not the keyword — avoids the wrong-product bug)
       3. keyword matched only the page excerpt → resolve one best candidate for the terms

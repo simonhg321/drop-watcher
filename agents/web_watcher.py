@@ -96,11 +96,12 @@ def page_fingerprint(text, products):
 PRODUCTS_STORE_CAP = 80
 
 def instock_products(products):
-    """Trim a Shopify product list to in-stock items for deep-linking in alerts.
+    """Trim a structured product list to in-stock items for deep-linking in alerts.
 
+    `products` may come from Shopify products.json, JSON-LD, or product-card extraction.
     Only in-stock items are alert-worthy, and capping keeps the JSON we stash on the
-    drop (drops.raw_json) bounded even for 750-product catalogs. Returns [] for
-    non-Shopify pages (products is None) — alerter then falls back to the page link.
+    drop (drops.raw_json) bounded even for 750-product catalogs. Returns [] when there
+    are no structured products (products is None) — alerter then falls back to the page link.
     """
     if not products:
         return []
