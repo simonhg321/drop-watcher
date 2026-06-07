@@ -59,3 +59,37 @@ def test_from_structured_data_parses_jsonld():
 
 def test_from_structured_data_empty_when_none():
     assert product_extract.from_structured_data("<html><body>no schema</body></html>", "https://x.com") == []
+
+
+def test_from_structured_data_offers_list_any_in_stock():
+    html = '''<html><head><script type="application/ld+json">
+    {"@type":"Product","name":"Multi Variant Knife","url":"/products/mvk",
+     "offers":[{"@type":"Offer","price":"10.00","availability":"https://schema.org/OutOfStock"},
+               {"@type":"Offer","price":"12.00","availability":"https://schema.org/InStock"}]}
+    </script></head></html>'''
+    items = product_extract.from_structured_data(html, "https://x.com")
+    assert items[0]["available"] is True          # any offer in stock → available
+    assert items[0]["price"] == "10.00"            # price from first offer
+
+
+def test_from_structured_data_graph_wrapper():
+    html = '''<html><head><script type="application/ld+json">
+    {"@context":"https://schema.org","@graph":[
+       {"@type":"WebSite","name":"x"},
+       {"@type":"Product","name":"Graph Knife","url":"/products/gk",
+        "offers":{"price":"99.00","availability":"InStock"}}]}
+    </script></head></html>'''
+    items = product_extract.from_structured_data(html, "https://x.com")
+    titles = {i["title"] for i in items}
+    assert "Graph Knife" in titles
+    assert next(i for i in items if i["title"] == "Graph Knife")["available"] is True
+
+
+def test_from_structured_data_malformed_block_skipped():
+    html = '''<html><head>
+    <script type="application/ld+json">{ this is not json }</script>
+    <script type="application/ld+json">{"@type":"Product","name":"Valid Knife","url":"/p/v",
+      "offers":{"price":"5.00","availability":"InStock"}}</script>
+    </head></html>'''
+    items = product_extract.from_structured_data(html, "https://x.com")
+    assert {i["title"] for i in items} == {"Valid Knife"}   # malformed skipped, valid kept

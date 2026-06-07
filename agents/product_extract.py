@@ -1,5 +1,4 @@
 # Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
-#!/usr/bin/env python3
 """
 product_extract.py — turn raw HTML into structured product records so alerts can
 deep-link the matched item without fuzzy name→anchor guessing.
@@ -17,7 +16,6 @@ Both return [] (never raise, never fabricate) when nothing confident is found, s
 resolution chain falls through to the next tier.
 """
 import json
-import re
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
@@ -37,7 +35,7 @@ def _product_record(title, url, available, price='', vendor='', tags=None):
 def _availability_in_stock(value):
     """schema.org availability → bool. InStock / available → True; everything else False."""
     v = str(value or '').lower()
-    return ('instock' in v) or ('/instock' in v) or v.endswith('available')
+    return ('instock' in v) or v.endswith('available')
 
 
 def _iter_jsonld_products(obj):
@@ -72,15 +70,16 @@ def from_structured_data(html, base_url):
         except Exception:
             continue
         for pr in _iter_jsonld_products(data):
-            offers = pr.get('offers') or {}
-            if isinstance(offers, list):
-                offers = offers[0] if offers else {}
-            url = pr.get('url') or (offers.get('url') if isinstance(offers, dict) else '') or ''
+            raw_offers = pr.get('offers') or {}
+            offer_list = raw_offers if isinstance(raw_offers, list) else [raw_offers]
+            first_offer = (offer_list[0] or {}) if offer_list else {}
+            url = pr.get('url') or first_offer.get('url') or ''
+            available = any(_availability_in_stock((o or {}).get('availability')) for o in offer_list)
             out.append(_product_record(
                 title=pr.get('name'),
                 url=urljoin(base_url or '', url) if url else '',
-                available=_availability_in_stock(offers.get('availability') if isinstance(offers, dict) else ''),
-                price=offers.get('price') if isinstance(offers, dict) else '',
+                available=available,
+                price=first_offer.get('price', ''),
                 vendor=(pr.get('brand') or {}).get('name') if isinstance(pr.get('brand'), dict) else pr.get('brand') or '',
             ))
     return [p for p in out if p['title']]
