@@ -36,6 +36,7 @@ from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 
 import linkpick
+import product_extract
 
 SHOPIFY_LIMIT       = 100   # keep each products.json page well under fetch_page's 2MB cap
 SHOPIFY_MAX_PAGES   = 8      # up to 800 products — plenty for keyword watches
@@ -215,17 +216,15 @@ def fetch_paginated_html(url, fetch_page, ssl_permissive=False, log=None):
 
 # ── Orchestrator ────────────────────────────────────────────────────────────
 
-def fetch_collection(url, fetch_page, ssl_permissive=False, log=None):
+def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None):
     """Pagination/Shopify-aware fetch. Returns (text, products, candidates).
 
-    `text` is the combined page text (recovering JS-hidden products without a browser),
-    or None if the URL could not be fetched at all. `products` is the structured list
-    of {title, vendor, url, available, tags, price} when the page is a Shopify
-    collection (for deep-linking matched items), else None — generic HTML pages don't
-    expose per-item URLs. `candidates` is a best-effort list of {text, href} product
-    anchors harvested from non-Shopify HTML so the alerter can still deep-link matched
-    items (resolved per matched product at alert time); [] for the Shopify path (its
-    products already carry canonical URLs).
+    `products` is the structured list of {title, vendor, url, available, tags, price}
+    whenever ANY structured tier resolves (Shopify products.json, JSON-LD, or product-card
+    DOM extraction), else None. When products are structured, `candidates` is [] — the
+    alerter deep-links from the structured list and must not fall back to fuzzy anchors.
+    `candidates` is the best-effort fuzzy anchor list ONLY when no structured tier hit.
+    `hints` is an optional per-store dict of CSS selectors for tier-3 extraction.
     """
     try:
         text, products = fetch_shopify_collection(
@@ -236,6 +235,24 @@ def fetch_collection(url, fetch_page, ssl_permissive=False, log=None):
         if log:
             log.warning(f"[collection_fetch] Shopify path failed for {url}: {e}")
 
+    # Non-Shopify: fetch page 1 ONCE and try structured extraction first (the common
+    # case for our dealers). Only if nothing structured resolves do we pay for the
+    # multi-page fuzzy-candidate walk — so structured sites cost a single request.
+    raw_html = fetch_page(url, ssl_permissive)
+    if raw_html:
+        try:
+            structured = (product_extract.from_structured_data(raw_html, url)
+                          or product_extract.from_product_cards(raw_html, url, hints=hints))
+        except Exception as e:
+            structured = []
+            if log:
+                log.warning(f"[collection_fetch] product_extract failed for {url}: {e}")
+        if structured:
+            if log:
+                log.info(f"[collection_fetch] structured extract — {len(structured)} products for {url}")
+            return _strip_text(raw_html), structured, []
+
+    # Unstructured: walk pagination for combined text + best-effort fuzzy candidates.
     try:
         paged, candidates = fetch_paginated_html(
             url, fetch_page, ssl_permissive=ssl_permissive, log=log)
@@ -245,10 +262,9 @@ def fetch_collection(url, fetch_page, ssl_permissive=False, log=None):
         if log:
             log.warning(f"[collection_fetch] paginated path failed for {url}: {e}")
 
-    html = fetch_page(url, ssl_permissive)
-    if not html:
+    if raw_html is None:
         return None, None, []
-    return _strip_text(html), None, _candidates_from_html(html, url)
+    return _strip_text(raw_html), None, _candidates_from_html(raw_html, url)
 
 
 def fetch_collection_text(url, fetch_page, ssl_permissive=False, log=None):

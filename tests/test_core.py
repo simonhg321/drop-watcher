@@ -673,8 +673,8 @@ class TestBackfill:
         assert items[0]['url'] != d4['url']               # deep-linked, not the homepage
 
     def test_collection_fetch_returns_candidates_from_html(self):
-        # Non-Shopify HTML page → fetch_collection yields (text, None, candidates)
-        # with product anchors harvested for deep-linking.
+        # Non-Shopify HTML page with /products/ anchors → tier-3 structured extraction
+        # now fires, so products is populated and candidates is [] (Task 4 wiring).
         import sys, os
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'agents'))
         import collection_fetch
@@ -688,10 +688,12 @@ class TestBackfill:
         text, products, candidates = collection_fetch.fetch_collection(
             'https://examplestore.com/collections/all', fake_fetch)
         assert text is not None
-        assert products is None                      # non-Shopify
-        hrefs = [c['href'] for c in candidates]
-        assert any('chris-reeve-sebenza-31-damascus' in h for h in hrefs)
-        assert all('/cart' not in h for h in hrefs)  # bad paths dropped
+        # Tier-3 picks up /products/ anchors as structured products; candidates is empty.
+        assert products is not None
+        product_urls = [p['url'] for p in products]
+        assert any('chris-reeve-sebenza-31-damascus' in u for u in product_urls)
+        assert all('/cart' not in u for u in product_urls)  # bad paths dropped
+        assert candidates == []                              # structured hit → no fuzzy fallback
 
     def test_priority_intel_survives_numeric_models(self):
         # YAML parses unquoted numeric models (Shirogorov 111, ZT 36) as ints;

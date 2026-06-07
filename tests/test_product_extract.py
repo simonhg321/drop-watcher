@@ -172,3 +172,30 @@ def test_from_hints_skips_bad_href():
     items = product_extract.from_product_cards(html, "https://x.com", hints=hints)
     assert all("/cart" not in i["url"] for i in items)
     assert any(i["title"] == "Real Product" for i in items)
+
+
+# ── Task 4: fetch_collection wired to structured extractors ─────────────────
+import collection_fetch as cf
+
+
+def test_fetch_collection_uses_product_cards_for_non_shopify():
+    # fetch_page stub: Shopify products.json 404s (not Shopify), HTML returns cards.
+    def fake_fetch(url, ssl_permissive=False):
+        if url.endswith('/products.json'):
+            return None
+        return CARDS_HTML
+    text, products, candidates = cf.fetch_collection("https://www.lamnia.com", fake_fetch)
+    titles = {p['title'] for p in (products or [])}
+    assert "Microtech Socom Elite Orange" in titles
+    # Structured success → no fuzzy candidates emitted (alerter trusts products).
+    assert candidates == []
+
+
+def test_fetch_collection_falls_back_to_candidates_when_unstructured():
+    def fake_fetch(url, ssl_permissive=False):
+        if url.endswith('/products.json'):
+            return None
+        return "<html><body><a href='/widget-thing-deep-slug'>Widget Thing</a></body></html>"
+    text, products, candidates = cf.fetch_collection("https://x.com", fake_fetch)
+    assert products is None          # nothing structured found
+    assert isinstance(candidates, list)  # legacy fuzzy candidates still available
