@@ -326,3 +326,17 @@ def test_from_product_cards_single_anchor_sold_out_is_per_card():
     by_url = {i["url"]: i for i in items}
     assert by_url["https://x.com/en/p/1/in-stock-knife"]["available"] is True
     assert by_url["https://x.com/en/p/2/gone-knife"]["available"] is False, "sold-out leaked across cards"
+
+
+def test_confidence_generic_low_hints_high_jsonld_high():
+    cards = '<html><body><div class="card"><a href="/products/x">Some Knife</a><span>$5.00</span></div></body></html>'
+    g = product_extract.from_product_cards(cards, "https://x.com")
+    assert g and g[0]["confidence"] == "low"
+    h = product_extract.from_product_cards(
+        '<html><body><li class="p"><a class="l" href="/products/y">Hint Knife</a><em>$6.00</em></li></body></html>',
+        "https://x.com", hints={"card": "li.p", "link": "a.l", "price": "em"})
+    assert h and h[0]["confidence"] == "high"
+    j = product_extract.from_structured_data(
+        '<html><head><script type="application/ld+json">{"@type":"Product","name":"J","url":"/p/j","offers":{"price":"1","availability":"InStock"}}</script></head></html>',
+        "https://x.com")
+    assert j and j[0]["confidence"] == "high"

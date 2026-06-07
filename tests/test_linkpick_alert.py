@@ -137,6 +137,47 @@ def test_resolve_drop_items_unlisted_item_does_not_mislink():
 # UNSTRUCTURED drop (no structured products, fuzzy link_candidates path)
 # ---------------------------------------------------------------------------
 
+def test_resolve_drop_items_carries_confidence():
+    drop_high = {"url": "https://s.com", "source": "S",
+        "products": [{"title": "Sebenza 31", "url": "https://s.com/products/sebenza-31",
+                      "available": True, "tags": [], "price": "650.00", "confidence": "high"}],
+        "notable_items": [], "link_candidates": []}
+    items = pua.resolve_drop_items(drop_high, ["Sebenza"])
+    assert items[0]["confidence"] == "high"
+
+    drop_low = {"url": "https://s.com", "source": "S",
+        "products": [{"title": "Sebenza 31", "url": "https://s.com/products/sebenza-31",
+                      "available": True, "tags": [], "price": "650.00", "confidence": "low"}],
+        "notable_items": [], "link_candidates": []}
+    items = pua.resolve_drop_items(drop_low, ["Sebenza"])
+    assert items[0]["confidence"] == "low"
+
+
+import os
+
+def test_build_alert_email_marks_low_confidence_with_thinking_emoji():
+    os.environ.setdefault("DW_NKD_ENABLED", "0")
+    watcher = {"name": "T", "unsubscribe_token": "tok", "id": 1}
+    low_drop = {"url": "https://s.com", "source": "S", "page_summary": "",
+        "products": [{"title": "Scraped Knife", "url": "https://s.com/products/scraped",
+                      "available": True, "tags": [], "price": "10.00", "confidence": "low"}],
+        "notable_items": [], "link_candidates": []}
+    result = pua.build_alert_email(watcher, ["Scraped Knife"], low_drop)
+    subject, html, text = result
+    assert "🤔" in html
+    assert "🤔" in text
+
+    # High-confidence drop must NOT emit the emoji
+    high_drop = {"url": "https://s.com", "source": "S", "page_summary": "",
+        "products": [{"title": "Shopify Knife", "url": "https://s.com/products/shopify",
+                      "available": True, "tags": [], "price": "10.00", "confidence": "high"}],
+        "notable_items": [], "link_candidates": []}
+    result2 = pua.build_alert_email(watcher, ["Shopify Knife"], high_drop)
+    subject2, html2, text2 = result2
+    assert "🤔" not in html2
+    assert "🤔" not in text2
+
+
 def test_resolve_drop_items_unstructured_floor_blocks_wrong_product():
     # Literal #6289: an unstructured drop (no structured products) with a bag of fuzzy
     # candidates. The queried item "Lile DOT Fixed Blade Knife" has NO real candidate;

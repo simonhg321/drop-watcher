@@ -112,6 +112,7 @@ def instock_products(products):
             'tags': p.get('tags', []),
             'price': p.get('price', ''),
             'available': True,
+            'confidence': p.get('confidence', 'high'),
         }
         for p in products if p.get('available')
     ][:PRODUCTS_STORE_CAP]

@@ -27,6 +27,7 @@ from per_user_alerter import (
     cooldown_key,
     resolve_drop_items,
     item_page_link,
+    is_low_confidence,
     disclaimer_html,
     DISCLAIMER_TEXT,
     COOLDOWN_HOURS,
@@ -158,26 +159,36 @@ def build_backfill_digest(name, shown, unsub_token, note=None, verify=False):
         src = html_mod.escape(drop.get('source', ''))
         kw = '  ·  '.join(html_mod.escape(m) for m in matches)
 
+        any_low = any(is_low_confidence(it) for it in items)
+        _low_badge = '<span title="best-effort extracted link — double-check on the page" style="cursor:help">🤔</span>'
         li_html = ''.join(
             f'<li style="margin:6px 0"><a href="{html_mod.escape(it["url"])}" '
             f'style="color:#ff8c42;text-decoration:none">{html_mod.escape(it["title"])}</a>'
+            f'{_low_badge if is_low_confidence(it) else ""}'
             f'{(" — $" + html_mod.escape(str(it["price"]))) if it.get("price") else ""}</li>'
             for it in items
         )
+        legend_html = ('<div style="color:#777;font-size:11px;margin-top:8px">'
+                       '🤔 = best-effort extracted link — double-check the item on the page.</div>'
+                       if any_low else '')
         items_text = '\n'.join(
             f"    • {it['title']}"
-            f"{(' — $' + str(it['price'])) if it.get('price') else ''}\n      {it['url']}"
+            f"{(' — $' + str(it['price'])) if it.get('price') else ''}"
+            f"{' 🤔 (best-effort link)' if is_low_confidence(it) else ''}"
+            f"\n      {it['url']}"
             for it in items
         )
+        legend_text = '\n  🤔 = best-effort link, double-check on the page.' if any_low else ''
 
         rows_html += f'''
       <div style="background:#161616;border:1px solid #222;padding:16px;margin:16px 0">
         <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.08em">{src} · matched: {kw}</div>
         <ul style="margin:10px 0 0;padding-left:20px;list-style:none">{li_html}</ul>
+        {legend_html}
       </div>'''
         rows_text += (
             f"- {drop.get('source','')}  (matched: {', '.join(matches)})\n"
-            f"{items_text}\n\n"
+            f"{items_text}{legend_text}\n\n"
         )
 
     note_html = ''

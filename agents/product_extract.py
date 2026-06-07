@@ -33,7 +33,7 @@ def _same_site_url(abs_url, base_url):
     return bool(base_host) and same_site(urlparse(abs_url).hostname, base_host)
 
 
-def _product_record(title, url, available, price='', vendor='', tags=None):
+def _product_record(title, url, available, price='', vendor='', tags=None, confidence='high'):
     return {
         'title': (title or '').strip(),
         'vendor': (vendor or '').strip(),
@@ -41,6 +41,7 @@ def _product_record(title, url, available, price='', vendor='', tags=None):
         'available': bool(available),
         'tags': tags or [],
         'price': str(price or '').strip(),
+        'confidence': confidence,
     }
 
 
@@ -163,6 +164,8 @@ def _price_from(text):
 
 
 _BLOCK_TAGS = frozenset({'div', 'li', 'article', 'section', 'tr', 'td', 'figure'})
+_STRIP_SEP_RE = re.compile(r'^[\s\-–—|:·]+|[\s\-–—|:·]+$')
+_COLLAPSE_WS_RE = re.compile(r'\s{2,}')
 
 
 def _card_container(anchor):
@@ -196,7 +199,8 @@ def _from_hints(soup, base_url, hints):
             continue
         out.append(_product_record(
             title=title, url=abs_href,
-            available=not _SOLD_OUT_RE.search(block_text), price=price))
+            available=not _SOLD_OUT_RE.search(block_text), price=price,
+            confidence='high'))
     return out
 
 
@@ -248,8 +252,13 @@ def from_product_cards(html, base_url, hints=None):
             title = title_from_slug(abs_href)
         if not title or len(title) < 4:
             continue
+        # Normalize scraped title: collapse internal whitespace, strip separator punctuation.
+        title = _STRIP_SEP_RE.sub('', _COLLAPSE_WS_RE.sub(' ', title)).strip()
+        if not title or len(title) < 4:
+            continue
         best[abs_href] = _product_record(
             title=title, url=abs_href,
             available=not _SOLD_OUT_RE.search(scope_text),
-            price=own_price or _price_from(scope_text))
+            price=own_price or _price_from(scope_text),
+            confidence='low')
     return list(best.values())

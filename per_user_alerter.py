@@ -45,6 +45,12 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def is_low_confidence(item):
+    """True when an alert item is a best-effort (tier-3 DOM / fuzzy) link, not a
+    structured-feed deep-link — rendered with a 🤔 so users double-check it."""
+    return (item.get('confidence') or 'high') == 'low'
+
+
 def cooldown_key(watcher_id, drop_url, matches):
     """Unique key per watcher + drop URL + matched keywords."""
     match_str = ','.join(sorted(matches))
@@ -227,7 +233,8 @@ def resolve_drop_items(drop, matches):
     if prods:
         return [{'title': p.get('title') or p.get('url'),
                  'url': p.get('url'),
-                 'price': p.get('price', '')} for p in prods]
+                 'price': p.get('price', ''),
+                 'confidence': p.get('confidence', 'high')} for p in prods]
 
     candidates = drop.get('link_candidates') or []
     link = item_page_link(drop)
@@ -239,7 +246,8 @@ def resolve_drop_items(drop, matches):
                 continue   # never deep-link a sold-out item to a dead page
             title, price = _split_title_price(n)
             c = linkpick.best_candidate(candidates, linkpick.strip_status_prefix(title or n))
-            items.append({'title': title or n, 'url': (c['href'] if c else link), 'price': price})
+            items.append({'title': title or n, 'url': (c['href'] if c else link), 'price': price,
+                          'confidence': 'low'})
         if len(items) >= MATCHED_PRODUCTS_CAP:
             break
     if items:
@@ -249,7 +257,7 @@ def resolve_drop_items(drop, matches):
         candidates, notable_items=drop.get('notable_items'), keywords=matches)
     if c:
         title = linkpick.clean_title(c['text']) or linkpick.title_from_slug(c['href']) or drop.get('source', '')
-        return [{'title': title, 'url': c['href'], 'price': ''}]
+        return [{'title': title, 'url': c['href'], 'price': '', 'confidence': 'low'}]
     return []
 
 
@@ -290,18 +298,25 @@ def build_alert_email(watcher, matches, drop):
     notable_html = ''
     if matched_items:
         rows = ''
+        any_low = any(is_low_confidence(it) for it in matched_items)
         for it in matched_items:
             p_url   = html_mod.escape(it.get('url', ''))
             p_title = html_mod.escape(it.get('title', '') or it.get('url', ''))
             price   = it.get('price', '')
             price_s = f' <span style="color:#666">— ${html_mod.escape(str(price))}</span>' if price else ''
+            low_badge = (' <span title="best-effort extracted link — double-check on the page"'
+                         ' style="cursor:help">🤔</span>') if is_low_confidence(it) else ''
             rows += (f'<li style="margin:6px 0">'
                      f'<a href="{p_url}" style="color:#ff6b2b;text-decoration:none">{p_title}</a>'
-                     f'{price_s}</li>')
+                     f'{low_badge}{price_s}</li>')
+        legend = ('<div style="color:#777;font-size:11px;margin-top:8px">'
+                  '🤔 = best-effort extracted link — double-check the item on the page.</div>'
+                  if any_low else '')
         matched_html = f'''
       <div style="background: #161616; border: 1px solid #2a1a0a; padding: 16px; margin: 20px 0;">
         <div style="color: #ff6b2b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Matched items — in stock now</div>
         <ul style="margin:0;padding-left:20px;list-style:none">{rows}</ul>
+        {legend}
       </div>'''
     elif safe_notable:
         items = ''.join(f'<li style="color:#e8e8e8;margin:4px 0">{n}</li>' for n in safe_notable)
@@ -357,12 +372,16 @@ def build_alert_email(watcher, matches, drop):
 
     matched_text = ''
     if matched_items:
+        any_low_text = any(is_low_confidence(it) for it in matched_items)
         lines = '\n'.join(
             f"  - {it.get('title', '') or it.get('url', '')}"
-            f"{(' — $' + str(it.get('price'))) if it.get('price') else ''}\n    {it.get('url', '')}"
+            f"{(' — $' + str(it.get('price'))) if it.get('price') else ''}"
+            f"{' 🤔 (best-effort link)' if is_low_confidence(it) else ''}"
+            f"\n    {it.get('url', '')}"
             for it in matched_items
         )
-        matched_text = f"Matched items (in stock now):\n{lines}\n\n"
+        legend_text = '\n  🤔 = best-effort link, double-check on the page.' if any_low_text else ''
+        matched_text = f"Matched items (in stock now):\n{lines}{legend_text}\n\n"
 
     text = (
         f"DROP WATCHER — Match found\n\n"

@@ -117,6 +117,7 @@ def _parse_products(products, base_url):
             'available': available,
             'tags': tags_list,
             'price': price,
+            'confidence': 'high',
         })
     return out
 
