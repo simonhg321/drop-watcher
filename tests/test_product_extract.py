@@ -340,3 +340,17 @@ def test_confidence_generic_low_hints_high_jsonld_high():
         '<html><head><script type="application/ld+json">{"@type":"Product","name":"J","url":"/p/j","offers":{"price":"1","availability":"InStock"}}</script></head></html>',
         "https://x.com")
     assert j and j[0]["confidence"] == "high"
+
+
+def test_from_product_cards_upgraded_title_is_normalized():
+    # First anchor (image, unusable title) then a better text anchor whose text has
+    # leading/trailing separator crud — the upgraded title must be normalized too.
+    # Use a slug long enough to be stored on first pass so the second anchor triggers
+    # the upgrade path (not first-entry normalization).
+    html = '''<html><body><div class="card">
+      <a href="/products/clean-knife-name"><img src="/images/x.jpg"></a>
+      <a href="/products/clean-knife-name">  —  Clean Knife Name —  </a>
+    </div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert len(items) == 1
+    assert items[0]["title"] == "Clean Knife Name"

@@ -7,7 +7,7 @@ Two extractors, both returning the canonical product shape used everywhere downs
 (collection_fetch._parse_products / per_user_alerter.select_matched_products):
 
     {"title": str, "vendor": str, "url": str,
-     "available": bool, "tags": list[str], "price": str}
+     "available": bool, "tags": list[str], "price": str, "confidence": str}
 
   • from_structured_data(html, base_url)        — JSON-LD / microdata Product schema
   • from_product_cards(html, base_url, hints)   — repeated product-card DOM blocks
@@ -168,6 +168,11 @@ _STRIP_SEP_RE = re.compile(r'^[\s\-–—|:·]+|[\s\-–—|:·]+$')
 _COLLAPSE_WS_RE = re.compile(r'\s{2,}')
 
 
+def _normalize_title(t):
+    t = _COLLAPSE_WS_RE.sub(' ', t or '').strip()
+    return _STRIP_SEP_RE.sub('', t).strip()
+
+
 def _card_container(anchor):
     """Climb to the nearest block-level ancestor that plausibly holds one product card."""
     node = anchor.parent
@@ -243,9 +248,9 @@ def from_product_cards(html, base_url, hints=None):
             # Upgrade title if existing record has a URL/junk title and this one is better
             existing = best[abs_href]
             if not _is_usable_title(existing['title']) and _is_usable_title(title) and len(title) >= 4:
-                existing['title'] = title
+                existing['title'] = _normalize_title(title)
             elif _is_usable_title(title) and len(title) > len(existing['title']):
-                existing['title'] = title
+                existing['title'] = _normalize_title(title)
             continue
         # Slug fallback when no usable title found from the anchor
         if not _is_usable_title(title) or len(title) < 4:
@@ -253,7 +258,7 @@ def from_product_cards(html, base_url, hints=None):
         if not title or len(title) < 4:
             continue
         # Normalize scraped title: collapse internal whitespace, strip separator punctuation.
-        title = _STRIP_SEP_RE.sub('', _COLLAPSE_WS_RE.sub(' ', title)).strip()
+        title = _normalize_title(title)
         if not title or len(title) < 4:
             continue
         best[abs_href] = _product_record(
