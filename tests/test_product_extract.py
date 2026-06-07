@@ -288,3 +288,41 @@ def test_from_product_cards_drops_bogus_zero_price():
       <a href="/products/widget">Widget Knife</a><span class="price">$0.00</span></div></body></html>'''
     items = product_extract.from_product_cards(html, "https://x.com")
     assert items[0]["price"] == ""   # placeholder 0.00 not emitted
+
+
+def test_from_product_cards_single_anchor_card_price_is_per_card():
+    # Two single-<a>-per-card products in one grid with DIFFERENT prices. Price must
+    # be scoped per card, not leaked from the first card to the second.
+    html = '''<html><body><div class="grid">
+      <a href="/en/p/1/microtech-socom"><span>Microtech Socom</span><span>$405.24</span></a>
+      <a href="/en/p/2/cold-steel-srk"><span>Cold Steel SRK</span><span>$42.99</span></a>
+    </div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    by = {i["title"]: i for i in items}
+    # titles may be slug-derived; match by URL instead to be robust
+    by_url = {i["url"]: i for i in items}
+    socom = by_url["https://x.com/en/p/1/microtech-socom"]
+    srk = by_url["https://x.com/en/p/2/cold-steel-srk"]
+    assert socom["price"] == "405.24"
+    assert srk["price"] == "42.99", f"price leaked across cards: {srk['price']}"
+
+
+def test_from_product_cards_sibling_price_still_works():
+    # Multi-element card (price is a SIBLING of the link anchor, anchor text has no price)
+    # must still resolve via the container fallback.
+    html = '''<html><body><div class="card">
+      <a href="/products/widget">Widget Knife</a><span class="price">$88.00</span>
+    </div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert items[0]["price"] == "88.00"
+
+
+def test_from_product_cards_single_anchor_sold_out_is_per_card():
+    html = '''<html><body><div class="grid">
+      <a href="/en/p/1/in-stock-knife"><span>In Stock Knife</span><span>$10.00</span></a>
+      <a href="/en/p/2/gone-knife"><span>Gone Knife</span><span>$20.00</span><span>Sold out</span></a>
+    </div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    by_url = {i["url"]: i for i in items}
+    assert by_url["https://x.com/en/p/1/in-stock-knife"]["available"] is True
+    assert by_url["https://x.com/en/p/2/gone-knife"]["available"] is False, "sold-out leaked across cards"

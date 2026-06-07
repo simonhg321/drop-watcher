@@ -227,7 +227,14 @@ def from_product_cards(html, base_url, hints=None):
         if not _same_site_url(abs_href, base_url):
             continue
         title = _anchor_title(a)
-        block_text = _card_container(a).get_text(' ', strip=True)
+        # Prefer the anchor's own text for price/availability (per-card scope).
+        # For single-anchor cards (Lamnia) the anchor wraps everything, so own_text
+        # already contains that card's price. For multi-element cards where price is a
+        # sibling span, own_text has no price → fall back to the climbed container so
+        # sibling prices are still captured.
+        own_text = a.get_text(' ', strip=True)
+        own_price = _price_from(own_text)
+        scope_text = own_text if own_price else _card_container(a).get_text(' ', strip=True)
         if abs_href in best:
             # Upgrade title if existing record has a URL/junk title and this one is better
             existing = best[abs_href]
@@ -243,6 +250,6 @@ def from_product_cards(html, base_url, hints=None):
             continue
         best[abs_href] = _product_record(
             title=title, url=abs_href,
-            available=not _SOLD_OUT_RE.search(block_text),
-            price=_price_from(block_text))
+            available=not _SOLD_OUT_RE.search(scope_text),
+            price=own_price or _price_from(scope_text))
     return list(best.values())
