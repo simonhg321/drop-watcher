@@ -17,9 +17,20 @@ resolution chain falls through to the next tier.
 """
 import json
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
+
+from linkpick import same_site
+
+
+def _same_site_url(abs_url, base_url):
+    """True if abs_url is http(s) and same-site as base_url. Cross-site or non-http
+    product URLs must never be emitted into an alert (open-redirect/phishing guard)."""
+    if not abs_url.startswith(('http://', 'https://')):
+        return False
+    base_host = urlparse(base_url or '').hostname
+    return bool(base_host) and same_site(urlparse(abs_url).hostname, base_host)
 
 
 def _product_record(title, url, available, price='', vendor='', tags=None):
@@ -81,10 +92,13 @@ def from_structured_data(html, base_url):
             offer_list = raw_offers if isinstance(raw_offers, list) else [raw_offers]
             first_offer = (offer_list[0] or {}) if offer_list else {}
             url = pr.get('url') or first_offer.get('url') or ''
+            abs_url = urljoin(base_url or '', url) if url else ''
+            if abs_url and not _same_site_url(abs_url, base_url):
+                continue
             available = any(_availability_in_stock((o or {}).get('availability')) for o in offer_list)
             out.append(_product_record(
                 title=pr.get('name'),
-                url=urljoin(base_url or '', url) if url else '',
+                url=abs_url,
                 available=available,
                 price=first_offer.get('price', ''),
                 vendor=(pr.get('brand') or {}).get('name') if isinstance(pr.get('brand'), dict) else pr.get('brand') or '',
@@ -140,10 +154,13 @@ def _from_hints(soup, base_url, hints):
         block_text = card.get_text(' ', strip=True)
         if not href or any(b in href.lower() for b in _BAD_HREF):
             continue
+        abs_href = urljoin(base_url or '', href)
+        if not _same_site_url(abs_href, base_url):
+            continue
         if not title:
             continue
         out.append(_product_record(
-            title=title, url=urljoin(base_url or '', href),
+            title=title, url=abs_href,
             available=not _SOLD_OUT_RE.search(block_text), price=price))
     return out
 
@@ -171,6 +188,8 @@ def from_product_cards(html, base_url, hints=None):
         if any(b in href_l for b in _BAD_HREF):
             continue
         abs_href = urljoin(base_url or '', href)
+        if not _same_site_url(abs_href, base_url):
+            continue
         if abs_href in seen:
             continue
         title = _anchor_title(a)

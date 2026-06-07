@@ -201,6 +201,38 @@ def test_fetch_collection_falls_back_to_candidates_when_unstructured():
     assert isinstance(candidates, list)  # legacy fuzzy candidates still available
 
 
+def test_from_product_cards_drops_cross_site_url():
+    html = '''<html><body>
+    <div class="card"><a href="https://phishing.example/products/free-knife">Free Knife</a><span>$1</span></div>
+    <div class="card"><a href="/products/real-knife">Real Knife</a><span>$100</span></div>
+    </body></html>'''
+    items = product_extract.from_product_cards(html, "https://dealer.com")
+    urls = [i["url"] for i in items]
+    assert all("phishing.example" not in u for u in urls)
+    assert any(u == "https://dealer.com/products/real-knife" for u in urls)
+
+
+def test_from_structured_data_drops_cross_site_url():
+    html = '''<html><head><script type="application/ld+json">
+    {"@type":"Product","name":"Evil","url":"https://phishing.example/p/x",
+     "offers":{"price":"1","availability":"InStock"}}</script>
+    <script type="application/ld+json">
+    {"@type":"Product","name":"Good","url":"/products/good","offers":{"price":"9","availability":"InStock"}}
+    </script></head></html>'''
+    items = product_extract.from_structured_data(html, "https://dealer.com")
+    titles = {i["title"] for i in items}
+    assert "Evil" not in titles
+    assert "Good" in titles
+
+
+def test_from_product_cards_allows_www_subdomain_same_site():
+    # same_site treats www / bare domain as same site — must NOT be dropped.
+    html = '''<html><body><div class="card">
+    <a href="https://www.dealer.com/products/real-knife">Real Knife</a><span>$5</span></div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://dealer.com")
+    assert any("/products/real-knife" in i["url"] for i in items)
+
+
 import yaml
 
 
