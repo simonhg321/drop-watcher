@@ -51,6 +51,30 @@ def is_low_confidence(item):
     return (item.get('confidence') or 'high') == 'low'
 
 
+def alert_is_uncertain(matched_items):
+    """True when an alert isn't backed by a confident structured deep-link: either a
+    matched item is low-confidence (tier-3/fuzzy), or nothing resolved to a specific
+    item (notable/page fallback). Such alerts get the keyword-improvement prompt."""
+    return (not matched_items) or any(is_low_confidence(it) for it in matched_items)
+
+
+def keyword_hint_html(unsub_token):
+    return (
+        '<div style="color:#999;font-size:12px;line-height:1.5;margin-top:10px">'
+        '🤔 We believe your keywords match this page — but we\'re not 100% sure. '
+        'Better keywords mean better matches. '
+        f'<a href="https://instockornot.club/my-alerts.html?token={unsub_token}" '
+        'style="color:#ff8c42">Refine your keywords →</a></div>'
+    )
+
+
+KEYWORD_HINT_TEXT = (
+    "\n🤔 We believe your keywords match this page — but we're not 100% sure.\n"
+    "Better keywords mean better matches. Refine yours: "
+    "https://instockornot.club/my-alerts.html?token={token}\n"
+)
+
+
 def cooldown_key(watcher_id, drop_url, matches):
     """Unique key per watcher + drop URL + matched keywords."""
     match_str = ','.join(sorted(matches))
@@ -298,7 +322,6 @@ def build_alert_email(watcher, matches, drop):
     notable_html = ''
     if matched_items:
         rows = ''
-        any_low = any(is_low_confidence(it) for it in matched_items)
         for it in matched_items:
             p_url   = html_mod.escape(it.get('url', ''))
             p_title = html_mod.escape(it.get('title', '') or it.get('url', ''))
@@ -309,14 +332,10 @@ def build_alert_email(watcher, matches, drop):
             rows += (f'<li style="margin:6px 0">'
                      f'<a href="{p_url}" style="color:#ff6b2b;text-decoration:none">{p_title}</a>'
                      f'{low_badge}{price_s}</li>')
-        legend = ('<div style="color:#777;font-size:11px;margin-top:8px">'
-                  '🤔 = best-effort extracted link — double-check the item on the page.</div>'
-                  if any_low else '')
         matched_html = f'''
       <div style="background: #161616; border: 1px solid #2a1a0a; padding: 16px; margin: 20px 0;">
         <div style="color: #ff6b2b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Matched items — in stock now</div>
         <ul style="margin:0;padding-left:20px;list-style:none">{rows}</ul>
-        {legend}
       </div>'''
     elif safe_notable:
         items = ''.join(f'<li style="color:#e8e8e8;margin:4px 0">{n}</li>' for n in safe_notable)
@@ -325,6 +344,9 @@ def build_alert_email(watcher, matches, drop):
         <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Notable items</div>
         <ul style="margin:0;padding-left:20px">{items}</ul>
       </div>'''
+
+    show_hint = alert_is_uncertain(matched_items)
+    keyword_hint = keyword_hint_html(unsub_token) if show_hint else ''
 
     email_html = f"""
     <div style="font-family: monospace; background: #0a0a0a; color: #e8e8e8; padding: 24px; max-width: 600px;">
@@ -347,6 +369,8 @@ def build_alert_email(watcher, matches, drop):
       {matched_html}
 
       {notable_html}
+
+      {keyword_hint}
 
       <p style="margin: 20px 0 0;">
         <a href="{safe_url}" style="background: #ff2d2d; color: white; padding: 12px 24px; text-decoration: none; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">View Page Now →</a>
@@ -372,7 +396,6 @@ def build_alert_email(watcher, matches, drop):
 
     matched_text = ''
     if matched_items:
-        any_low_text = any(is_low_confidence(it) for it in matched_items)
         lines = '\n'.join(
             f"  - {it.get('title', '') or it.get('url', '')}"
             f"{(' — $' + str(it.get('price'))) if it.get('price') else ''}"
@@ -380,8 +403,9 @@ def build_alert_email(watcher, matches, drop):
             f"\n    {it.get('url', '')}"
             for it in matched_items
         )
-        legend_text = '\n  🤔 = best-effort link, double-check on the page.' if any_low_text else ''
-        matched_text = f"Matched items (in stock now):\n{lines}{legend_text}\n\n"
+        matched_text = f"Matched items (in stock now):\n{lines}\n\n"
+
+    hint_text = KEYWORD_HINT_TEXT.format(token=unsub_token) if show_hint else ''
 
     text = (
         f"DROP WATCHER — Match found\n\n"
@@ -390,6 +414,7 @@ def build_alert_email(watcher, matches, drop):
         f"Matched: {', '.join(matches)}\n"
         f"Summary: {drop.get('page_summary') or ''}\n\n"
         f"{matched_text}"
+        f"{hint_text}"
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"{nkd_text_line}"

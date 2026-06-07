@@ -199,3 +199,46 @@ def test_resolve_drop_items_unstructured_floor_blocks_wrong_product():
     # Must not deep-link to a wrong product; page-link fallback is acceptable.
     assert all("half-face" not in i.get("url", "") for i in items)
     assert all(i.get("url", "") in ("", "https://southernedges.com") for i in items)
+
+
+# ---------------------------------------------------------------------------
+# Keyword-improvement prompt tests (S55)
+# ---------------------------------------------------------------------------
+
+def test_alert_uncertain_shows_keyword_hint():
+    import os
+    os.environ.setdefault("DW_NKD_ENABLED", "0")
+    watcher = {"name": "T", "unsubscribe_token": "tok123", "id": 1}
+    low_drop = {"url": "https://s.com", "source": "S", "page_summary": "",
+        "products": [{"title": "Scraped Knife", "url": "https://s.com/products/scraped",
+                      "available": True, "tags": [], "price": "10.00", "confidence": "low"}],
+        "notable_items": [], "link_candidates": []}
+    subject, html, text = pua.build_alert_email(watcher, ["Scraped Knife"], low_drop)
+    assert "Better keywords mean better matches" in html
+    assert "my-alerts.html?token=tok123" in html
+    assert "Better keywords mean better matches" in text
+
+
+def test_alert_high_confidence_no_keyword_hint():
+    import os
+    os.environ.setdefault("DW_NKD_ENABLED", "0")
+    watcher = {"name": "T", "unsubscribe_token": "tok123", "id": 1}
+    high_drop = {"url": "https://s.com", "source": "S", "page_summary": "",
+        "products": [{"title": "Chris Reeve Sebenza 31", "url": "https://s.com/products/sebenza-31",
+                      "available": True, "tags": [], "price": "650.00", "confidence": "high"}],
+        "notable_items": [], "link_candidates": []}
+    subject, html, text = pua.build_alert_email(watcher, ["Sebenza"], high_drop)
+    assert "Better keywords mean better matches" not in html
+    assert "🤔" not in html
+
+
+def test_alert_no_matched_items_shows_keyword_hint():
+    # Pure keyword-on-page match, nothing item-level resolved → notable/page fallback →
+    # still uncertain → show the prompt.
+    import os
+    os.environ.setdefault("DW_NKD_ENABLED", "0")
+    watcher = {"name": "T", "unsubscribe_token": "tok123", "id": 1}
+    drop = {"url": "https://s.com", "source": "S", "page_summary": "some page",
+        "products": [], "notable_items": ["Some context item"], "link_candidates": []}
+    subject, html, text = pua.build_alert_email(watcher, ["nomatch"], drop)
+    assert "Better keywords mean better matches" in html
