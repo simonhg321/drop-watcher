@@ -92,7 +92,23 @@ def from_structured_data(html, base_url):
     return [p for p in out if p['title']]
 
 
+def _anchor_title(a):
+    """Anchor's product title: visible text, else aria-label / title / inner img alt
+    (image-only cards are common on dealer storefronts)."""
+    text = a.get_text(' ', strip=True)
+    if text:
+        return text
+    text = (a.get('aria-label') or a.get('title') or '').strip()
+    if text:
+        return text
+    img = a.find('img')
+    return (img.get('alt') or '').strip() if img else ''
+
+
 def _price_from(text):
+    # Returns the FIRST $ amount in the text, which may capture a "compare at" /
+    # struck-through original price on some sites; acceptable because the alert
+    # deep-links to the live product page where the real price shows.
     m = _PRICE_RE.search(text or '')
     return m.group(1).replace(',', '') if m else ''
 
@@ -122,7 +138,9 @@ def _from_hints(soup, base_url, hints):
         price_el = card.select_one(hints['price']) if hints.get('price') else None
         price = _price_from(price_el.get_text(' ', strip=True) if price_el else card.get_text(' ', strip=True))
         block_text = card.get_text(' ', strip=True)
-        if not href or not title:
+        if not href or any(b in href.lower() for b in _BAD_HREF):
+            continue
+        if not title:
             continue
         out.append(_product_record(
             title=title, url=urljoin(base_url or '', href),
@@ -155,7 +173,7 @@ def from_product_cards(html, base_url, hints=None):
         abs_href = urljoin(base_url or '', href)
         if abs_href in seen:
             continue
-        title = a.get_text(' ', strip=True)
+        title = _anchor_title(a)
         if len(title) < 4:
             continue
         seen.add(abs_href)

@@ -143,3 +143,32 @@ def test_from_product_cards_with_hints():
 def test_from_product_cards_empty_when_no_products():
     assert product_extract.from_product_cards(
         "<html><body><a href='/about'>About</a></body></html>", "https://x.com") == []
+
+
+def test_from_product_cards_image_only_card_uses_alt():
+    html = '''<html><body>
+    <div class="card"><a href="/products/microtech-ultratech"><img alt="Microtech Ultratech Bronze"></a>
+      <span class="price">$300.00</span></div>
+    </body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert any(i["title"] == "Microtech Ultratech Bronze" and
+               i["url"].endswith("/products/microtech-ultratech") for i in items)
+
+
+def test_from_product_cards_aria_label_fallback():
+    html = '''<html><body>
+    <div class="card"><a href="/products/widget" aria-label="Cool Widget Knife"></a></div>
+    </body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert any(i["title"] == "Cool Widget Knife" for i in items)
+
+
+def test_from_hints_skips_bad_href():
+    hints = {"card": "div.c", "link": "a", "title": "a"}
+    html = '''<html><body>
+    <div class="c"><a href="/cart">Cart</a></div>
+    <div class="c"><a href="/products/real">Real Product</a></div>
+    </body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com", hints=hints)
+    assert all("/cart" not in i["url"] for i in items)
+    assert any(i["title"] == "Real Product" for i in items)
