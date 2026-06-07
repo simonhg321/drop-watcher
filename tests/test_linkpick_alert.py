@@ -92,3 +92,41 @@ def test_best_candidate_still_resolves_strong_match():
     c = linkpick.best_candidate(NO_MATCH_CANDS, "Chris Reeve Small Sebenza 31 Forever Flag")
     assert c is not None
     assert c["href"].endswith("/chris-reeve-small-sebenza-31-forever-flag")
+
+
+# ---------------------------------------------------------------------------
+# Task 7: end-to-end #6289 regression — resolve_drop_items
+# ---------------------------------------------------------------------------
+import per_user_alerter as pua
+
+
+def test_resolve_drop_items_structured_deeplinks_correctly():
+    drop = {
+        "url": "https://southernedges.com",
+        "source": "Southern Edges",
+        "products": [
+            {"title": "Chris Reeve Large Sebenza 31 Bog Oak Magnacut",
+             "url": "https://southernedges.com/products/crk-large-sebenza-31-bog-oak",
+             "available": True, "tags": [], "price": "650.00"},
+        ],
+        "notable_items": ["Chris Reeve Large Sebenza 31 Bog Oak Magnacut - $650.00"],
+        "link_candidates": [],
+    }
+    items = pua.resolve_drop_items(drop, ["Sebenza"])
+    assert len(items) == 1
+    assert items[0]["url"].endswith("/crk-large-sebenza-31-bog-oak")
+
+
+def test_resolve_drop_items_unlisted_item_does_not_mislink():
+    # "Lile DOT" is a notable_item but NOT in structured products and NOT a real
+    # candidate → resolve must NOT return a wrong product. With empty candidates
+    # (structured source), it returns [] and the email falls back to the page link.
+    drop = {
+        "url": "https://southernedges.com",
+        "source": "Southern Edges",
+        "products": [],
+        "notable_items": ["Lile DOT Fixed Blade Knife - $1,600.00"],
+        "link_candidates": [],   # structured source emits no fuzzy candidates
+    }
+    items = pua.resolve_drop_items(drop, ["Lile DOT Fixed Blade Knife"])
+    assert all("half-face" not in i.get("url", "") for i in items)
