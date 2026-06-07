@@ -251,3 +251,40 @@ def test_sources_extract_hints_shape_is_optional_dict():
     """)
     assert doc[0]['extract']['card'] == 'li.product'
     assert doc[1].get('extract') is None
+
+
+# ── Bug fix: tier-3 title quality + bogus $0.00 price ───────────────────────
+
+def test_from_product_cards_image_anchor_title_falls_back_to_slug():
+    # Image-anchor BEFORE text-anchor for the same product (Lamnia pattern). The image
+    # anchor's "text" is an image URL; must NOT become the title — fall back to a slug-
+    # derived human name (or the text anchor's name), never a URL.
+    html = '''<html><body>
+    <div class="card">
+      <a href="/en/p/121417/knives/microtech-socom-elite-orange">https://x.com/images/200x200/microtech.jpg</a>
+      <a href="/en/p/121417/knives/microtech-socom-elite-orange">Microtech Socom Elite Orange</a>
+    </div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert len(items) == 1
+    t = items[0]["title"]
+    assert not t.startswith("http"), f"title is a URL: {t}"
+    assert "Microtech" in t
+
+
+def test_from_product_cards_title_slug_fallback_when_only_image_anchor():
+    # Only an image-anchor exists (no text sibling) → derive title from the URL slug.
+    html = '''<html><body><div class="card">
+      <a href="/en/p/118377/knives/trc-apocalypse-prime-elmax"><img src="/images/x.jpg"></a>
+    </div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert len(items) == 1
+    t = items[0]["title"]
+    assert not t.startswith("http")
+    assert "Trc" in t or "Apocalypse" in t.title() or "apocalypse" in t.lower()
+
+
+def test_from_product_cards_drops_bogus_zero_price():
+    html = '''<html><body><div class="card">
+      <a href="/products/widget">Widget Knife</a><span class="price">$0.00</span></div></body></html>'''
+    items = product_extract.from_product_cards(html, "https://x.com")
+    assert items[0]["price"] == ""   # placeholder 0.00 not emitted

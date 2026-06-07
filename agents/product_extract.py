@@ -21,7 +21,7 @@ from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
-from linkpick import same_site
+from linkpick import same_site, title_from_slug
 
 
 def _same_site_url(abs_url, base_url):
@@ -70,6 +70,8 @@ def _iter_jsonld_products(obj):
 _PRICE_RE = re.compile(r'\$\s*([\d,]+(?:\.\d{2})?)')
 _PRODUCT_HREF = ('/products/', '/product/', '/p/', '/dp/')
 _BAD_HREF = ('/cart', '/search', '/account', '/login', '/policies', '/pages/')
+_URL_LIKE_RE = re.compile(r'^https?://', re.I)
+_HAS_ALPHA_RE = re.compile(r'[a-zA-Z]{2}')
 _SOLD_OUT_RE = re.compile(r'sold[\s-]?out|out[\s-]?of[\s-]?stock|notify me|unavailable', re.I)
 
 
@@ -106,25 +108,58 @@ def from_structured_data(html, base_url):
     return [p for p in out if p['title']]
 
 
+def _is_usable_title(text):
+    """True if text looks like a real human product name (not a URL, not empty junk)."""
+    if not text:
+        return False
+    t = text.strip()
+    if _URL_LIKE_RE.match(t):
+        return False
+    if '/images/' in t:
+        return False
+    if not _HAS_ALPHA_RE.search(t):
+        return False
+    return True
+
+
 def _anchor_title(a):
-    """Anchor's product title: visible text, else aria-label / title / inner img alt
-    (image-only cards are common on dealer storefronts)."""
+    """Anchor's product title: prefer the anchor's title attribute (reliable on many
+    dealer sites), then visible text, aria-label, inner img alt.
+    Image-only anchors whose text is a URL return '' so the caller can fall back to
+    slug derivation."""
+    # title attribute is reliable (set server-side, never an image URL)
+    attr_title = (a.get('title') or '').strip()
+    if _is_usable_title(attr_title):
+        return attr_title
+    # visible text — reject if it looks like a URL
     text = a.get_text(' ', strip=True)
-    if text:
+    if text and _is_usable_title(text):
         return text
-    text = (a.get('aria-label') or a.get('title') or '').strip()
-    if text:
-        return text
+    # aria-label
+    aria = (a.get('aria-label') or '').strip()
+    if _is_usable_title(aria):
+        return aria
+    # img alt
     img = a.find('img')
-    return (img.get('alt') or '').strip() if img else ''
+    if img:
+        alt = (img.get('alt') or '').strip()
+        if _is_usable_title(alt):
+            return alt
+    return ''
 
 
 def _price_from(text):
-    # Returns the FIRST $ amount in the text, which may capture a "compare at" /
-    # struck-through original price on some sites; acceptable because the alert
-    # deep-links to the live product page where the real price shows.
-    m = _PRICE_RE.search(text or '')
-    return m.group(1).replace(',', '') if m else ''
+    # Returns the FIRST non-zero $ amount in the text. Skips $0.00 / $0 placeholders
+    # (e.g. Lamnia's struck-through "original" price field) which are worse than empty.
+    for m in _PRICE_RE.finditer(text or ''):
+        val = m.group(1).replace(',', '')
+        try:
+            if float(val) == 0.0:
+                continue
+        except ValueError:
+            pass
+        return val
+    return ''
 
 
 _BLOCK_TAGS = frozenset({'div', 'li', 'article', 'section', 'tr', 'td', 'figure'})
@@ -179,7 +214,8 @@ def from_product_cards(html, base_url, hints=None):
         except Exception:
             return []
 
-    out, seen = [], set()
+    # keyed by abs_href so we can upgrade a bad title when a better anchor appears
+    best: dict = {}
     for a in soup.find_all('a', href=True):
         href = (a.get('href') or '').strip()
         href_l = href.lower()
@@ -190,15 +226,23 @@ def from_product_cards(html, base_url, hints=None):
         abs_href = urljoin(base_url or '', href)
         if not _same_site_url(abs_href, base_url):
             continue
-        if abs_href in seen:
-            continue
         title = _anchor_title(a)
-        if len(title) < 4:
-            continue
-        seen.add(abs_href)
         block_text = _card_container(a).get_text(' ', strip=True)
-        out.append(_product_record(
+        if abs_href in best:
+            # Upgrade title if existing record has a URL/junk title and this one is better
+            existing = best[abs_href]
+            if not _is_usable_title(existing['title']) and _is_usable_title(title) and len(title) >= 4:
+                existing['title'] = title
+            elif _is_usable_title(title) and len(title) > len(existing['title']):
+                existing['title'] = title
+            continue
+        # Slug fallback when no usable title found from the anchor
+        if not _is_usable_title(title) or len(title) < 4:
+            title = title_from_slug(abs_href)
+        if not title or len(title) < 4:
+            continue
+        best[abs_href] = _product_record(
             title=title, url=abs_href,
             available=not _SOLD_OUT_RE.search(block_text),
-            price=_price_from(block_text)))
-    return out
+            price=_price_from(block_text))
+    return list(best.values())
