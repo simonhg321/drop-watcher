@@ -699,8 +699,10 @@ class TestBackfill:
         import sys, os
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'agents'))
         import ai_interpreter as ai
+        # high_models only render when the maker also has a critical entry (matches
+        # the real Shirogorov/ZT config that crash-looped prod at the HIGH join).
         cfg = {'makers': [
-            {'name': 'Shirogorov', 'notable_models': {'high': [111, '95t'], 'critical': []}},
+            {'name': 'Shirogorov', 'notable_models': {'critical': ['neon'], 'high': [111, '95t']}},
             {'name': 'Zero Tolerance', 'notable_models': {'critical': [36], 'high': []}},
         ]}
         intel = ai.build_priority_intel(cfg)
