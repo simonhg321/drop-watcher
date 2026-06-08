@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""drops.mon — canary monitor for the matching pipeline.
+
+Six known-good keyword+maker combos that SHOULD match recent drops.
+Runs every 30 min via cron; exits 0 if all fire, exits 1 on failure.
+On failure: logs, emails simonhg@gmail.com + simon@instockornot.club,
+and writes /tmp/drops_mon_fail so other tools (watchdog, Claude) can check.
+"""
+import json
+import sys
+import os
+import logging
+from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import db
+import paths
+from dotenv import load_dotenv
+load_dotenv(paths.ENV_FILE, override=True)
+
+from per_user_alerter import matches_for_watcher_drop, drop_searchable_text
+from alerter import send_email
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [drops.mon] %(levelname)s %(message)s'
+)
+log = logging.getLogger(__name__)
+
+FAIL_FLAG = '/tmp/drops_mon_fail'
+ALERT_EMAILS = ['simonhg@gmail.com', 'simon@instockornot.club']
+
+CANARIES = [
+    {
+        "name": "Norseman @ EDC Lifestyle",
+        "watcher": {"url": "", "keywords": "Norseman", "maker": "Grimsmo"},
+        "expect_url": "edclifestyle.com",
+    },
+    {
+        "name": "Inyoni @ Urban EDC",
+        "watcher": {"url": "", "keywords": "Inyoni", "maker": "Chris Reeve"},
+        "expect_url": "urbanedcsupply.com",
+    },
+    {
+        "name": "Ursus @ EKnives",
+        "watcher": {"url": "", "keywords": "Ursus", "maker": "Shirogorov"},
+        "expect_url": "eknives.com",
+    },
+    {
+        "name": "SMF @ Southern Edges",
+        "watcher": {"url": "", "keywords": "SMF", "maker": "Strider"},
+        "expect_url": "southernedges.com",
+    },
+    {
+        "name": "Mnandi @ eKnives Pre-Owned",
+        "watcher": {"url": "", "keywords": "Mnandi", "maker": "Chris Reeve"},
+        "expect_url": "eknives.com",
+    },
+    {
+        "name": "Mordax @ Reddit knife_swap",
+        "watcher": {"url": "", "keywords": "Mordax", "maker": "Protech"},
+        "expect_url": "reddit.com",
+    },
+]
+
+
+def notify_failure(failures, total, drop_count):
+    subject = f"[DROP MONITOR] {len(failures)}/{total} canaries FAILED"
+    body = (
+        f"Canary check at {datetime.now(timezone.utc).isoformat()}\n"
+        f"Checked {drop_count} drops (last 8h)\n\n"
+        f"FAILED:\n" + "\n".join(f"  - {f}" for f in failures) + "\n\n"
+        "This means Haiku extraction or keyword matching may be broken.\n"
+        "Check /var/log/drop-watcher/drops_mon.log for details."
+    )
+    html = body.replace("\n", "<br>")
+
+    for addr in ALERT_EMAILS:
+        try:
+            send_email(subject, html, body, to_addr=addr)
+            log.info(f"Failure alert sent to {addr}")
+        except Exception as e:
+            log.error(f"Failed to email {addr}: {e}")
+
+
+def write_flag(failures):
+    with open(FAIL_FLAG, 'w') as f:
+        json.dump({
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "failures": failures,
+        }, f)
+
+
+def clear_flag():
+    try:
+        os.remove(FAIL_FLAG)
+    except FileNotFoundError:
+        pass
+
+
+def run():
+    drops = db.get_recent_drops(hours=24)
+    if not drops:
+        log.error("NO DROPS in last 24 hours — preflight may not be running")
+        notify_failure(["NO DROPS AT ALL"], 6, 0)
+        write_flag(["NO DROPS AT ALL"])
+        return 1
+
+    log.info(f"Checking {len(CANARIES)} canaries against {len(drops)} drops (last 24h)")
+    failures = []
+
+    for canary in CANARIES:
+        matched_any = False
+        for drop in drops:
+            drop_url = (drop.get('url') or '').lower()
+            if canary["expect_url"] not in drop_url:
+                continue
+            hits = matches_for_watcher_drop(canary["watcher"], drop)
+            if hits:
+                matched_any = True
+                log.info(f"  PASS  {canary['name']} — matched {hits}")
+                break
+
+        if not matched_any:
+            failures.append(canary["name"])
+            log.warning(f"  FAIL  {canary['name']} — no match in any drop")
+
+    if failures:
+        log.error(f"{len(failures)}/{len(CANARIES)} canaries FAILED: {', '.join(failures)}")
+        notify_failure(failures, len(CANARIES), len(drops))
+        write_flag(failures)
+        return 1
+
+    log.info(f"ALL {len(CANARIES)} canaries passed")
+    clear_flag()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(run())
