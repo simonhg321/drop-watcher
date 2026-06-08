@@ -95,9 +95,12 @@ MISMATCH_BANNER_TEXT = (
 
 
 def cooldown_key(watcher_id, drop_url, matches):
-    """Unique key per watcher + drop URL + matched keywords."""
+    """Cooldown scoped to watcher + domain + matched keywords.
+    Domain-level (not URL-level) so the same restock seen by web_watcher
+    AND feed_watcher doesn't fire twice."""
     match_str = ','.join(sorted(matches))
-    raw = f"{watcher_id}|{drop_url}|{match_str}"
+    domain = domain_from_url(drop_url) or drop_url
+    raw = f"{watcher_id}|{domain}|{match_str}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
