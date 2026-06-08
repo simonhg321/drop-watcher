@@ -236,6 +236,7 @@ Return ONLY valid JSON in this exact format, no other text:
     "confidence": "high/medium/low"
   }},
   "notable_items": ["list of specific interesting items spotted"],
+  "notable_items_detail": [{"name": "item name", "url": "/relative-or-absolute-product-url", "price": "$NNN"}],
   "page_summary": "one sentence summary of what this page is about",
   "priority": "critical/high/medium/low",
   "alert_worthy": true
@@ -248,6 +249,7 @@ Rules:
 - Use the priority guide above to set priority accurately
 - Be conservative — false positives waste the owner's time
 - NEVER include sold-out or unavailable items in notable_items — only include items that are actually in stock or genuinely dropping soon
+- For each notable item, if you can see a direct product URL (<a href>) pointing to an individual product page (containing /products/, /product/, /p/, /dp/, or a slug path), include it in notable_items_detail. If no URL is visible, omit the url field for that item.
 - If no relevant content found return alert_worthy: false and empty arrays"""
 
 

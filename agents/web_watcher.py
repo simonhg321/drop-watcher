@@ -188,7 +188,36 @@ def mark_items_seen(source, notable_items, _unused=None):
     return _unused
 
 # ── Alert writer ──────────────────────────────────────────────────────────────
+def _enrich_products_from_ai(alert):
+    """Thread AI-extracted product URLs into the products list when no structured
+    products exist (tier-3 fallback). Haiku returns notable_items_detail with URLs
+    it found in the page HTML."""
+    if alert.get('products'):
+        return
+    details = alert.get('notable_items_detail') or []
+    base_url = alert.get('url', '')
+    ai_products = []
+    for item in details:
+        url = item.get('url', '')
+        if not url:
+            continue
+        if url.startswith('/'):
+            from urllib.parse import urljoin
+            url = urljoin(base_url, url)
+        ai_products.append({
+            'title': item.get('name', ''),
+            'url': url,
+            'available': True,
+            'tags': [],
+            'price': item.get('price', ''),
+            'confidence': 'medium',
+        })
+    if ai_products:
+        alert['products'] = ai_products
+
+
 def write_alert(settings, alert):
+    _enrich_products_from_ai(alert)
     db.add_drop(alert)
 
     log.info(f"ALERT: {alert['source']}")

@@ -55,11 +55,21 @@ websites:
     url: https://www.tacticalelements.com
     poll_interval: 20
     enabled: true
+    extract:
+      card: "li.product"
+      link: "a"
+      title: ".card-title"
+      price: ".price"
 
   - name: eKnives
     url: https://www.eknives.com
     poll_interval: 20
     enabled: true
+    extract:
+      card: ".ek__single_product"
+      link: "a"
+      title: ".ek__single_product-title"
+      price: ".ek__single_product-price"
 
   - name: Monkey Edge
     url: https://www.monkeyedge.com
@@ -179,6 +189,11 @@ websites:
     url: https://eknives.com/preowned/
     poll_interval: 30
     enabled: true
+    extract:
+      card: ".ek__single_product"
+      link: "a"
+      title: ".ek__single_product-title"
+      price: ".ek__single_product-price"
 
   - name: Knife Purveyor
     url: https://www.knifepurveyor.com
@@ -199,6 +214,11 @@ websites:
     url: https://www.edclifestyle.com/pre-owned-consignment/
     poll_interval: 30
     enabled: true
+    extract:
+      card: "li.product"
+      link: "a"
+      title: ".card-title"
+      price: ".price"
 
   - name: Knife Market
     url: https://knife-market.com
@@ -354,12 +374,22 @@ websites:
     poll_interval: 10
     enabled: true
     notes: Biggest dealer booth (#405) — show exclusives and restocks
+    extract:
+      card: ".ek__single_product"
+      link: "a"
+      title: ".ek__single_product-title"
+      price: ".ek__single_product-price"
 
   - name: EKnives — New Arrivals
     url: https://eknives.com/new/
     poll_interval: 15
     enabled: true
     notes: Post-show inventory dumps
+    extract:
+      card: ".ek__single_product"
+      link: "a"
+      title: ".ek__single_product-title"
+      price: ".ek__single_product-price"
 
   - name: KnifeCenter — Blade Show
     url: https://www.knifecenter.com/listing/just-in-from-2026-blade-show-texas
