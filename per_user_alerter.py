@@ -229,7 +229,16 @@ def select_matched_products(products, matches):
             out.append(p)
         if len(out) >= MATCHED_PRODUCTS_CAP:
             break
-    return out
+
+    from backfill_alerter import _is_still_available
+    verified = []
+    for p in out:
+        avail = _is_still_available(p.get('url', ''))
+        if avail is False:
+            log.info(f"  Dropped sold-out product: {p.get('title', '')[:60]}")
+            continue
+        verified.append(p)
+    return verified
 
 
 _PRICE_RE = re.compile(r'\$[\d,]+(?:\.\d{2})?')
