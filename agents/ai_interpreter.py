@@ -235,7 +235,7 @@ Return ONLY valid JSON in this exact format, no other text:
     "timing": "when (specific day/time if mentioned, or null)",
     "confidence": "high/medium/low"
   }},
-  "notable_items": ["list of specific interesting items spotted"],
+  "notable_items": ["EVERY in-stock item from tracked makers — list ALL, not just highlights"],
   "notable_items_detail": [{{"name": "item name", "url": "/relative-or-absolute-product-url", "price": "$NNN"}}],
   "page_summary": "one sentence summary of what this page is about",
   "priority": "critical/high/medium/low",
@@ -249,7 +249,9 @@ Rules:
 - Use the priority guide above to set priority accurately
 - Be conservative — false positives waste the owner's time
 - NEVER include sold-out or unavailable items in notable_items — only include items that are actually in stock or genuinely dropping soon
+- notable_items must list EVERY in-stock item from tracked makers, up to 30. Do NOT cherry-pick or summarize — users match keywords against this list and missing items cause missed alerts
 - For each notable item, if you can see a direct product URL (<a href>) pointing to an individual product page (containing /products/, /product/, /p/, /dp/, or a slug path), include it in notable_items_detail. If no URL is visible, omit the url field for that item.
+- notable_items_detail must have an entry for EVERY item in notable_items, even if the url field is omitted
 - If no relevant content found return alert_worthy: false and empty arrays"""
 
 

@@ -313,11 +313,36 @@ def resolve_drop_items(drop, matches):
     if items:
         return items
 
+    # Try notable_items_detail — Haiku may have extracted URLs there even when
+    # the item didn't land in notable_items (or the keyword matched only the excerpt).
+    for d in (drop.get('notable_items_detail') or []):
+        dname = (d.get('name') or '').lower()
+        if any(kw_matches(k, dname) for k in needles):
+            url = d.get('url', '')
+            if url and url.startswith('/'):
+                from urllib.parse import urljoin
+                url = urljoin(drop.get('url', ''), url)
+            if url:
+                items.append({'title': d.get('name', ''), 'url': url,
+                              'price': d.get('price', ''), 'confidence': 'low'})
+            if len(items) >= MATCHED_PRODUCTS_CAP:
+                break
+    if items:
+        return items
+
     c = linkpick.resolve_alert_candidate(
         candidates, notable_items=drop.get('notable_items'), keywords=matches)
     if c:
         title = linkpick.clean_title(c['text']) or linkpick.title_from_slug(c['href']) or drop.get('source', '')
         return [{'title': title, 'url': c['href'], 'price': '', 'confidence': 'low'}]
+
+    # Last resort: append /collections/all to the base URL so at least the user
+    # lands on the full inventory page instead of the homepage.
+    base = drop.get('url', '')
+    if base and not base.rstrip('/').endswith('/collections/all'):
+        fallback = base.rstrip('/') + '/collections/all'
+        kw_label = ', '.join(matches[:3])
+        return [{'title': kw_label, 'url': fallback, 'price': '', 'confidence': 'low'}]
     return []
 
 

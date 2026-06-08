@@ -5,7 +5,7 @@
 # HGR
 set -euo pipefail
 
-REPO="$HOME/drop-watcher/config"
+REPO="$(cd "$(dirname "$0")/.." && pwd)/config"
 ETC="/etc/drop-watcher"
 FILES=(sources.yaml makers.yaml cool_list.yaml)
 STAMP="$(date +%F-%H%M)"
