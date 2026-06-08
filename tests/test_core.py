@@ -1305,10 +1305,11 @@ class TestGlobalMatch:
         }
 
         with patch('per_user_alerter.db.get_active_watchers', return_value=[global_watcher]), \
-             patch('per_user_alerter.load_recent_drops', return_value=[user_drop, curated_drop]), \
+             patch('per_user_alerter.load_unprocessed_drops', return_value=[(1, user_drop), (2, curated_drop)]), \
              patch('per_user_alerter.db.is_cooldown_active', return_value=False), \
              patch('per_user_alerter.db.mark_cooldown'), \
              patch('per_user_alerter.db.update_watcher'), \
+             patch('per_user_alerter.db.set_hwm'), \
              patch('per_user_alerter.send_email', return_value=True) as mock_send:
 
             per_user_alerter.run()

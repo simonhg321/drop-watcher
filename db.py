@@ -60,6 +60,11 @@ CREATE INDEX IF NOT EXISTS idx_drops_timestamp ON drops(timestamp);
 CREATE INDEX IF NOT EXISTS idx_drops_source ON drops(source);
 CREATE INDEX IF NOT EXISTS idx_drops_priority ON drops(priority);
 
+CREATE TABLE IF NOT EXISTS alert_hwm (
+    consumer TEXT PRIMARY KEY,
+    last_drop_id INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS alert_tracking (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     alert_type TEXT NOT NULL,
@@ -448,6 +453,31 @@ def get_latest_drop_timestamp():
     with get_db() as db:
         row = db.execute("SELECT MAX(timestamp) as ts FROM drops").fetchone()
         return row['ts'] if row else None
+
+
+def get_unprocessed_drops(consumer='per_user_alerter'):
+    """Get all drops with id > last processed, oldest first. Never misses a drop."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT last_drop_id FROM alert_hwm WHERE consumer = ?",
+            (consumer,)
+        ).fetchone()
+        hwm = row['last_drop_id'] if row else 0
+        rows = conn.execute(
+            "SELECT id, raw_json FROM drops WHERE id > ? ORDER BY id ASC",
+            (hwm,)
+        ).fetchall()
+        return [(r['id'], json.loads(r['raw_json'])) for r in rows]
+
+
+def set_hwm(consumer, drop_id):
+    """Advance the high-water mark for a consumer."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO alert_hwm (consumer, last_drop_id) VALUES (?, ?) "
+            "ON CONFLICT(consumer) DO UPDATE SET last_drop_id = excluded.last_drop_id",
+            (consumer, drop_id)
+        )
 
 
 def trim_drops(days=30):

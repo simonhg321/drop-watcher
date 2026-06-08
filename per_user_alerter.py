@@ -106,6 +106,11 @@ def load_recent_drops():
     return db.get_recent_drops(minutes=DROPS_WINDOW_MINUTES)
 
 
+def load_unprocessed_drops():
+    """All drops since last successful run. Never misses a drop."""
+    return db.get_unprocessed_drops(consumer='per_user_alerter')
+
+
 # normalize_watch_url / domain_from_url now live in urls.py (single source of truth).
 
 
@@ -458,12 +463,15 @@ def run():
         log.info("No active watchers. Done.")
         return
 
-    drops = load_recent_drops()
-    log.info(f"Found {len(drops)} drops in last {DROPS_WINDOW_MINUTES} minutes")
+    drop_rows = load_unprocessed_drops()
+    log.info(f"Found {len(drop_rows)} unprocessed drops")
 
-    if not drops:
-        log.info("No recent drops. Done.")
+    if not drop_rows:
+        log.info("No unprocessed drops. Done.")
         return
+
+    drops = [d for _, d in drop_rows]
+    max_id = max(did for did, _ in drop_rows)
 
     now = datetime.now(timezone.utc)
 
@@ -555,6 +563,8 @@ def run():
             else:
                 log.error(f"Failed to send to {email}")
 
+    db.set_hwm('per_user_alerter', max_id)
+    log.info(f"HWM advanced to {max_id}")
     log.info("Done.")
 
 
