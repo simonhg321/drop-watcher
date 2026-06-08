@@ -199,6 +199,14 @@ def write_alert(settings, alert):
         drop = alert['drop_announcement']
         log.info(f"   DROP: {drop.get('maker')} -- {drop.get('description')} -- {drop.get('timing')}")
 
+    try:
+        from match_and_alert import match_drop
+        n = match_drop(alert)
+        if n:
+            log.info(f"Event-driven: {n} alerts sent for {alert['source']}")
+    except Exception as e:
+        log.error(f"Event-driven match failed (per_user_alerter will catch it): {e}")
+
 # ── Permissive SSL adapter ────────────────────────────────────────────────────
 class PermissiveSSLAdapter(HTTPAdapter):
     """

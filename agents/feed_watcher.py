@@ -83,6 +83,12 @@ def write_alert(settings, alert):
     for item in alert.get('notable_items', []):
         log.info(f"   -> {item}")
 
+    try:
+        from match_and_alert import match_drop
+        match_drop(alert)
+    except Exception as e:
+        log.error(f"Event-driven match failed: {e}")
+
 # ── Fetch RSS feed ────────────────────────────────────────────────────────────
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
