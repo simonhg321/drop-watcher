@@ -521,6 +521,18 @@ def watch():
     else:
         send_verification_email(entry)
 
+    if url:
+        try:
+            from agents.web_watcher import scan_one_url
+            from match_and_alert import match_drop
+            alert = scan_one_url(url)
+            if alert:
+                db.add_drop(alert)
+                match_drop(alert)
+                log.info(f"Immediate scan fired for {entry['id']}: {alert.get('source')}")
+        except Exception as e:
+            log.info(f"Immediate scan skipped: {e}")
+
     # SMS verification — send code if phone + consent provided
     sms_pending = bool(phone and data.get('sms_consent'))
     if sms_pending:
@@ -892,19 +904,18 @@ def stats():
     by_priority = db.get_drops_by_priority(hours=24)
     latest_ts = db.get_latest_drop_timestamp()
 
-    # Last preflight run — still from JSONL (not migrated, it's diagnostic)
-    preflight_log = paths.PREFLIGHT_JSONL
+    # Last canary monitor run (replaced preflight)
     last_preflight = None
     try:
-        with open(preflight_log) as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        p = json.loads(line)
-                        last_preflight = p.get('timestamp')
-                    except Exception:
-                        pass
+        mon_log = os.path.join(paths.LOG_DIR, 'drops_mon.log')
+        with open(mon_log, 'rb') as f:
+            f.seek(0, 2)
+            size = f.tell()
+            pos = max(0, size - 2048)
+            f.seek(pos)
+            for line in f.read().decode(errors='replace').strip().split('\n'):
+                if 'canaries passed' in line or 'canaries FAILED' in line:
+                    last_preflight = line.split(' [')[0].strip().replace(',', '.')
     except FileNotFoundError:
         pass
 

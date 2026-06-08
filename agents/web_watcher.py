@@ -236,6 +236,41 @@ def write_alert(settings, alert):
     except Exception as e:
         log.error(f"Event-driven match failed (per_user_alerter will catch it): {e}")
 
+
+def scan_one_url(url, source_name=None, hints=None):
+    """Fetch and analyze a single URL on demand. Returns the alert dict or None.
+    Used by watcher_signup for immediate scan on new watch creation."""
+    settings = load_yaml(SETTINGS_FILE)
+    makers   = load_yaml(MAKERS_FILE)
+    cool     = load_yaml(COOL_LIST_FILE)
+    keywords = build_keywords(cool, makers)
+    makers_list = build_makers_list(makers)
+
+    text, products, candidates = collection_fetch.fetch_collection(
+        url, fetch_page, log=log, hints=hints)
+    if text is None:
+        return None
+
+    if is_homepage_junk(text):
+        return None
+
+    name = source_name or domain_from_url(url) or 'on-demand'
+    if not prefilter(text, keywords):
+        return None
+
+    result = analyze_page(name, url, text, makers_list)
+    if result is None or not result.get('alert_worthy'):
+        return None
+
+    result['agent'] = 'web_watcher'
+    result['source'] = name
+    result['event'] = 'on_demand_scan'
+    result['page_excerpt'] = text[:6000]
+    result['products'] = instock_products(products)
+    result['link_candidates'] = candidates
+    return result
+
+
 # ── Permissive SSL adapter ────────────────────────────────────────────────────
 class PermissiveSSLAdapter(HTTPAdapter):
     """
