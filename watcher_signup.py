@@ -125,6 +125,29 @@ def normalize_url(url):
 # All watcher state is now in SQLite via db.py
 
 
+# ── Keyword quality check ────────────────────────────────────────────────────
+
+# Generic knife terms that, alone, produce too many false matches.
+_GENERIC_KNIFE_TOKENS = {
+    'knife', 'knives', 'blade', 'blades', 'fixed', 'folder', 'folding',
+    'edc', 'pocket', 'tactical', 'hunting', 'survival', 'utility', 'tanto',
+    'drop', 'point', 'clip', 'steel', 'handle', 'scales', 'liner', 'lock',
+    'frame', 'flipper', 'thumb', 'stud', 'hole', 'new', 'sale', 'limited',
+    'edition', 'sprint', 'run', 'custom', 'production', 'plain', 'edge',
+    'serrated', 'black', 'silver', 'titanium', 'carbon', 'fiber', 'micarta',
+    'g10', 'g-10', 'cf', 's30v', 's35vn', 'm390', '20cv', 'd2', '154cm',
+    'in', 'stock', 'available', 'buy', 'shop', 'get',
+}
+
+def _keyword_too_generic(keywords_str):
+    """Return True if every token in the keyword string is a generic knife term."""
+    import re
+    tokens = [t.lower() for t in re.split(r'[\s,/\-]+', keywords_str) if t.strip()]
+    if not tokens:
+        return False
+    return all(t in _GENERIC_KNIFE_TOKENS for t in tokens)
+
+
 # ── Quick keyword check ──────────────────────────────────────────────────────
 
 def quick_keyword_check(url, keywords_str):
@@ -529,6 +552,10 @@ def watch():
 
     if sms_pending:
         resp['sms_pending'] = True
+
+    if _keyword_too_generic(keywords):
+        resp['warning'] = ("Those keywords are quite generic — you may get a lot of alerts. "
+                           "Try adding a maker name or specific model (e.g. \"Chris Reeve Sebenza\").")
 
     return jsonify(resp), 201
 

@@ -462,6 +462,7 @@
     <p id="smsVerifyStatus" style="margin-top:8px;font-size:13px"></p>
   </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
+  <p id="keywordWarning" style="display:none;margin-top:12px;color:#e6a817;font-size:13px;background:rgba(230,168,23,0.1);padding:10px 14px;border-radius:6px;border-left:3px solid #e6a817"></p>
   <div id="dashboardLink" style="display:none"></div>
 </div>
 
@@ -688,6 +689,10 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
         const pm = document.getElementById('previewMsg');
         pm.textContent = result.preview_msg;
         pm.style.display = 'block';
+      }
+      if (result.warning) {
+        const wm = document.getElementById('keywordWarning');
+        if (wm) { wm.textContent = '⚠ ' + result.warning; wm.style.display = 'block'; }
       }
       // Connect to onboarding SSE for real-time status
       startOnboarding(result.id);

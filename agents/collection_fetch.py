@@ -31,7 +31,7 @@ HGR
 import json
 import re
 import time
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, parse_qs, urlencode, urlunparse
 
 from bs4 import BeautifulSoup
 
@@ -40,7 +40,7 @@ import product_extract
 
 SHOPIFY_LIMIT       = 100   # keep each products.json page well under fetch_page's 2MB cap
 SHOPIFY_MAX_PAGES   = 8      # up to 800 products — plenty for keyword watches
-HTML_MAX_PAGES      = 4     # generic ?page=N walk cap
+HTML_MAX_PAGES      = 15    # generic ?page=N walk cap
 PAGE_SLEEP_SECONDS  = 0.8   # politeness between pages of the SAME site
 
 _STRIP_TAGS = ['nav', 'header', 'footer', 'script', 'style', 'meta', 'link']
@@ -215,6 +215,90 @@ def fetch_paginated_html(url, fetch_page, ssl_permissive=False, log=None):
     return '\n'.join(texts), list(cand_by_href.values())[:linkpick.LINK_INDEX_MAX]
 
 
+# ── Structured pagination walk (tier-2 / tier-3) ───────────────────────────
+
+def _page_url(url, n):
+    """Return url with the `page` query parameter set to n.
+    Replaces an existing page= value so we don't accumulate duplicates.
+    """
+    p = urlparse(url)
+    qs = parse_qs(p.query, keep_blank_values=True)
+    qs['page'] = [str(n)]
+    new_query = urlencode({k: v[0] for k, v in qs.items()})
+    return urlunparse(p._replace(query=new_query))
+
+
+def _walk_structured_pages(url, page1_html, page1_products, fetch_page,
+                           ssl_permissive=False, log=None, hints=None):
+    """Starting from page 2, walk ?page=N until a page yields no new products
+    or returns no HTML (404/error).  Returns the full merged product list
+    (page 1 results prepended).  Caps at HTML_MAX_PAGES total pages.
+
+    Tries structured extraction (JSON-LD then product-card DOM) on each page,
+    and also honours <link rel="next"> / <a rel="next"> so sites that provide
+    explicit next-links are followed precisely rather than blindly counting.
+
+    Called only when page 1 already produced a non-empty structured list.
+    """
+    all_products = list(page1_products)
+    seen_urls = {p['url'] for p in all_products if p.get('url')}
+
+    # pending_next: explicit rel=next href from the previously fetched page (if any).
+    pending_next = _next_link(page1_html, url) if page1_html else None
+
+    for page_num in range(2, HTML_MAX_PAGES + 1):
+        # Prefer an explicit rel=next link; fall back to ?page=N arithmetic.
+        if pending_next:
+            next_url = pending_next
+            pending_next = None
+        else:
+            next_url = _page_url(url, page_num)
+
+        # Guard: don't re-fetch the base page (e.g. if ?page=1 was already the URL).
+        if next_url == url or next_url == _page_url(url, 1):
+            break
+
+        html = fetch_page(next_url, ssl_permissive)
+        if not html:
+            break  # 404 or network error — we're past the end
+
+        try:
+            page_products = (product_extract.from_structured_data(html, next_url)
+                             or product_extract.from_product_cards(html, next_url, hints=hints))
+        except Exception as e:
+            if log:
+                log.warning(f"[collection_fetch] structured walk page {page_num} "
+                            f"extract failed for {url}: {e}")
+            break
+
+        if not page_products:
+            break  # empty page → end of collection
+
+        new = [p for p in page_products if p.get('url') not in seen_urls]
+        if not new:
+            break  # all products already seen → past the end (site wrapped)
+
+        all_products.extend(new)
+        seen_urls.update(p['url'] for p in new if p.get('url'))
+
+        if log:
+            log.info(f"[collection_fetch] structured walk page {page_num} — "
+                     f"{len(new)} new products for {url}")
+
+        nxt = _next_link(html, next_url)
+        if nxt and nxt != next_url:
+            pending_next = nxt  # explicit next-link for next iteration
+
+        if PAGE_SLEEP_SECONDS:
+            time.sleep(PAGE_SLEEP_SECONDS)
+
+    if log and len(all_products) > len(page1_products):
+        log.info(f"[collection_fetch] structured walk total — "
+                 f"{len(all_products)} products ({len(all_products) - len(page1_products)} "
+                 f"from page 2+) for {url}")
+    return all_products
+
+
 # ── Orchestrator ────────────────────────────────────────────────────────────
 
 def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None):
@@ -251,6 +335,10 @@ def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None
         if structured:
             if log:
                 log.info(f"[collection_fetch] structured extract — {len(structured)} products for {url}")
+            # Walk pages 2+ to pick up products that live beyond the first page.
+            structured = _walk_structured_pages(
+                url, raw_html, structured, fetch_page,
+                ssl_permissive=ssl_permissive, log=log, hints=hints)
             return _strip_text(raw_html), structured, []
 
     # Unstructured: walk pagination for combined text + best-effort fuzzy candidates.
