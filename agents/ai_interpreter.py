@@ -236,7 +236,7 @@ Return ONLY valid JSON in this exact format, no other text:
     "confidence": "high/medium/low"
   }},
   "notable_items": ["list of specific interesting items spotted"],
-  "notable_items_detail": [{"name": "item name", "url": "/relative-or-absolute-product-url", "price": "$NNN"}],
+  "notable_items_detail": [{{"name": "item name", "url": "/relative-or-absolute-product-url", "price": "$NNN"}}],
   "page_summary": "one sentence summary of what this page is about",
   "priority": "critical/high/medium/low",
   "alert_worthy": true
