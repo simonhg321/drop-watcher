@@ -75,6 +75,25 @@ KEYWORD_HINT_TEXT = (
 )
 
 
+def mismatch_banner_html():
+    """Small banner shown on uncertain alerts: the deep-link may not land on the exact
+    product. Tell the user to try it, and if it's off, search the site themselves."""
+    return (
+        '<div style="background:#2a1a0a;border:1px solid #ff8c42;border-radius:4px;'
+        'padding:12px 14px;margin:16px 0;color:#ffd6b0;font-size:12px;line-height:1.5">'
+        '⚠️ <strong>This link may not land on the exact product.</strong> '
+        'Try it — and if it doesn\'t match, search the site for your grail; it may '
+        'still be in stock. We\'re working on a fix.'
+        '</div>'
+    )
+
+
+MISMATCH_BANNER_TEXT = (
+    "\n⚠️ This link may not land on the exact product. Try it — and if it doesn't\n"
+    "match, search the site for your grail; it may still be in stock. We're working on a fix.\n"
+)
+
+
 def cooldown_key(watcher_id, drop_url, matches):
     """Unique key per watcher + drop URL + matched keywords."""
     match_str = ','.join(sorted(matches))
@@ -347,6 +366,7 @@ def build_alert_email(watcher, matches, drop):
 
     show_hint = alert_is_uncertain(matched_items)
     keyword_hint = keyword_hint_html(unsub_token) if show_hint else ''
+    mismatch_banner = mismatch_banner_html() if show_hint else ''
 
     email_html = f"""
     <div style="font-family: monospace; background: #0a0a0a; color: #e8e8e8; padding: 24px; max-width: 600px;">
@@ -354,6 +374,8 @@ def build_alert_email(watcher, matches, drop):
       <p style="color: #aaa; margin: 0 0 20px; font-size: 13px;">instockornot.club</p>
 
       <p>Hey {safe_name} — we found a match on a page you're watching.</p>
+
+      {mismatch_banner}
 
       <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
         <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Source</div>
@@ -406,9 +428,11 @@ def build_alert_email(watcher, matches, drop):
         matched_text = f"Matched items (in stock now):\n{lines}\n\n"
 
     hint_text = KEYWORD_HINT_TEXT.format(token=unsub_token) if show_hint else ''
+    banner_text = MISMATCH_BANNER_TEXT if show_hint else ''
 
     text = (
-        f"DROP WATCHER — Match found\n\n"
+        f"DROP WATCHER — Match found\n"
+        f"{banner_text}\n"
         f"Source: {drop.get('source', '')}\n"
         f"Page: {url}\n"
         f"Matched: {', '.join(matches)}\n"

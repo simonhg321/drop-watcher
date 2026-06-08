@@ -93,7 +93,7 @@ def page_fingerprint(text, products):
     return fingerprint(text)
 
 # ── Structured products for deep-linking matched items ────────────────────────
-PRODUCTS_STORE_CAP = 80
+PRODUCTS_STORE_CAP = 256
 
 def instock_products(products):
     """Trim a structured product list to in-stock items for deep-linking in alerts.
