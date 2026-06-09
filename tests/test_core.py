@@ -2046,3 +2046,45 @@ class TestDealerScoutInstantAlert:
              patch.object(ds, 'curated_domains', return_value=set()), \
              patch.object(ds, 'send_email', side_effect=Exception('resend down')):
             assert ds._promote_one(cand) is True  # add still succeeds
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# KEYWORD QUALITY ASSESSMENT — assess_keyword_quality() (Task 3)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestAssessKeywordQuality:
+    def test_good_keywords(self):
+        from unittest.mock import patch, MagicMock
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"quality": "good", "reason": "Specific model name.", "suggestions": [], "generic_keywords": []}')]
+        mock_response.usage = MagicMock(input_tokens=100, output_tokens=50)
+
+        with patch('agents.ai_interpreter.client') as mock_client:
+            mock_client.messages.create.return_value = mock_response
+            from agents.ai_interpreter import assess_keyword_quality
+            result = assess_keyword_quality('Umnumzaan', maker='Chris Reeve')
+
+        assert result['quality'] == 'good'
+        assert result['generic_keywords'] == []
+
+    def test_bad_keywords(self):
+        from unittest.mock import patch, MagicMock
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"quality": "bad", "reason": "Too generic.", "suggestions": ["Sebenza 31"], "generic_keywords": ["damascus", "limited"]}')]
+        mock_response.usage = MagicMock(input_tokens=100, output_tokens=50)
+
+        with patch('agents.ai_interpreter.client') as mock_client:
+            mock_client.messages.create.return_value = mock_response
+            from agents.ai_interpreter import assess_keyword_quality
+            result = assess_keyword_quality('damascus, limited')
+
+        assert result['quality'] == 'bad'
+        assert 'damascus' in result['generic_keywords']
+
+    def test_api_failure_returns_unknown(self):
+        with patch('agents.ai_interpreter.client') as mock_client:
+            mock_client.messages.create.side_effect = Exception("API down")
+            from agents.ai_interpreter import assess_keyword_quality
+            result = assess_keyword_quality('anything')
+
+        assert result == {'quality': 'unknown'}

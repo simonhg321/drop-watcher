@@ -107,6 +107,41 @@ class UserPageAnalysis(BaseModel):
             return 'medium'
         return v
 
+class KeywordQualityAssessment(BaseModel):
+    quality: str = 'unknown'
+    reason: str = ''
+    suggestions: list[str] = Field(default_factory=list)
+    generic_keywords: list[str] = Field(default_factory=list)
+
+    @field_validator('quality')
+    @classmethod
+    def valid_quality(cls, v):
+        if v not in ('good', 'needs_work', 'bad', 'unknown'):
+            return 'needs_work'
+        return v
+
+KEYWORD_QUALITY_PROMPT = """You are a knife and EDC expert helping a user set up in-stock alerts.
+
+The user wants to be alerted when these keywords appear on dealer pages:
+  Keywords: {keywords}
+  Maker: {maker}
+
+Rate the keyword quality and suggest improvements.
+
+Rules:
+- Good keywords are specific product names or models: "Sebenza 31", "Umnumzaan", "Norseman", "SMF", "Inkosi Insingo"
+- Bad keywords are generic material/finish/category terms that appear on almost every knife page: "damascus", "titanium", "limited", "dlc", "in stock"
+- A keyword is OK if it identifies a specific product even without a maker (e.g. "Umnumzaan" is unambiguous)
+- A generic term paired with a specific maker in the maker field is acceptable but not ideal (maker scoping reduces noise)
+
+Respond in JSON:
+{{
+  "quality": "good" | "needs_work" | "bad",
+  "reason": "one sentence explaining why",
+  "suggestions": ["up to 3 better keyword alternatives"],
+  "generic_keywords": ["which of their keywords are too generic"]
+}}"""
+
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import sys
@@ -589,6 +624,30 @@ def classify_dealer(url, page_text):
     except Exception as e:
         log.error(f"classify_dealer unexpected error for {site_name}: {e}")
         return None
+
+
+def assess_keyword_quality(keywords, maker=''):
+    """Ask Haiku whether keywords are specific enough for good alerts.
+    Returns dict with quality/reason/suggestions/generic_keywords.
+    On any failure returns {'quality': 'unknown'} — never blocks signup."""
+    prompt = KEYWORD_QUALITY_PROMPT.format(
+        keywords=keywords,
+        maker=maker or 'not specified',
+    )
+    try:
+        message = client.messages.create(
+            model=MODEL,
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        log_api_usage('assess_keyword_quality', 'keyword_check', message)
+        raw = first_text(message, 'keyword_quality')
+        result, _ = parse_ai_response(raw, KeywordQualityAssessment, 'keyword_check', '')
+        log_ai_call('assess_keyword_quality', 'keyword_check', '', keywords[:200], result)
+        return result
+    except Exception as e:
+        log.error(f"assess_keyword_quality failed: {e}")
+        return {'quality': 'unknown'}
 
 
 def analyze_user_page(url, page_text, user_keywords):
