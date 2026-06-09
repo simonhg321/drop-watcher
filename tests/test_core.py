@@ -1560,6 +1560,56 @@ class TestEbayScan:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# EMAIL AUDIT LOG (alerter.log_sent_email)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestEmailAuditLog:
+    def test_log_sent_email_writes_record(self, tmp_env):
+        import importlib
+        import paths
+        importlib.reload(paths)
+        from alerter import log_sent_email
+        log_sent_email(
+            to='test@example.com',
+            subject='[DROP WATCHER] Match found — Southern Edges',
+            body_text='Keywords matched: umnumzaan\nSource: southernedges.com',
+            email_type='alert',
+        )
+        log_path = os.path.join(str(tmp_env), 'logs', 'emails_sent.log')
+        assert os.path.exists(log_path)
+        content = open(log_path).read()
+        assert 'TO: test@example.com' in content
+        assert 'SUBJ: [DROP WATCHER] Match found' in content
+        assert 'TYPE: alert' in content
+        assert 'Keywords matched: umnumzaan' in content
+        assert content.strip().endswith('===')
+
+    def test_log_sent_email_appends(self, tmp_env):
+        import importlib
+        import paths
+        importlib.reload(paths)
+        from alerter import log_sent_email
+        log_sent_email(to='a@test.com', subject='First', body_text='body1', email_type='alert')
+        log_sent_email(to='b@test.com', subject='Second', body_text='body2', email_type='confirm')
+        log_path = os.path.join(str(tmp_env), 'logs', 'emails_sent.log')
+        content = open(log_path).read()
+        assert content.count('===') == 2
+        assert 'TO: a@test.com' in content
+        assert 'TO: b@test.com' in content
+
+    def test_log_sent_email_survives_missing_dir(self, tmp_env):
+        """Should not raise if log dir doesn't exist (fail silent)."""
+        import importlib
+        import paths
+        import shutil
+        shutil.rmtree(os.path.join(str(tmp_env), 'logs'))
+        importlib.reload(paths)
+        from alerter import log_sent_email
+        # Should not raise
+        log_sent_email(to='x@test.com', subject='Test', body_text='body', email_type='alert')
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # GLOBAL WATCH MODEL — maker column (S54)
 # ═══════════════════════════════════════════════════════════════════════════════
 

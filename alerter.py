@@ -37,6 +37,16 @@ RESEND_API_URL = 'https://api.resend.com/emails'
 # ── Logging ───────────────────────────────────────────────────────────────────
 log = logging.getLogger('alerter')
 
+def log_sent_email(to, subject, body_text, email_type='alert'):
+    """Append a structured record to the email audit log. Never raises."""
+    try:
+        ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        header = f"{ts} | TO: {to} | SUBJ: {subject} | TYPE: {email_type}"
+        with open(paths.EMAILS_SENT_LOG, 'a') as f:
+            f.write(header + '\n---\n' + body_text + '\n===\n')
+    except Exception:
+        pass
+
 # ── Resend sender ─────────────────────────────────────────────────────────────
 def send_email(subject, body_html, body_text, extra_recipients=None, to_addr=None):
     if not RESEND_API_KEY:
@@ -70,6 +80,8 @@ def send_email(subject, body_html, body_text, extra_recipients=None, to_addr=Non
         response.raise_for_status()
         data = response.json()
         log.info(f"Email sent via Resend: {subject} — id: {data.get('id')}")
+        log_sent_email(to=to_addr or ALERT_TO, subject=subject,
+                       body_text=body_text, email_type='alert')
         return True
     except httpx.HTTPStatusError as e:
         log.error(f"Resend API error {e.response.status_code}: {e.response.text}")

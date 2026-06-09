@@ -86,3 +86,6 @@ AI_CALLS_JSONL = os.path.join(LOG_DIR, 'ai_calls.jsonl')
 
 # ── Visitor tracking ──────────────────────────────────────────────────────
 PAGEVIEWS_JSONL = os.path.join(LOG_DIR, 'pageviews.jsonl')
+
+# ── Email audit log ──────────────────────────────────────────────────────
+EMAILS_SENT_LOG = os.path.join(LOG_DIR, 'emails_sent.log')
