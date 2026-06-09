@@ -609,6 +609,52 @@ function checkKeywordQuality() {
 
 coolEl.addEventListener('blur', checkKeywordQuality);
 
+// ── Keyword quality — Haiku AI coach (prefetch on email focus) ───────────
+let kwQualityResult = null;
+let kwQualityFor = '';
+let kwQualityPending = false;
+
+async function fetchKeywordQuality() {
+  const keywords = coolEl.value.trim();
+  const maker = document.getElementById('maker').value.trim();
+  if (!keywords || keywords === kwQualityFor) return;
+  kwQualityFor = keywords;
+  kwQualityPending = true;
+  kwQualityResult = null;
+  try {
+    const res = await fetch('/api/keyword-quality', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords, maker })
+    });
+    if (res.ok) kwQualityResult = await res.json();
+  } catch(e) { /* fail silent — never block signup */ }
+  kwQualityPending = false;
+}
+
+document.querySelector('[name="email"]').addEventListener('focus', fetchKeywordQuality);
+
+let kwModalDismissed = false;
+
+document.getElementById('kwModalFix').addEventListener('click', function() {
+  document.getElementById('kwModal').style.display = 'none';
+  coolEl.focus();
+  kwModalDismissed = false;
+});
+
+document.getElementById('kwModalSkip').addEventListener('click', function() {
+  document.getElementById('kwModal').style.display = 'none';
+  kwModalDismissed = true;
+  document.getElementById('watchForm').requestSubmit();
+});
+
+// Reset modal state when keywords change
+coolEl.addEventListener('input', function() {
+  kwModalDismissed = false;
+  kwQualityResult = null;
+  kwQualityFor = '';
+});
+
 toggleUrl();   // set initial state (makerReq visibility + urlWrap)
 renderExpand();
 
@@ -706,6 +752,22 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       }
     }
     if (!urlOk) return;
+  }
+
+  // ── Keyword quality gate (Haiku) ──
+  if (kwQualityResult && !kwModalDismissed
+      && (kwQualityResult.quality === 'bad' || kwQualityResult.quality === 'needs_work')) {
+    const modal = document.getElementById('kwModal');
+    document.getElementById('kwModalReason').textContent = kwQualityResult.reason || 'Your keywords might be too broad.';
+    const sugEl = document.getElementById('kwModalSuggestions');
+    if (kwQualityResult.suggestions && kwQualityResult.suggestions.length > 0) {
+      sugEl.textContent = 'Try instead: ' + kwQualityResult.suggestions.join(', ');
+      sugEl.style.display = 'block';
+    } else {
+      sugEl.style.display = 'none';
+    }
+    modal.style.display = 'block';
+    return;
   }
 
   btn.classList.add('loading');
