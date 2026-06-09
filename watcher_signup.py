@@ -40,9 +40,9 @@ from urls import domain_from_url
 from config_load import load_yaml
 
 try:
-    from ai_interpreter import classify_dealer
+    from ai_interpreter import classify_dealer, assess_keyword_quality
 except ImportError:
-    from agents.ai_interpreter import classify_dealer
+    from agents.ai_interpreter import classify_dealer, assess_keyword_quality
 
 load_dotenv(paths.ENV_FILE, override=True)
 
@@ -577,8 +577,16 @@ def watch():
     return jsonify(resp), 201
 
 
-
-
+@app.route('/api/keyword-quality', methods=['POST'])
+@limiter.limit("10 per minute")
+def keyword_quality():
+    data = request.get_json(silent=True) or {}
+    keywords = (data.get('keywords') or '').strip()
+    if not keywords:
+        return jsonify({'quality': 'unknown'}), 200
+    maker = (data.get('maker') or '').strip()
+    result = assess_keyword_quality(keywords, maker=maker)
+    return jsonify(result), 200
 
 
 @app.route('/api/resend-link', methods=['POST'])
