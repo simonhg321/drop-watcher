@@ -34,6 +34,7 @@ import db
 from matching import kw_matches
 from makers import expand_maker
 from synonyms import kw_matches_any
+from alerter import log_sent_email
 from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
@@ -274,6 +275,8 @@ instockornot.club
         )
         r.raise_for_status()
         log.info(f"Confirmation email sent to {entry['email']} — id: {r.json().get('id')}")
+        log_sent_email(to=entry['email'], subject=subject,
+                       body_text=body_text, email_type='confirmation')
         return True
     except Exception as e:
         log.error(f"Confirmation email failed for {entry['email']}: {e}")
@@ -325,6 +328,8 @@ def send_verification_email(entry):
         )
         r.raise_for_status()
         log.info(f"Verification email sent to {entry['email']} — id: {r.json().get('id')}")
+        log_sent_email(to=entry['email'], subject=subject,
+                       body_text=body_text, email_type='verification')
         return True
     except Exception as e:
         log.error(f"Verification email failed for {entry['email']}: {e}")
@@ -1162,6 +1167,8 @@ def send_feedback_email(subject, comment, reply_email):
         )
         r.raise_for_status()
         log.info("Feedback email sent")
+        log_sent_email(to=FEEDBACK_TO, subject=f"[feedback] {subject}"[:200],
+                       body_text=body_text, email_type='feedback')
         return True
     except Exception as e:
         log.error(f"Feedback email failed: {e}")
