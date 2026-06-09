@@ -463,19 +463,19 @@
     <p id="smsVerifyStatus" style="margin-top:8px;font-size:13px"></p>
   </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
-  <!-- keyword quality modal -->
-  <div id="kwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center">
-    <div style="background:#1a1a1a;border:2px solid #e6a817;border-radius:8px;padding:32px;max-width:480px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%);box-shadow:0 0 30px rgba(230,168,23,0.25)">
-      <h3 style="color:#e6a817;margin:0 0 12px;font-size:16px">⚡ Quick tip — your keywords could be sharper</h3>
-      <p id="kwModalReason" style="color:#ccc;font-size:14px;line-height:1.6;margin:0 0 16px"></p>
-      <div id="kwModalSuggestions" style="display:none;background:rgba(230,168,23,0.1);border:1px solid #e6a817;border-radius:4px;padding:12px;margin:0 0 20px;color:#e6a817;font-size:13px"></div>
-      <div style="display:flex;gap:12px;justify-content:flex-end">
-        <button id="kwModalFix" type="button" style="background:none;border:1px solid #e6a817;color:#e6a817;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Fix my keywords</button>
-        <button id="kwModalSkip" type="button" style="background:none;border:1px solid #888;color:#888;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Set watch anyway →</button>
-      </div>
+  <div id="dashboardLink" style="display:none"></div>
+</div>
+
+<div id="kwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000">
+  <div style="background:#1a1a1a;border:2px solid #e6a817;border-radius:8px;padding:32px;max-width:480px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%);box-shadow:0 0 30px rgba(230,168,23,0.25)">
+    <h3 style="color:#e6a817;margin:0 0 12px;font-size:16px">⚡ Quick tip — your keywords could be sharper</h3>
+    <p id="kwModalReason" style="color:#ccc;font-size:14px;line-height:1.6;margin:0 0 16px"></p>
+    <div id="kwModalSuggestions" style="display:none;background:rgba(230,168,23,0.1);border:1px solid #e6a817;border-radius:4px;padding:12px;margin:0 0 20px;color:#e6a817;font-size:13px"></div>
+    <div style="display:flex;gap:12px;justify-content:flex-end">
+      <button id="kwModalFix" type="button" style="background:none;border:1px solid #e6a817;color:#e6a817;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Fix my keywords</button>
+      <button id="kwModalSkip" type="button" style="background:none;border:1px solid #888;color:#888;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Set watch anyway →</button>
     </div>
   </div>
-  <div id="dashboardLink" style="display:none"></div>
 </div>
 
 <div class="stats-bar">
@@ -755,6 +755,9 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   }
 
   // ── Keyword quality gate (Haiku) ──
+  if (!kwQualityResult && !kwModalDismissed && !kwQualityPending) {
+    await fetchKeywordQuality();
+  }
   if (kwQualityResult && !kwModalDismissed
       && (kwQualityResult.quality === 'bad' || kwQualityResult.quality === 'needs_work')) {
     const modal = document.getElementById('kwModal');
