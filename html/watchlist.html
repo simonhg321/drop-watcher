@@ -463,6 +463,18 @@
   </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
   <p id="keywordWarning" style="display:none;margin-top:12px;color:#e6a817;font-size:13px;background:rgba(230,168,23,0.1);padding:10px 14px;border-radius:6px;border-left:3px solid #e6a817"></p>
+  <!-- keyword quality modal -->
+  <div id="kwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:32px;max-width:480px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%)">
+      <h3 style="color:#e6a817;margin:0 0 12px;font-size:16px">⚡ Quick tip — your keywords could be sharper</h3>
+      <p id="kwModalReason" style="color:#ccc;font-size:14px;line-height:1.6;margin:0 0 16px"></p>
+      <div id="kwModalSuggestions" style="display:none;background:#2a1a0a;border:1px solid #ff8c42;border-radius:4px;padding:12px;margin:0 0 20px;color:#ffd6b0;font-size:13px"></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button id="kwModalFix" type="button" style="background:none;border:1px solid #888;color:#ccc;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Fix my keywords</button>
+        <button id="kwModalSkip" type="button" style="background:#c0392b;border:none;color:#fff;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Set watch anyway →</button>
+      </div>
+    </div>
+  </div>
   <div id="dashboardLink" style="display:none"></div>
 </div>
 
@@ -558,6 +570,45 @@ makerEl.addEventListener('input', function() {
   renderExpand();
 });
 coolEl.addEventListener('input', updatePreview);
+
+// ── Keyword quality — instant client-side blocklist ──────────────────────
+const GENERIC_KNIFE_TERMS = new Set([
+  'knife','knives','blade','blades','fixed','folder','folding',
+  'edc','pocket','tactical','hunting','survival','utility','tanto',
+  'drop','point','clip','steel','handle','scales','liner','lock',
+  'frame','flipper','thumb','stud','hole','new','sale','limited',
+  'edition','sprint','run','custom','production','plain','edge',
+  'serrated','black','silver','titanium','carbon','fiber','micarta',
+  'g10','g-10','cf','s30v','s35vn','m390','20cv','d2','154cm',
+  'in','stock','available','buy','shop','get',
+  'damascus','dlc','exclusive','rare','regular',
+]);
+
+function checkKeywordQuality() {
+  const raw = coolEl.value.trim();
+  const warnEl = document.getElementById('keywordWarning');
+  if (!raw) { warnEl.style.display = 'none'; return; }
+
+  const userKws = raw.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+  const genericKws = userKws.filter(kw => {
+    const tokens = kw.split(/[\s\/\-]+/).filter(Boolean);
+    return tokens.length > 0 && tokens.every(t => GENERIC_KNIFE_TERMS.has(t));
+  });
+
+  if (genericKws.length === 0) {
+    warnEl.style.display = 'none';
+    return;
+  }
+  if (genericKws.length === userKws.length) {
+    warnEl.textContent = "⚠ Those keywords are very broad — you'll get alerts on almost every drop. Specific model names like 'Sebenza 31' or 'Umnumzaan' work much better.";
+  } else {
+    warnEl.textContent = "⚠ Some of your keywords are pretty broad (" + genericKws.join(', ') + "). Adding a specific model or maker name will sharpen your results.";
+  }
+  warnEl.style.display = 'block';
+}
+
+coolEl.addEventListener('blur', checkKeywordQuality);
+
 toggleUrl();   // set initial state (makerReq visibility + urlWrap)
 renderExpand();
 
