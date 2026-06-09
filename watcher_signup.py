@@ -476,6 +476,10 @@ def watch():
             db.update_watcher(existing['id'], verify_token=vt)
             existing['verify_token'] = vt
             send_verification_email(existing)
+        else:
+            existing['keywords'] = keywords
+            existing['maker'] = maker
+            send_confirmation_email(existing)
         return jsonify({'status': 'updated', 'id': existing['id']}), 200
 
     # One token per email — reuse existing if this email already has watches

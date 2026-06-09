@@ -57,9 +57,9 @@ CANARIES = [
         "expect_url": "eknives.com",
     },
     {
-        "name": "Mordax @ Reddit knife_swap",
-        "watcher": {"url": "", "keywords": "Mordax", "maker": "Protech"},
-        "expect_url": "reddit.com",
+        "name": "Sebenza @ KnifeJoy",
+        "watcher": {"url": "", "keywords": "Sebenza", "maker": "Chris Reeve"},
+        "expect_url": "knifejoy.com",
     },
 ]
 

@@ -348,6 +348,7 @@
       <label>Cool-list — the grail terms <span class="req">*</span></label>
       <textarea name="keywords" id="cool" placeholder="damascus, cgg, sebenza 25" required></textarea>
       <div class="hint">The specific things you're hunting. We alert when your <b>maker</b> drops with <b>any</b> of these.</div>
+      <p id="keywordWarning" style="display:none;margin-top:12px;color:#e6a817;font-size:13px;background:rgba(230,168,23,0.1);padding:10px 14px;border-radius:6px;border-left:3px solid #e6a817"></p>
     </div>
 
     <div class="field">
@@ -462,7 +463,6 @@
     <p id="smsVerifyStatus" style="margin-top:8px;font-size:13px"></p>
   </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
-  <p id="keywordWarning" style="display:none;margin-top:12px;color:#e6a817;font-size:13px;background:rgba(230,168,23,0.1);padding:10px 14px;border-radius:6px;border-left:3px solid #e6a817"></p>
   <!-- keyword quality modal -->
   <div id="kwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center">
     <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:32px;max-width:480px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%)">
@@ -912,15 +912,15 @@ function startOnboarding(watchId) {
 </script>
 
 <script src="/dw-track.js"></script>
-<div id="whatsNew" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:var(--steel);border:1px solid var(--flame);max-width:440px;margin:16px;padding:28px;font-family:'Share Tech Mono',monospace;">
+<div id="whatsNew" onclick="if(event.target===this)dismissWhatsNew()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;cursor:pointer;">
+  <div style="background:var(--steel);border:1px solid var(--flame);max-width:440px;margin:16px;padding:28px;font-family:'Share Tech Mono',monospace;cursor:default;">
     <div style="color:var(--flame);font-size:11px;letter-spacing:.25em;text-transform:uppercase;">New</div>
     <h2 style="font-family:'Bebas Neue',sans-serif;color:var(--white);font-size:30px;letter-spacing:.02em;margin:6px 0 12px;">Watch a maker, not a page</h2>
     <p style="font-family:'Crimson Pro',serif;color:var(--silver);font-size:15px;line-height:1.5;">
       You no longer need a URL. Name a maker (Chris Reeve, Hinderer…) and your grail terms,
       and we'll watch <b>every knife shop we track</b> — the instant it drops anywhere, you hear about it.</p>
     <div style="margin-top:18px;display:flex;gap:10px;">
-      <a href="/watchlist.html" style="background:var(--ember);color:#fff;text-decoration:none;padding:11px 20px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;">Try it</a>
+      <button onclick="dismissWhatsNew()" style="background:var(--ember);border:none;color:#fff;padding:11px 20px;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Try it</button>
       <button onclick="dismissWhatsNew()" style="background:none;border:1px solid var(--iron);color:var(--ash);padding:11px 20px;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Maybe later</button>
     </div>
   </div>
