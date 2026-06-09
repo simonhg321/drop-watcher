@@ -15,8 +15,97 @@ import json
 import logging
 import yaml
 from datetime import datetime, timezone
+from typing import Optional
 from dotenv import load_dotenv
 import anthropic
+from pydantic import BaseModel, Field, field_validator
+
+
+# ── Error classes ────────────────────────────────────────────────────────────
+class AIError(Exception):
+    """Base for all AI interpreter failures."""
+    def __init__(self, message, site=None, url=None, raw=None):
+        self.site = site
+        self.url = url
+        self.raw = raw
+        super().__init__(message)
+
+class AIParseError(AIError):
+    """Haiku returned text that isn't valid JSON."""
+
+class AISchemaError(AIError):
+    """Haiku returned valid JSON that doesn't match the expected schema."""
+
+class AIEmptyResponseError(AIError):
+    """Haiku returned no text content."""
+
+class AIRateLimitError(AIError):
+    """Hit Anthropic rate limit."""
+
+class AIOverloadError(AIError):
+    """Anthropic API overloaded."""
+
+
+# ── Pydantic response schemas ───────────────────────────────────────────────
+class DropAnnouncement(BaseModel):
+    detected: bool = False
+    maker: Optional[str] = None
+    description: Optional[str] = None
+    timing: Optional[str] = None
+    confidence: str = 'low'
+
+class NotableItemDetail(BaseModel):
+    name: str
+    url: Optional[str] = None
+    price: str = ''
+
+class PageAnalysis(BaseModel):
+    makers_found: list[str] = Field(default_factory=list)
+    in_stock: dict[str, int] = Field(default_factory=dict)
+    out_of_stock: dict[str, int] = Field(default_factory=dict)
+    drop_announcement: DropAnnouncement = Field(default_factory=DropAnnouncement)
+    notable_items: list[str] = Field(default_factory=list)
+    notable_items_detail: list[NotableItemDetail] = Field(default_factory=list)
+    page_summary: str = ''
+    priority: str = 'medium'
+    alert_worthy: bool = False
+
+    @field_validator('priority')
+    @classmethod
+    def valid_priority(cls, v):
+        if v not in ('critical', 'high', 'medium', 'low'):
+            return 'medium'
+        return v
+
+class DropAnnouncementAnalysis(BaseModel):
+    is_real_drop: bool = False
+    maker: Optional[str] = None
+    what: str = ''
+    when: Optional[str] = None
+    where: str = ''
+    confidence: str = 'low'
+    raw_quote: str = ''
+
+class DealerClassification(BaseModel):
+    is_dealer: bool = False
+    category: str = ''
+    brands: list[str] = Field(default_factory=list)
+    confidence: float = 0.0
+    reason: str = ''
+
+class UserPageAnalysis(BaseModel):
+    keywords_found: list[str] = Field(default_factory=list)
+    notable_items: list[str] = Field(default_factory=list)
+    page_summary: str = ''
+    priority: str = 'medium'
+    alert_worthy: bool = False
+
+    @field_validator('priority')
+    @classmethod
+    def valid_priority(cls, v):
+        if v not in ('critical', 'high', 'medium', 'low'):
+            return 'medium'
+        return v
 
 # ── Load environment ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -107,6 +196,37 @@ def clean_ai_json(raw):
         if start != -1 and end != -1:
             raw = raw[start:end+1]
     return json.loads(raw)
+
+
+def parse_ai_response(raw, schema_cls, site_name='', url=''):
+    """Extract JSON from AI text, validate against a Pydantic model.
+    Returns (validated_dict, [warnings]).  Raises AIParseError / AISchemaError."""
+    if not raw:
+        raise AIEmptyResponseError(f"Empty AI response for {site_name}", site=site_name, url=url)
+    try:
+        data = clean_ai_json(raw)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise AIParseError(f"Invalid JSON from AI for {site_name}: {e}",
+                           site=site_name, url=url, raw=raw[:500])
+
+    warnings = []
+    try:
+        validated = schema_cls.model_validate(data)
+    except Exception as e:
+        raise AISchemaError(f"Schema validation failed for {site_name}: {e}",
+                            site=site_name, url=url, raw=str(data)[:500])
+
+    result = validated.model_dump()
+
+    if schema_cls is PageAnalysis:
+        items = result.get('notable_items') or []
+        detail = result.get('notable_items_detail') or []
+        if len(items) > 0 and len(detail) == 0:
+            warnings.append(f"notable_items has {len(items)} entries but notable_items_detail is empty")
+        if len(items) > 0 and 0 < len(detail) < len(items):
+            warnings.append(f"notable_items ({len(items)}) > notable_items_detail ({len(detail)}) — some items lack detail")
+
+    return result, warnings
 
 
 def first_text(message, label=''):
@@ -358,21 +478,26 @@ def analyze_page(site_name, url, page_text, makers_list):
 
         log_api_usage('analyze_page', site_name, message)
         raw = first_text(message, site_name)
-        result = clean_ai_json(raw)
+        result, warnings = parse_ai_response(raw, PageAnalysis, site_name, url)
+        for w in warnings:
+            log.warning(f"{site_name}: {w}")
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         result['site'] = site_name
         result['url'] = url
         result['model'] = MODEL
 
-        log.info(f"{site_name} — AI analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
+        log.info(f"{site_name} — AI analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Items: {len(result.get('notable_items', []))} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
         log_ai_call('analyze_page', site_name, url, truncated, result)
         return result
 
-    except json.JSONDecodeError as e:
-        log.error(f"AI returned invalid JSON for {site_name}: {e}")
+    except (AIParseError, AISchemaError, AIEmptyResponseError) as e:
+        log.error(f"AI response error for {site_name}: {e}")
         return None
-    except anthropic.APIError as e:
-        log.error(f"Anthropic API error for {site_name}: {e}")
+    except anthropic.RateLimitError as e:
+        log.error(f"Rate limited for {site_name}: {e}")
+        return None
+    except anthropic.APIStatusError as e:
+        log.error(f"Anthropic API error for {site_name}: {e.status_code} {e.message}")
         return None
     except Exception as e:
         log.error(f"Unexpected error in AI interpreter for {site_name}: {e}")
@@ -394,13 +519,12 @@ def analyze_drop_announcement(site_name, content, makers_list):
         )
         log_api_usage('analyze_drop', site_name, message)
         raw = first_text(message, site_name)
-        if raw.startswith('```'):
-            raw = raw.split('```')[1]
-            if raw.startswith('json'):
-                raw = raw[4:]
-        result = json.loads(raw)
+        result, _ = parse_ai_response(raw, DropAnnouncementAnalysis, site_name, '')
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         return result
+    except (AIParseError, AISchemaError, AIEmptyResponseError) as e:
+        log.error(f"Drop announcement response error for {site_name}: {e}")
+        return None
     except Exception as e:
         log.error(f"Drop announcement analysis failed for {site_name}: {e}")
         return None
@@ -452,14 +576,15 @@ def classify_dealer(url, page_text):
             messages=[{"role": "user", "content": prompt}]
         )
         log_api_usage('classify_dealer', site_name, message)
-        result = clean_ai_json(first_text(message, site_name))
+        raw = first_text(message, site_name)
+        result, _ = parse_ai_response(raw, DealerClassification, site_name, url)
         log_ai_call('classify_dealer', site_name, url, truncated[:500], result)
         return result
-    except json.JSONDecodeError as e:
-        log.error(f"classify_dealer invalid JSON for {site_name}: {e}")
+    except (AIParseError, AISchemaError, AIEmptyResponseError) as e:
+        log.error(f"classify_dealer response error for {site_name}: {e}")
         return None
-    except anthropic.APIError as e:
-        log.error(f"classify_dealer API error for {site_name}: {e}")
+    except anthropic.APIStatusError as e:
+        log.error(f"classify_dealer API error for {site_name}: {e.status_code} {e.message}")
         return None
     except Exception as e:
         log.error(f"classify_dealer unexpected error for {site_name}: {e}")
@@ -488,7 +613,9 @@ def analyze_user_page(url, page_text, user_keywords):
 
         log_api_usage('analyze_user_page', site_name, message)
         raw = first_text(message, site_name)
-        result = clean_ai_json(raw)
+        result, warnings = parse_ai_response(raw, UserPageAnalysis, site_name, url)
+        for w in warnings:
+            log.warning(f"{site_name} (user): {w}")
         result['timestamp'] = datetime.now(timezone.utc).isoformat()
         result['site'] = site_name
         result['url'] = url
@@ -498,11 +625,14 @@ def analyze_user_page(url, page_text, user_keywords):
         log_ai_call('analyze_user_page', site_name, url, f"keywords: {keywords_formatted}\n{truncated}", result)
         return result
 
-    except json.JSONDecodeError as e:
-        log.error(f"AI returned invalid JSON for user page {site_name}: {e}")
+    except (AIParseError, AISchemaError, AIEmptyResponseError) as e:
+        log.error(f"AI response error for user page {site_name}: {e}")
         return None
-    except anthropic.APIError as e:
-        log.error(f"Anthropic API error for user page {site_name}: {e}")
+    except anthropic.RateLimitError as e:
+        log.error(f"Rate limited for user page {site_name}: {e}")
+        return None
+    except anthropic.APIStatusError as e:
+        log.error(f"Anthropic API error for user page {site_name}: {e.status_code} {e.message}")
         return None
     except Exception as e:
         log.error(f"Unexpected error analyzing user page {site_name}: {e}")
