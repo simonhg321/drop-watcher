@@ -178,6 +178,112 @@ websites:
     poll_interval: 20
     enabled: true
 
+  # ── CRK Authorized Dealers — THE_SHARP_SOURCE S59 audit (2026-06-10) ──────
+  # 17 verified live storefronts from chrisreeve.com/pages/authorized-dealers.
+  # Probed: reachable + e-commerce platform + CRK inventory visible.
+
+  - name: Blade Ops
+    url: https://bladeops.com/chris-reeve-knives/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — BigCommerce, CRK category verified
+
+  - name: Knifeworks
+    url: https://knifeworks.com/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — BigCommerce, CRK verified
+
+  - name: Pure Blades
+    url: https://pureblades.com/chris-reeve/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — BigCommerce, CRK category verified
+
+  - name: JT Knives
+    url: https://www.jtknives.com/Chris-Reeve-Knives_c_12.html
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — Shift4Shop, CRK category verified
+
+  - name: True North Knives
+    url: https://www.truenorthknives.com/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — custom cart, CRK verified
+
+  - name: Knives Plus
+    url: https://www.knivesplus.com/chris-reeve-knives-crk.html
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — custom cart, CRK category verified
+
+  - name: Castle Gate
+    url: https://www.castlegate.com/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — Magento, CRK verified
+
+  - name: Helacious Blades
+    url: https://www.helacious.com
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — Magento, CRK verified
+
+  - name: Deepak Chopra Inc
+    url: https://www.deepakc.com/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — Magento, CRK verified
+
+  - name: Revolver Tactical
+    url: https://www.revolvertactical.com/product-category/all-products/chris-reeve-knives/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — WooCommerce, CRK category verified
+
+  - name: Claytons Range
+    url: https://claytonsrangepa.com/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — WooCommerce, CRK verified
+
+  - name: Martins Firearms
+    url: https://martinscf.com
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — BigCommerce, CRK verified
+
+  - name: Little Joes Boots
+    url: https://littlejoesboots.net/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — WooCommerce, CRK verified
+
+  - name: Ski Mania
+    url: https://stores.theeouterlimit.com/knives/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — BigCommerce, CRK verified
+
+  - name: Ye Ole Cutlery
+    url: https://mdggifts.com/Chris-Reeve-Knives_bymfg_420-4-1.html
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — Shift4Shop, CRK category verified
+
+  - name: Fred Eisen Art Knives
+    url: https://www.artknives.com/art-knives/chris-reeve-knives/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — WooCommerce, CRK category verified
+
+  - name: 1911 Custom Solutions
+    url: https://www.1911customsolutions.com/
+    poll_interval: 30
+    enabled: true
+    notes: SHARP_SOURCE S59 — custom cart, CRK verified
+
 # ── Secondary Market / Pre-Owned ──────────────────────────────────────────
 
   - name: Recon 1 — Pre-Owned

@@ -413,102 +413,119 @@ dealers:
 - name: 1911 Custom Solutions
   domain: 1911customsolutions.com
   url: https://www.1911customsolutions.com/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Blade Ops
   domain: bladeops.com
   url: https://bladeops.com/chris-reeve-knives/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: bigcommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Castle Gate
   domain: castlegate.com
   url: https://www.castlegate.com/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: magento
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Clayton's Range
   domain: claytonsrangepa.com
   url: https://claytonsrangepa.com/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: woocommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Deepak Chopra Inc.
   domain: deepakc.com
   url: https://www.deepakc.com/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: magento
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Fred Eisen Art Knives
   domain: artknives.com
   url: https://www.artknives.com/art-knives/chris-reeve-knives/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: woocommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Helacious Blades
   domain: helacious.com
   url: https://www.helacious.com
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: magento
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: JT Knives
   domain: jtknives.com
   url: https://www.jtknives.com/Chris-Reeve-Knives_c_12.html
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: shift4shop
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Knifeworks
   domain: knifeworks.com
   url: https://knifeworks.com/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: bigcommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Knives Plus
   domain: knivesplus.com
   url: https://www.knivesplus.com/chris-reeve-knives-crk.html
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Little Joe's Boots
   domain: littlejoesboots.net
   url: https://littlejoesboots.net/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: woocommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Martin's Firearms
   domain: martinscf.com
   url: https://martinscf.com
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: bigcommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Pure Blades
   domain: pureblades.com
   url: https://pureblades.com/chris-reeve/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: bigcommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Revolver Tactical
   domain: revolvertactical.com
   url: https://www.revolvertactical.com/product-category/all-products/chris-reeve-knives/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: woocommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Ski Mania
   domain: stores.theeouterlimit.com
   url: https://stores.theeouterlimit.com/knives/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: bigcommerce
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: True North Knives
   domain: truenorthknives.com
   url: https://www.truenorthknives.com/
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: Ye Ole Cutlery & Gift Shop
   domain: mdggifts.com
   url: https://mdggifts.com/Chris-Reeve-Knives_bymfg_420-4-1.html
-  status: candidate-verified
+  status: active-source
   origin: crk-authorized-dealers-2026-06-10
   platform: shift4shop
+  notes: promoted to sources.yaml S59 (2026-06-10)
 - name: North River Outdoors
   domain: northriveroutdoors.com
   url: https://www.northriveroutdoors.com/collections/chris-reeve-knives

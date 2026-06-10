@@ -21,6 +21,8 @@ from urllib.parse import quote
 
 import yaml
 
+import paths
+
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 MAKERS_YAML = os.path.join(BASE_DIR, 'config', 'makers.yaml')
 OUT_FILE    = os.path.join(BASE_DIR, 'html', 'our-cool-makers.html')
