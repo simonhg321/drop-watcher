@@ -1,5 +1,19 @@
 # Drop Watcher — Known Bugs
 
+## BUG-011: BladeShow content not always loading on watcher page
+**Logged:** 2026-06-10 (reported by Simon, S59)
+**Severity:** Medium (user-facing page intermittently incomplete)
+**Description:** As reported: "BladeShow [content] not loading always in watcher.html."
+Intermittent — the Blade Show section sometimes fails to render.
+**Triage notes (2026-06-10):** No file named `watcher.html` exists in `html/` or
+`/var/www/html/` — candidate pages are `watchlist.html`, `watcher_status.html`, or
+`blade-show.html` (linked from the index banner). No client-side fetch or "cannon"
+widget found in `blade-show.html` on first grep, so the failing loader hasn't been
+located yet. Needs from Simon: which URL he's on, and what's missing/blank when it
+fails (screenshot or element). Then check whether the section is server-generated
+(stale regen cron?) vs client-fetched (race/404).
+**Fix:** TBD pending repro details.
+
 ## BUG-007: Stale web/ directory in repo
 **Logged:** 2026-03-14
 **Severity:** Low (no user impact yet, but a landmine)
