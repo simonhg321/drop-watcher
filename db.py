@@ -181,6 +181,10 @@ def _migrate(conn):
         if col not in cols:
             conn.execute(ddl)
 
+    # Legacy pre-ALTER rows have maker NULL (new rows ''); clients .toLowerCase()
+    # on it. Normalise once so the class is gone.
+    conn.execute("UPDATE watchers SET maker='' WHERE maker IS NULL")
+
     # Unique backstop for the signup check-then-act race (gunicorn -w 2): one
     # watch per (email, url, maker). Maker is part of the key because global
     # watches all share url=''. One-time dedup first — keep the active row,

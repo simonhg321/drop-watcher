@@ -453,7 +453,7 @@
       <div class="step-text" id="step3Text">Bookmark your personal dashboard</div>
     </div>
   </div>
-  <div id="smsVerifyBlock" style="display:none;margin-top:24px;background:var(--coal);border:1px solid var(--ash);padding:20px;text-align:center">
+  <div id="smsVerifyBlock" style="display:none;margin-top:24px;background:var(--steel);border:1px solid var(--ash);padding:20px;text-align:center">
     <p style="color:var(--silver);font-size:14px;margin-bottom:12px">We texted a 6-digit code to your phone. Enter it below:</p>
     <div style="display:flex;gap:8px;justify-content:center">
       <input type="text" id="smsCode" maxlength="6" pattern="[0-9]{6}" placeholder="000000" inputmode="numeric"
@@ -518,7 +518,14 @@ if (new URLSearchParams(window.location.search).get('removed') === '1') {
 
 // ── Show SMS consent when phone entered ─────────────────────────────────────
 document.querySelector('[name="phone"]').addEventListener('input', function() {
-  document.getElementById('smsConsentField').style.display = this.value.trim() ? 'block' : 'none';
+  const hasPhone = !!this.value.trim();
+  document.getElementById('smsConsentField').style.display = hasPhone ? 'block' : 'none';
+  // Clearing the phone must also clear consent — otherwise a hidden-but-checked
+  // box submits sms_consent:true with phone:''
+  if (!hasPhone) {
+    const c = document.querySelector('[name="sms_consent"]');
+    if (c) c.checked = false;
+  }
 });
 
 // ── Maker alias expansion + where-toggle + live preview ─────────────────────

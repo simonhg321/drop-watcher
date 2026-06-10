@@ -52,8 +52,10 @@ def generate_dashboard():
         status = '<span class="badge badge-active">Active</span>' if w.get('active') else '<span class="badge badge-pending">Pending</span>'
         email = html_mod.escape(w.get('email', ''))
         name = html_mod.escape(w.get('name', '') or '—')
-        url = html_mod.escape(w.get('url', ''))
-        domain = url.replace('https://', '').replace('http://', '').split('/')[0]
+        raw_url = w.get('url', '') or ''
+        url = html_mod.escape(raw_url)
+        # derive from the RAW url — deriving from the escaped one double-escapes
+        domain = raw_url.replace('https://', '').replace('http://', '').split('/')[0]
         if domain.startswith('www.'):
             domain = domain[4:]
         kw = html_mod.escape(w.get('keywords', ''))

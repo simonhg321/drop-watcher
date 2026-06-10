@@ -105,8 +105,9 @@ def generate_page():
     watch_rows = ''
     for w in sorted(active, key=lambda x: x.get('created', ''), reverse=True):
         email = html_mod.escape(w.get('email', '?'))
-        url = html_mod.escape(w.get('url', '?'))
-        domain = url.split('/')[2] if url.count('/') >= 2 else url
+        raw_url = w.get('url') or '?'
+        url = html_mod.escape(raw_url)
+        domain = html_mod.escape(raw_url.split('/')[2] if raw_url.count('/') >= 2 else raw_url)
         kw = html_mod.escape(w.get('keywords', '?'))
         pri = w.get('priority', 'medium')
         pri_color = {'critical': '#e74c3c', 'high': '#e67e22', 'medium': '#f1c40f'}.get(pri, 'var(--ash)')
@@ -135,8 +136,8 @@ def generate_page():
     # ── AI calls table ──────────────────────────────────────────────────────
     ai_rows = ''
     for c in reversed(ai_calls):
-        ts = c.get('ts', '?')[:16].replace('T', ' ')
-        caller = c.get('caller', '?').replace('analyze_', '')
+        ts = (c.get('ts') or '?')[:16].replace('T', ' ')
+        caller = (c.get('caller') or '?').replace('analyze_', '')
         site = html_mod.escape(c.get('site', '?'))[:30]
         resp = c.get('response', {})
         alert = '🔔' if resp.get('alert_worthy') else ''
@@ -175,7 +176,7 @@ def generate_page():
     # ── Recent drops table ──────────────────────────────────────────────────
     drop_rows = ''
     for d in reversed(drops):
-        ts = d.get('timestamp', '?')[:16].replace('T', ' ')
+        ts = (d.get('timestamp') or '?')[:16].replace('T', ' ')
         source = html_mod.escape(d.get('source', '?'))[:30]
         pri = d.get('priority', '?')
         pri_color = {'critical': '#e74c3c', 'high': '#e67e22', 'medium': '#f1c40f', 'low': 'var(--ash)'}.get(pri, 'var(--ash)')

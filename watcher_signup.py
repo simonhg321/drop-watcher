@@ -563,7 +563,7 @@ def watch():
         except Exception as e:
             log.error(f"Backfill on watch-create failed for {email}: {e}")
     else:
-        send_verification_email(entry)
+        verification_sent = send_verification_email(entry)
 
     if url:
         try:
@@ -599,6 +599,14 @@ def watch():
 
     if sms_pending:
         resp['sms_pending'] = True
+
+    # Verification email failure must be visible — silent failure leaves the
+    # watch inactive forever while the UI claims success.
+    if not already_verified:
+        resp['email_sent'] = bool(verification_sent)
+        if not verification_sent:
+            resp['preview_msg'] = ("We couldn't send your verification email just now — "
+                                   "resubmit in a minute or grab your link at /get-my-link.html.")
 
     if _keyword_too_generic(keywords):
         resp['warning'] = ("Those keywords are quite generic — you may get a lot of alerts. "
@@ -702,7 +710,7 @@ def my_watch(token):
         'email':    w.get('email'),
         'name':     w.get('name'),
         'url':      w.get('url'),
-        'maker':    w.get('maker', ''),
+        'maker':    w.get('maker') or '',
         'keywords': w.get('keywords'),
         'priority': w.get('priority'),
         'active':   bool(w.get('active')),
@@ -733,7 +741,7 @@ def my_alerts(token):
         norm = re.sub(r'^https?://(www\.)?', '', url).rstrip('/')
         watch_filters.append({'domain': domain, 'norm': norm, 'keywords': kws, 'url': url_raw,
                               'keywords_raw': w.get('keywords', ''),
-                              'maker': w.get('maker', ''),
+                              'maker': w.get('maker') or '',
                               'is_global': not url_raw.strip(),
                               'id': w.get('id'),
                               'token': w.get('unsubscribe_token')})

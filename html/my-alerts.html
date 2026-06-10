@@ -220,12 +220,14 @@ if (!token) {
     document.querySelectorAll('.stop-btn[data-id]').forEach(btn => {
       btn.onclick = () => {
         if (!confirm('Remove this watch?')) return;
-        fetch('/api/my-watch/' + btn.dataset.id + '?token=' + token, { method: 'DELETE' })
+        fetch('/api/my-watch/' + encodeURIComponent(btn.dataset.id)
+              + '?token=' + encodeURIComponent(token), { method: 'DELETE' })
           .then(r => r.json())
           .then(d => {
             if (d.status === 'removed') location.reload();
             else alert('Error: ' + JSON.stringify(d));
-          });
+          })
+          .catch(e => alert('Could not remove watch — ' + e + '. Try again.'));
       };
     });
 

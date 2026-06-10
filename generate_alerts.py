@@ -107,9 +107,12 @@ def load_recent_alerts(hours=48):
 def format_timestamp(ts_str):
     try:
         ts = datetime.fromisoformat(ts_str)
+        if ts.tzinfo:
+            ts = ts.astimezone(timezone.utc)
         return ts.strftime('%Y-%m-%d %H:%M UTC')
-    except:
-        return ts_str
+    except Exception:
+        # fallback lands in HTML unescaped otherwise
+        return html_mod.escape(str(ts_str or ''))
 
 
 def render_alert_card(alert):
@@ -188,7 +191,7 @@ def generate_alerts_page():
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="30">
+  <meta http-equiv="refresh" content="120">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>Live Drop Alerts — In-Stock Notifications Updated Every 2 Minutes | Drop Watcher</title>
   <meta name="description" content="Live in-stock alerts updated every 2 minutes. See what just dropped — knives, limited releases, restocks. AI-powered drop detection, free, no account needed.">
@@ -291,10 +294,16 @@ def generate_alerts_page():
   </footer>
 <script>
 function filterAlerts(priority) {{
+  try {{ sessionStorage.setItem('alertFilter', priority); }} catch (e) {{}}
   document.querySelectorAll('.alert-card').forEach(card => {{
     card.style.display = (priority === 'all' || card.classList.contains('priority-' + priority)) ? '' : 'none';
   }});
 }}
+// Re-apply across the meta-refresh reload — otherwise the filter resets every cycle
+try {{
+  const saved = sessionStorage.getItem('alertFilter');
+  if (saved && saved !== 'all') filterAlerts(saved);
+}} catch (e) {{}}
 </script>
 </body>
 </html>"""

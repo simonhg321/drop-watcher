@@ -108,7 +108,9 @@ def send_sms_alert(alert):
             phone = w['phone']
             if already_sent_sms(alert_id, phone):
                 continue
-            body = format_sms(alert, email=w['email'], keywords=w['keywords'], token=w['token'])
+            # Broadcast: brand with the alert SOURCE, not the recipient's first
+            # keyword — their keyword didn't necessarily match this drop.
+            body = format_sms(alert, email=w['email'], token=w['token'])
             if _send_twilio_sms(phone, body):
                 mark_sms_sent(alert_id, phone)
                 sent += 1

@@ -243,7 +243,7 @@ def _page_url(url, n):
     p = urlparse(url)
     qs = parse_qs(p.query, keep_blank_values=True)
     qs['page'] = [str(n)]
-    new_query = urlencode({k: v[0] for k, v in qs.items()})
+    new_query = urlencode(qs, doseq=True)  # keep repeated params intact
     return urlunparse(p._replace(query=new_query))
 
 
