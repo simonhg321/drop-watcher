@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +29,9 @@ LOOKBACK_HOURS = 24
 def load_overnight_alerts():
     if not Path(DROPS_FILE).exists():
         return []
-    cutoff = datetime.now() - timedelta(hours=LOOKBACK_HOURS)
+    # Stored timestamps are UTC ISO; ts[:19] below is naive UTC wall time, so the
+    # cutoff must be naive UTC too — naive LOCAL now skews the window by the offset.
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=LOOKBACK_HOURS)
     alerts = []
     with open(DROPS_FILE) as f:
         for line in f:

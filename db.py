@@ -181,6 +181,22 @@ def _migrate(conn):
         if col not in cols:
             conn.execute(ddl)
 
+    # Unique backstop for the signup check-then-act race (gunicorn -w 2): one
+    # watch per (email, url, maker). Maker is part of the key because global
+    # watches all share url=''. One-time dedup first — keep the active row,
+    # else the oldest (verified 0 dupes in prod before shipping).
+    conn.execute("""
+        DELETE FROM watchers WHERE rowid NOT IN (
+            SELECT rowid FROM (
+                SELECT rowid, ROW_NUMBER() OVER (
+                    PARTITION BY email, url, COALESCE(maker,'')
+                    ORDER BY active DESC, rowid ASC) AS rn
+                FROM watchers)
+            WHERE rn = 1)""")
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_watchers_email_url_maker
+        ON watchers(email, url, COALESCE(maker,''))""")
+
 
 _initialized_paths = set()  # DB paths whose schema this process has already ensured
 

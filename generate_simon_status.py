@@ -369,8 +369,7 @@ def generate_page():
 </html>"""
 
     os.makedirs(os.path.dirname(SIMON_HTML), exist_ok=True)
-    with open(SIMON_HTML, 'w') as f:
-        f.write(html)
+    paths.write_atomic(SIMON_HTML, html)
     log.info(f"Simon status page written to {SIMON_HTML}")
 
 

@@ -52,7 +52,10 @@ def safe_referrer_domains(ga_refs):
         try:
             parsed = urlparse(raw if '://' in raw else f'https://{raw}')
             domain = parsed.netloc or parsed.path.split('/')[0]
-            domain = domain.lower().lstrip('www.')
+            domain = domain.lower()
+            # NOT lstrip('www.') — that strips a charset (weather.com → eather.com)
+            if domain.startswith('www.'):
+                domain = domain[4:]
         except Exception:
             domain = raw
         if domain and domain != 'instockornot.club':
@@ -396,8 +399,7 @@ def generate_page():
 </html>"""
 
     os.makedirs(os.path.dirname(PUBLIC_STATS_HTML), exist_ok=True)
-    with open(PUBLIC_STATS_HTML, 'w') as f:
-        f.write(html)
+    paths.write_atomic(PUBLIC_STATS_HTML, html)
     log.info(f"Public stats page written to {PUBLIC_STATS_HTML}")
 
 

@@ -31,7 +31,7 @@ HGR
 import json
 import re
 import time
-from urllib.parse import urlparse, urljoin, parse_qs, urlencode, urlunparse
+from urllib.parse import urlparse, urljoin, parse_qs, parse_qsl, urlencode, urlunparse
 
 from bs4 import BeautifulSoup
 
@@ -80,10 +80,29 @@ def shopify_products_url(url):
     p = urlparse(url)
     if not p.scheme or not p.netloc:
         return None
+    # A content-filtering query (?filter.p.tag=Magnacut, ?q=...) can't be expressed
+    # in products.json — mapping it there silently widens the watch to the whole
+    # collection. Fall through to the HTML path, which fetches the URL verbatim.
+    if _query_filters_content(p.query):
+        return None
     m = re.match(r'(/collections/[^/?#]+)', p.path)
     if m:
         return f"{p.scheme}://{p.netloc}{m.group(1)}/products.json"
     return f"{p.scheme}://{p.netloc}/products.json"
+
+
+def _query_filters_content(query):
+    """True when a query string narrows page content (filters/search), as opposed
+    to harmless tracking/sort/pagination params."""
+    if not query:
+        return False
+    harmless = {'page', 'sort', 'sort_by', 'ref'}
+    for k, _v in parse_qsl(query, keep_blank_values=True):
+        kl = k.lower()
+        if kl.startswith('utm_') or kl in harmless:
+            continue
+        return True
+    return False
 
 
 def _parse_products(products, base_url):

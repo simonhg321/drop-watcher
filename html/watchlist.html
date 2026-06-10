@@ -463,6 +463,7 @@
     <p id="smsVerifyStatus" style="margin-top:8px;font-size:13px"></p>
   </div>
   <p id="previewMsg" style="display:none;margin-top:16px;color:var(--flame);font-size:14px"></p>
+  <p id="postSignupWarning" style="display:none;margin-top:12px;color:#e6a817;font-size:13px;background:rgba(230,168,23,0.1);padding:10px 14px;border-radius:6px;border-left:3px solid #e6a817"></p>
   <div id="dashboardLink" style="display:none"></div>
 </div>
 
@@ -813,7 +814,9 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
         pm.style.display = 'block';
       }
       if (result.warning) {
-        const wm = document.getElementById('keywordWarning');
+        // target lives inside #successMsg — #keywordWarning sits in the form,
+        // which was just display:none'd (same bug class as the modal fix)
+        const wm = document.getElementById('postSignupWarning');
         if (wm) { wm.textContent = '⚠ ' + result.warning; wm.style.display = 'block'; }
       }
       // Connect to onboarding SSE for real-time status
@@ -899,7 +902,11 @@ function startOnboarding(watchId) {
       // Show dashboard button
       if (data.dashboard_url) {
         const dl = document.getElementById('dashboardLink');
-        dl.innerHTML = '<a href="' + data.dashboard_url + '" class="dashboard-btn">VIEW MY DASHBOARD</a>';
+        const a = document.createElement('a');
+        a.href = data.dashboard_url;
+        a.className = 'dashboard-btn';
+        a.textContent = 'VIEW MY DASHBOARD';
+        dl.replaceChildren(a);
         dl.style.display = 'block';
       }
 

@@ -31,7 +31,7 @@ def generate_dashboard():
     by_priority = _db.get_drops_by_priority(hours=24)
     latest_ts = _db.get_latest_drop_timestamp()
 
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
     # Sort: active first, then by created desc
     sorted_watchers = sorted(watchers, key=lambda w: (
@@ -210,8 +210,7 @@ def generate_dashboard():
 </html>"""
 
     os.makedirs(os.path.dirname(DASHBOARD_HTML), exist_ok=True)
-    with open(DASHBOARD_HTML, 'w') as f:
-        f.write(html)
+    paths.write_atomic(DASHBOARD_HTML, html)
     print(f"Dashboard written — {len(watchers)} watchers, {drops_total} drops")
 
 

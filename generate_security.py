@@ -512,8 +512,7 @@ def main():
 
     html = generate_html(data)
 
-    with open(SECURITY_HTML, 'w') as f:
-        f.write(html)
+    paths.write_atomic(SECURITY_HTML, html)
 
     log.info(f"Security report written to {SECURITY_HTML}")
     log.info(f"  {data['total_requests']:,} requests from {data['unique_ips']:,} IPs")

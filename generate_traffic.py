@@ -379,7 +379,7 @@ def generate_traffic_page():
     pageviews = load_pageviews()
     sms_stats = load_sms_stats()
 
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
     # ── Summary cards ────────────────────────────────────────────────────────
     uniques = cf_today.get('uniques', ga_visitors.get('unique_visitors', 0))
@@ -945,8 +945,7 @@ def generate_traffic_page():
 
     try:
         os.makedirs(os.path.dirname(TRAFFIC_HTML), exist_ok=True)
-        with open(TRAFFIC_HTML, 'w') as f:
-            f.write(html)
+        paths.write_atomic(TRAFFIC_HTML, html)
         print(f"✓ Traffic page written — {now_str}")
     except PermissionError:
         print(f"✗ Cannot write to {TRAFFIC_HTML} — check permissions")

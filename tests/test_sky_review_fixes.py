@@ -98,6 +98,23 @@ class TestResolveDropItemLinks:
         assert items and items[0]['url'] == 'https://shop.example.com/collections/all'
 
 
+# ── P2: filtered collection URLs must not widen to whole-collection JSON ─────
+
+class TestShopifyFilterQuery:
+    def test_filter_query_falls_through_to_html(self):
+        sys.path.insert(0, os.path.join(ROOT, 'agents'))
+        import collection_fetch as cf
+        assert cf.shopify_products_url(
+            'https://shop.com/collections/knives?filter.p.tag=Magnacut') is None
+
+    def test_tracking_and_sort_params_keep_json_path(self):
+        sys.path.insert(0, os.path.join(ROOT, 'agents'))
+        import collection_fetch as cf
+        assert cf.shopify_products_url(
+            'https://shop.com/collections/crk?sort=x&utm_source=fb') == \
+            'https://shop.com/collections/crk/products.json'
+
+
 # ── P1 #4: best_anchor confidence floor ──────────────────────────────────────
 
 class TestBestAnchorFloor:

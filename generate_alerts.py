@@ -176,7 +176,7 @@ def render_alert_card(alert):
 
 def generate_alerts_page():
     alerts   = load_recent_alerts(HOURS_BACK)
-    now_str  = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    now_str  = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
     alerts_html    = '\n'.join(render_alert_card(a) for a in alerts) if alerts else '<div class="no-alerts">No alerts in the last 48 hours. All quiet. 🔍</div>'
     critical_count = sum(1 for a in alerts if a.get('priority') == 'critical')
@@ -300,8 +300,7 @@ function filterAlerts(priority) {{
 </html>"""
 
     try:
-        with open(ALERTS_HTML, 'w') as f:
-            f.write(html)
+        paths.write_atomic(ALERTS_HTML, html)
         print(f"✓ Alerts page written — {len(alerts)} alerts (deduplicated) in last {HOURS_BACK}h")
     except PermissionError:
         print(f"✗ Cannot write to {ALERTS_HTML} — check permissions")

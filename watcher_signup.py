@@ -15,6 +15,7 @@ import json
 import os
 import re
 import secrets
+import sqlite3
 import uuid
 import logging
 import httpx
@@ -337,6 +338,23 @@ def send_verification_email(entry):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+def _start_sms_verification(watch_id, phone):
+    """Store a 10-min verification code and text it. Shared by the new-watch and
+    duplicate-resubmit paths. Returns True if the code was stored (SMS may still
+    fail to send — user can retry via resubmit)."""
+    code = f"{secrets.randbelow(900000) + 100000}"
+    db.update_watcher(watch_id,
+        sms_verify_code=code,
+        sms_verify_expires=(datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat())
+    try:
+        from sms_alerter import _send_twilio_sms
+        _send_twilio_sms(phone, f"Drop Watcher verification code: {code}")
+        log.info(f"SMS verification code sent to {phone}")
+    except Exception as e:
+        log.error(f"Failed to send SMS verification: {e}")
+    return True
+
+
 @app.route('/api/watch', methods=['POST'])
 @limiter.limit("5 per minute")
 def watch():
@@ -481,7 +499,14 @@ def watch():
             existing['keywords'] = keywords
             existing['maker'] = maker
             send_confirmation_email(existing)
-        return jsonify({'status': 'updated', 'id': existing['id']}), 200
+        resp = {'status': 'updated', 'id': existing['id']}
+        # A resubmit may be the FIRST time the user adds a phone — don't drop
+        # the SMS consent just because the watch already existed.
+        if phone and data.get('sms_consent') and not existing.get('sms_approved'):
+            db.update_watcher(existing['id'], phone=phone)
+            if _start_sms_verification(existing['id'], phone):
+                resp['sms_pending'] = True
+        return jsonify(resp), 200
 
     # One token per email — reuse existing if this email already has watches
     email_watches = db.get_watchers_by_email(email)
@@ -512,7 +537,16 @@ def watch():
         'alert_count':       0,
     }
 
-    db.add_watcher(entry)
+    try:
+        db.add_watcher(entry)
+    except sqlite3.IntegrityError:
+        # Concurrent duplicate signup lost the race to the unique index —
+        # treat exactly like the dedup path above.
+        existing = db.find_watcher_by_email_url(email, url, maker=maker)
+        if existing:
+            db.update_watcher(existing['id'], keywords=keywords, priority=priority, maker=maker)
+            return jsonify({'status': 'updated', 'id': existing['id']}), 200
+        raise
     log.info(f"New watcher: {entry['id']} | {entry['email']} | {entry['url']} | reused_token={bool(email_watches)}")
 
     if already_verified:
@@ -546,16 +580,7 @@ def watch():
     # SMS verification — send code if phone + consent provided
     sms_pending = bool(phone and data.get('sms_consent'))
     if sms_pending:
-        code = f"{secrets.randbelow(900000) + 100000}"
-        db.update_watcher(entry['id'],
-            sms_verify_code=code,
-            sms_verify_expires=(datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat())
-        try:
-            from sms_alerter import _send_twilio_sms
-            _send_twilio_sms(phone, f"Drop Watcher verification code: {code}")
-            log.info(f"SMS verification code sent to {phone}")
-        except Exception as e:
-            log.error(f"Failed to send SMS verification: {e}")
+        _start_sms_verification(entry['id'], phone)
 
     # Quick keyword preview — show user what we found right now (skip for global watches)
     matches = quick_keyword_check(url, keywords) if not is_global else []

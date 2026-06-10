@@ -203,8 +203,7 @@ def render():
 def main():
     html = render()
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
-    with open(OUT_FILE, 'w') as f:
-        f.write(html)
+    paths.write_atomic(OUT_FILE, html)
     print(f"wrote {OUT_FILE} ({len(html)} bytes)")
 
 

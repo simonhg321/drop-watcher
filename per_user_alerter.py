@@ -223,24 +223,22 @@ def select_matched_products(products, matches):
     needles = [m.lower() for m in matches if m]
     if not needles:
         return []
-    out = []
+    # Verify availability BEFORE counting toward the cap — capping first could
+    # discard a live match because sold-out ones used up the slots.
+    from backfill_alerter import _is_still_available
+    verified = []
     for p in products:
         if not p.get('available') or not p.get('url'):
             continue
         hay = (p.get('title', '') + ' ' + ' '.join(p.get('tags') or [])).lower()
-        if any(kw_matches(n, hay) for n in needles):
-            out.append(p)
-        if len(out) >= MATCHED_PRODUCTS_CAP:
-            break
-
-    from backfill_alerter import _is_still_available
-    verified = []
-    for p in out:
-        avail = _is_still_available(p.get('url', ''))
-        if avail is False:
+        if not any(kw_matches(n, hay) for n in needles):
+            continue
+        if _is_still_available(p.get('url', '')) is False:
             log.info(f"  Dropped sold-out product: {p.get('title', '')[:60]}")
             continue
         verified.append(p)
+        if len(verified) >= MATCHED_PRODUCTS_CAP:
+            break
     return verified
 
 

@@ -89,3 +89,12 @@ PAGEVIEWS_JSONL = os.path.join(LOG_DIR, 'pageviews.jsonl')
 
 # ── Email audit log ──────────────────────────────────────────────────────
 EMAILS_SENT_LOG = os.path.join(LOG_DIR, 'emails_sent.log')
+
+# ── Atomic page writes ────────────────────────────────────────────────────
+def write_atomic(path, text):
+    """Write a live page atomically (.tmp + os.replace) — clients re-fetch
+    these every 30s; a plain open('w') truncate would serve them a blank."""
+    tmp = path + '.tmp'
+    with open(tmp, 'w') as f:
+        f.write(text)
+    os.replace(tmp, path)
