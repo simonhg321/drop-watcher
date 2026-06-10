@@ -1,18 +1,22 @@
 # Drop Watcher — Known Bugs
 
-## BUG-011: BladeShow content not always loading on watcher page
-**Logged:** 2026-06-10 (reported by Simon, S59)
-**Severity:** Medium (user-facing page intermittently incomplete)
-**Description:** As reported: "BladeShow [content] not loading always in watcher.html."
-Intermittent — the Blade Show section sometimes fails to render.
-**Triage notes (2026-06-10):** No file named `watcher.html` exists in `html/` or
-`/var/www/html/` — candidate pages are `watchlist.html`, `watcher_status.html`, or
-`blade-show.html` (linked from the index banner). No client-side fetch or "cannon"
-widget found in `blade-show.html` on first grep, so the failing loader hasn't been
-located yet. Needs from Simon: which URL he's on, and what's missing/blank when it
-fails (screenshot or element). Then check whether the section is server-generated
-(stale regen cron?) vs client-fetched (race/404).
-**Fix:** TBD pending repro details.
+## BUG-011: Stale HTML served — iPad showed old watchlist.html (no Cache-Control)
+**Logged:** 2026-06-10 (reported by Simon, S59) — root-caused same day
+**Severity:** Medium (users see outdated pages; URL looks correct)
+**Description:** Originally reported as "BladeShow content not loading on watcher
+page." Actual repro: the WHERE TO WATCH cards on `watchlist.html` showed the OLD
+page version (missing ALL OUR SHOPS) on Simon's iPad the night of Jun 9-10, with
+the correct URL.
+**Root cause:** Our HTML responses send `Last-Modified` but **no `Cache-Control`
+header** (confirmed via curl; Cloudflare is `cf-cache-status: DYNAMIC`, so it's not
+server-side). Per RFC heuristic caching, Safari reuses the cached copy without
+revalidating — and `watchlist.html` had been updated at 01:26 that night, so any
+iPad that had visited before then kept the stale copy.
+**Fix:** `bin/fix_html_cache.sh` — adds an Apache conf
+(`conf-available/html-nocache.conf`) setting `Cache-Control: no-cache,
+must-revalidate` on `*.html` only (assets still cache). Unchanged pages revalidate
+to a cheap 304. Run with sudo; script verifies the live header after reload.
+**Status:** script ready, awaiting sudo run.
 
 ## BUG-007: Stale web/ directory in repo
 **Logged:** 2026-03-14
