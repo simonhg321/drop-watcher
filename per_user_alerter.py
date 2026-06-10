@@ -318,10 +318,16 @@ def resolve_drop_items(drop, matches):
     for d in (drop.get('notable_items_detail') or []):
         dname = (d.get('name') or '').lower()
         if any(kw_matches(k, dname) for k in needles):
-            url = d.get('url', '')
-            if url and url.startswith('/'):
-                from urllib.parse import urljoin
-                url = urljoin(drop.get('url', ''), url)
+            # These URLs are Haiku-supplied: absolutise EVERY form (bare-relative,
+            # protocol-relative, absolute) then require http(s) + same-site, like
+            # every other tier — never emit a dead or cross-site href.
+            from urllib.parse import urljoin, urlparse
+            base = drop.get('url') or ''
+            url = urljoin(base, d.get('url') or '')
+            pu = urlparse(url)
+            if (pu.scheme not in ('http', 'https')
+                    or not linkpick.same_site(pu.hostname, urlparse(base).hostname)):
+                url = ''
             if url:
                 items.append({'title': d.get('name', ''), 'url': url,
                               'price': d.get('price', ''), 'confidence': 'low'})
@@ -336,13 +342,23 @@ def resolve_drop_items(drop, matches):
         title = linkpick.clean_title(c['text']) or linkpick.title_from_slug(c['href']) or drop.get('source', '')
         return [{'title': title, 'url': c['href'], 'price': '', 'confidence': 'low'}]
 
-    # Last resort: append /collections/all to the base URL so at least the user
-    # lands on the full inventory page instead of the homepage.
-    base = drop.get('url', '')
-    if base and not base.rstrip('/').endswith('/collections/all'):
-        fallback = base.rstrip('/') + '/collections/all'
-        kw_label = ', '.join(matches[:3])
-        return [{'title': kw_label, 'url': fallback, 'price': '', 'confidence': 'low'}]
+    # Last resort: /collections/all on the site ORIGIN — but only when the drop
+    # is Shopify-shaped (some product URL contains /products/). Anything else
+    # (Reddit, feeds, query-string watch URLs) would 404 — return [] honestly,
+    # same rule as item_page_link's "never a fabricated /search".
+    base = drop.get('url') or ''
+    shopify_shaped = any(
+        '/products/' in u for u in (
+            [(c.get('href') or '') if isinstance(c, dict) else '' for c in candidates]
+            + [(d.get('url') or '') for d in (drop.get('notable_items_detail') or [])]
+        ) if u)
+    if base and shopify_shaped:
+        from urllib.parse import urlsplit
+        sp = urlsplit(base)
+        if sp.scheme in ('http', 'https') and sp.netloc:
+            fallback = f"{sp.scheme}://{sp.netloc}/collections/all"
+            kw_label = ', '.join(matches[:3])
+            return [{'title': kw_label, 'url': fallback, 'price': '', 'confidence': 'low'}]
     return []
 
 

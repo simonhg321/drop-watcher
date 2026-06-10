@@ -354,13 +354,30 @@ def delete_watcher(watcher_id):
         db.execute("DELETE FROM watchers WHERE id=?", (watcher_id,))
 
 
-def find_watcher_by_email_url(email, url):
+def find_watcher_by_email_url(email, url, maker=None):
+    """Dedup lookup for signup. Global watches all share url='' — for those,
+    maker is part of the identity (two global watches for different makers are
+    different watches), so scope by maker too when url is empty."""
+    q = "SELECT * FROM watchers WHERE email=? AND url=?"
+    params = [email.lower(), url]
+    if maker is not None and not url:
+        q += " AND COALESCE(maker,'')=?"
+        params.append(maker)
     with get_db() as db:
-        row = db.execute(
-            "SELECT * FROM watchers WHERE email=? AND url=?",
-            (email.lower(), url)
-        ).fetchone()
+        row = db.execute(q, params).fetchone()
         return dict(row) if row else None
+
+
+def activate_pending_watchers(email):
+    """Activate only watches still awaiting verification (verify_token set).
+    Unsubscribed watches (active=0, verify_token NULL) must NOT be resurrected
+    by a later verify click — that's a consent violation."""
+    with get_db() as db:
+        db.execute(
+            "UPDATE watchers SET active=1, verify_token=NULL "
+            "WHERE email=? AND verify_token IS NOT NULL",
+            (email.lower(),)
+        )
 
 
 def count_recent_new_shop_watches(email, hours, known_domains):

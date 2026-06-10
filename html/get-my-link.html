@@ -146,11 +146,12 @@ async function sendLink() {
   btn.textContent = 'SENDING...';
   msg.style.display = 'none';
   try {
-    await fetch('/api/resend-link', {
+    const r = await fetch('/api/resend-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
+    if (!r.ok) throw new Error('http ' + r.status);
     msg.className = 'msg success';
     msg.textContent = 'Check your inbox — your link is on the way.';
     msg.style.display = 'block';

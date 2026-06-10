@@ -612,24 +612,29 @@ coolEl.addEventListener('blur', checkKeywordQuality);
 // ── Keyword quality — Haiku AI coach (prefetch on email focus) ───────────
 let kwQualityResult = null;
 let kwQualityFor = '';
-let kwQualityPending = false;
+let kwQualityPromise = null;
 
-async function fetchKeywordQuality() {
+function fetchKeywordQuality() {
   const keywords = coolEl.value.trim();
   const maker = document.getElementById('maker').value.trim();
-  if (!keywords || keywords === kwQualityFor) return;
+  if (!keywords) return Promise.resolve();
+  // Memoize: same keywords + fetch already in flight (or done) → reuse it,
+  // so the submit gate can await the prefetch instead of racing it.
+  if (keywords === kwQualityFor && kwQualityPromise) return kwQualityPromise;
   kwQualityFor = keywords;
-  kwQualityPending = true;
   kwQualityResult = null;
-  try {
-    const res = await fetch('/api/keyword-quality', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keywords, maker })
-    });
-    if (res.ok) kwQualityResult = await res.json();
-  } catch(e) { /* fail silent — never block signup */ }
-  kwQualityPending = false;
+  kwQualityPromise = (async () => {
+    try {
+      const res = await fetch('/api/keyword-quality', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords, maker })
+      });
+      if (res.ok) kwQualityResult = await res.json();
+      else kwQualityFor = '';   // un-poison so submit can retry
+    } catch(e) { kwQualityFor = ''; /* fail silent — never block signup */ }
+  })();
+  return kwQualityPromise;
 }
 
 document.querySelector('[name="email"]').addEventListener('focus', fetchKeywordQuality);
@@ -653,6 +658,7 @@ coolEl.addEventListener('input', function() {
   kwModalDismissed = false;
   kwQualityResult = null;
   kwQualityFor = '';
+  kwQualityPromise = null;
 });
 
 toggleUrl();   // set initial state (makerReq visibility + urlWrap)
@@ -755,7 +761,7 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
   }
 
   // ── Keyword quality gate (Haiku) ──
-  if (!kwQualityResult && !kwModalDismissed && !kwQualityPending) {
+  if (!kwQualityResult && !kwModalDismissed) {
     await fetchKeywordQuality();
   }
   if (kwQualityResult && !kwModalDismissed

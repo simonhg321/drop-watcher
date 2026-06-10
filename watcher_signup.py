@@ -340,19 +340,20 @@ def send_verification_email(entry):
 @app.route('/api/watch', methods=['POST'])
 @limiter.limit("5 per minute")
 def watch():
-    data = request.get_json(force=True)
+    data = request.get_json(force=True, silent=True) or {}
 
     # Validate required fields (url is now OPTIONAL — blank url = global watch)
+    # `or ''` guards explicit JSON nulls — .get defaults only cover absent keys.
     for field in ['keywords', 'email']:
-        if not data.get(field, '').strip():
+        if not str(data.get(field) or '').strip():
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
     # ── Input validation ─────────────────────────────────────────────────────
-    email = data['email'].strip().lower()
-    url   = data.get('url', '').strip()
-    keywords = data['keywords'].strip()
-    name  = data.get('name', '').strip()
-    maker = data.get('maker', '').strip()
+    email = str(data.get('email') or '').strip().lower()
+    url   = str(data.get('url') or '').strip()
+    keywords = str(data.get('keywords') or '').strip()
+    name  = str(data.get('name') or '').strip()
+    maker = str(data.get('maker') or '').strip()
     phone = data.get('phone', '').strip()
     priority = data.get('priority', 'high')
 
@@ -466,8 +467,8 @@ def watch():
     if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
         return jsonify({'error': 'Invalid phone number format.'}), 400
 
-    # Deduplicate: same email + url combo
-    existing = db.find_watcher_by_email_url(email, url)
+    # Deduplicate: same email + url combo (global watches: + maker)
+    existing = db.find_watcher_by_email_url(email, url, maker=maker)
     if existing:
         log.info(f"Duplicate watcher for {email} / {url} — updating keywords")
         db.update_watcher(existing['id'], keywords=keywords, priority=priority, maker=maker)
@@ -774,10 +775,10 @@ def verify(token):
                     <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
                 </body></html>""", 200
 
-    # Activate ALL watches for this email
-    verified_email = w.get('email', '').lower()
-    db.update_watchers_by_email(verified_email, active=True, verify_token=None)
-    log.info(f"Verified: {w['email']} — activated all watches for this email")
+    # Activate PENDING watches only — never resurrect unsubscribed ones
+    verified_email = (w.get('email') or '').lower()
+    db.activate_pending_watchers(verified_email)
+    log.info(f"Verified: {w['email']} — activated pending watches for this email")
     send_confirmation_email(w)
 
     # Backfill: the live alerter only looks at the last ~15 min of drops, so a brand-new
@@ -814,9 +815,9 @@ def verify(token):
 @limiter.limit("10 per minute")
 def verify_phone():
     """Verify SMS phone number with 6-digit code sent on signup."""
-    data = request.get_json(force=True)
-    watch_id = data.get('id', '').strip()
-    code     = data.get('code', '').strip()
+    data = request.get_json(force=True, silent=True) or {}
+    watch_id = str(data.get('id') or '').strip()
+    code     = str(data.get('code') or '').strip()
 
     if not watch_id or not code:
         return jsonify({'error': 'Missing id or code'}), 400
@@ -841,9 +842,9 @@ def verify_phone():
 def track_pageview():
     """Anonymous pageview tracking — cookie-based visitor ID."""
     data = request.get_json(silent=True) or {}
-    vid  = data.get('vid', '')[:16]
-    path = data.get('path', '')[:200]
-    ref  = data.get('ref', '')[:500]
+    vid  = str(data.get('vid') or '')[:16]
+    path = str(data.get('path') or '')[:200]
+    ref  = str(data.get('ref') or '')[:500]
 
     if not vid or not path:
         return '', 204

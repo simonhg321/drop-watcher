@@ -142,7 +142,7 @@ def generate_page():
         alert = '🔔' if resp.get('alert_worthy') else ''
         pri = resp.get('priority', '?')
         pri_color = {'critical': '#e74c3c', 'high': '#e67e22', 'medium': '#f1c40f', 'low': 'var(--ash)'}.get(pri, 'var(--ash)')
-        kw_found = ', '.join(resp.get('keywords_found', []))[:40]
+        kw_found = html_mod.escape(', '.join(resp.get('keywords_found') or [])[:40])
         summary = html_mod.escape(resp.get('page_summary', ''))[:120]
         notable = resp.get('notable_items', [])
         notable_str = html_mod.escape(', '.join(notable[:3]))[:100] if notable else ''

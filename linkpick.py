@@ -105,8 +105,10 @@ def best_anchor(soup, needle):
     """Best deep-link anchor on a live page for `needle`. Raw href or None.
 
     Caller (/api/go) absolutises + same-site-guards the result itself.
+    Same MIN_CANDIDATE_SCORE floor as best_candidate — a weak match must
+    fall back, not deep-link a wrong product (#6289 class).
     """
-    best, best_score = None, 0
+    best, best_score = None, MIN_CANDIDATE_SCORE - 1
     for a in soup.find_all('a', href=True):
         href = (a.get('href') or '').strip()
         if not _usable_href(href):
