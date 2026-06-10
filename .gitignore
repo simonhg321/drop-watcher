@@ -62,3 +62,4 @@ bin/tmp/
 
 # sources.yaml backups written by dealer_scout auto-add/reject
 *.bak
+drops.db
