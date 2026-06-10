@@ -1,0 +1,674 @@
+# THE_SHARP_SOURCE — master knife-dealer registry
+# Seeded 2026-06-10 from sources.yaml + chrisreeve.com/pages/authorized-dealers audit.
+# statuses: active-source | disabled-source | candidate-verified | candidate-bot-walled |
+#           candidate-marginal | brick-and-mortar | unreachable | non-storefront
+meta:
+  project: THE_SHARP_SOURCE
+  goal: Round up every legit knife dealer on the internet
+  updated: '2026-06-10'
+  next_phase: migrate registry to MemoryDB/MemDB (EDGE)
+dealers:
+- name: KnifeJoy
+  domain: knifejoy.com
+  url: https://www.knifejoy.com
+  status: active-source
+  origin: sources.yaml
+- name: Blade HQ
+  domain: bladehq.com
+  url: https://www.bladehq.com
+  status: disabled-source
+  origin: sources.yaml
+- name: Knife Center
+  domain: knifecenter.com
+  url: https://www.knifecenter.com
+  status: active-source
+  origin: sources.yaml
+- name: DLT Trading
+  domain: dlttrading.com
+  url: https://www.dlttrading.com
+  status: active-source
+  origin: sources.yaml
+- name: Lamnia
+  domain: lamnia.com
+  url: https://www.lamnia.com
+  status: active-source
+  origin: sources.yaml
+- name: Nordic Knives
+  domain: nordicknives.com
+  url: https://www.nordicknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Tactical Elements
+  domain: tacticalelements.com
+  url: https://www.tacticalelements.com
+  status: active-source
+  origin: sources.yaml
+- name: eKnives
+  domain: eknives.com
+  url: https://www.eknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Monkey Edge
+  domain: monkeyedge.com
+  url: https://www.monkeyedge.com
+  status: active-source
+  origin: sources.yaml
+- name: Blade Gallery
+  domain: bladegallery.com
+  url: https://www.bladegallery.com
+  status: disabled-source
+  origin: sources.yaml
+- name: Nashville Tactical Lounge
+  domain: nashvilletacticallounge.com
+  url: https://www.nashvilletacticallounge.com
+  status: active-source
+  origin: sources.yaml
+- name: Steel Addiction
+  domain: steeladdiction.com
+  url: https://www.steeladdiction.com
+  status: active-source
+  origin: sources.yaml
+- name: Northwest Knives
+  domain: northwestknives.com
+  url: https://www.northwestknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Arizona Custom Knives
+  domain: arizonacustomknives.com
+  url: https://www.arizonacustomknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Thunderbird Gear
+  domain: thunderbirdgear.ca
+  url: https://thunderbirdgear.ca
+  status: active-source
+  origin: sources.yaml
+- name: Knife Art
+  domain: knifeart.com
+  url: https://www.knifeart.com
+  status: active-source
+  origin: sources.yaml
+- name: Knives Ship Free
+  domain: knivesshipfree.com
+  url: https://www.knivesshipfree.com
+  status: active-source
+  origin: sources.yaml
+- name: African Sporting Creations
+  domain: africansportingcreations.com
+  url: https://www.africansportingcreations.com
+  status: active-source
+  origin: sources.yaml
+- name: Southern Edges
+  domain: southernedges.com
+  url: https://southernedges.com
+  status: active-source
+  origin: sources.yaml
+- name: SMKW
+  domain: smkw.com
+  url: https://www.smkw.com
+  status: active-source
+  origin: sources.yaml
+- name: Exclusive Folders
+  domain: exclusivefolders.com
+  url: https://exclusivefolders.com
+  status: active-source
+  origin: sources.yaml
+- name: Original Goat
+  domain: originalgoat.com
+  url: https://originalgoat.com
+  status: active-source
+  origin: sources.yaml
+- name: Tools For Gents
+  domain: toolsforgents.com
+  url: https://toolsforgents.com
+  status: active-source
+  origin: sources.yaml
+- name: Rivers Edge Cutlery
+  domain: riversedgecutlery.com
+  url: https://riversedgecutlery.com
+  status: active-source
+  origin: sources.yaml
+- name: Hog House Knives
+  domain: hoghouseknives.com
+  url: https://hoghouseknives.com
+  status: active-source
+  origin: sources.yaml
+- name: GP Knives
+  domain: gpknives.com
+  url: https://www.gpknives.com
+  status: disabled-source
+  origin: sources.yaml
+- name: Urban EDC Supply
+  domain: urbanedcsupply.com
+  url: https://urbanedcsupply.com
+  status: active-source
+  origin: sources.yaml
+- name: Blade Binge
+  domain: bladebinge.com
+  url: https://bladebinge.com
+  status: active-source
+  origin: sources.yaml
+- name: Miguron Knives
+  domain: miguronknives.com
+  url: https://www.miguronknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Recon 1 — Pre-Owned
+  domain: recon1.com
+  url: https://recon1.com/collections/pre-owned
+  status: disabled-source
+  origin: sources.yaml
+- name: Knife Purveyor
+  domain: knifepurveyor.com
+  url: https://www.knifepurveyor.com
+  status: active-source
+  origin: sources.yaml
+- name: Luv Them Knives — Pre-Owned
+  domain: luvthemknives.com
+  url: https://luvthemknives.com/collections/pre-owned-knives
+  status: active-source
+  origin: sources.yaml
+- name: EDC Lifestyle — Pre-Owned
+  domain: edclifestyle.com
+  url: https://www.edclifestyle.com/pre-owned-consignment/
+  status: active-source
+  origin: sources.yaml
+- name: Knife Market
+  domain: knife-market.com
+  url: https://knife-market.com
+  status: active-source
+  origin: sources.yaml
+- name: Cutting Edge — Pre-Owned
+  domain: cuttingedge.com
+  url: https://cuttingedge.com
+  status: active-source
+  origin: sources.yaml
+- name: Steel Flame
+  domain: steelflame.com
+  url: https://www.steelflame.com
+  status: active-source
+  origin: sources.yaml
+- name: Strider Knives
+  domain: striderknives.com
+  url: https://www.striderknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Mick Strider Custom Knives
+  domain: mickstridercustomknives.com
+  url: https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/
+  status: active-source
+  origin: sources.yaml
+- name: Spyderco
+  domain: spyderco.com
+  url: https://www.spyderco.com
+  status: active-source
+  origin: sources.yaml
+- name: Chris Reeve Knives
+  domain: chrisreeve.com
+  url: https://www.chrisreeve.com
+  status: active-source
+  origin: sources.yaml
+  notes: 10-min poll standing — Umnumzaan/grail traffic (S54 kept 10 after Blade Show — no revert). user_alerts
+    off 2026-06-10 — CRK does not ship direct, alerts here are dead ends for users; poll kept as release-wave intel.
+- name: Curtiss Custom Knives
+  domain: curtisscustomknives.com
+  url: https://www.curtisscustomknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Arno Bernard Knives
+  domain: arnobernard.com
+  url: https://arnobernard.com
+  status: active-source
+  origin: sources.yaml
+- name: Demko Knives
+  domain: demkoknives.com
+  url: https://demkoknives.com
+  status: active-source
+  origin: sources.yaml
+  notes: 10-min poll standing — AD20/AD22 MagnaCut (S54 kept 10 after Blade Show — no revert)
+- name: McNees Knives
+  domain: mcneesknives.com
+  url: https://mcneesknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Tactile Knife Co
+  domain: tactileknife.com
+  url: https://www.tactileknife.com
+  status: active-source
+  origin: sources.yaml
+- name: Oz Machine Company
+  domain: ozmachinecompany.com
+  url: https://ozmachinecompany.com
+  status: active-source
+  origin: sources.yaml
+- name: Kunwu Knives
+  domain: kunwuknives.com
+  url: https://kunwuknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Kunwu Crew
+  domain: kunwucrew.com
+  url: https://www.kunwucrew.com
+  status: active-source
+  origin: sources.yaml
+- name: Poikilo Blade
+  domain: poikiloblade.com
+  url: https://poikiloblade.com
+  status: disabled-source
+  origin: sources.yaml
+- name: Vero Engineering
+  domain: veroengineering.com
+  url: https://veroengineering.com
+  status: active-source
+  origin: sources.yaml
+- name: Maxace Knife
+  domain: maxaceknife.com
+  url: https://maxaceknife.com
+  status: active-source
+  origin: sources.yaml
+- name: Rike Knife
+  domain: rikeknife.com
+  url: https://www.rikeknife.com
+  status: disabled-source
+  origin: sources.yaml
+- name: Flytanium
+  domain: flytanium.com
+  url: https://www.flytanium.com
+  status: active-source
+  origin: sources.yaml
+- name: Prometheus Design Werx
+  domain: prometheusdesignwerx.com
+  url: https://prometheusdesignwerx.com/collections/folders
+  status: active-source
+  origin: sources.yaml
+- name: Holt Bladeworks
+  domain: holtbladeworks.com
+  url: https://holtbladeworks.com
+  status: active-source
+  origin: sources.yaml
+  notes: Specter, Haptic, Morpheus — lottery drops, grail tier
+- name: Grimsmo Knives
+  domain: grimsmoknives.com
+  url: https://grimsmoknives.com
+  status: active-source
+  origin: sources.yaml
+  notes: Norseman, Saga, Rask — CNC grail tier
+- name: Koenig Knives
+  domain: koenigknives.com
+  url: https://koenigknives.com
+  status: active-source
+  origin: sources.yaml
+  notes: Arius — hot at Blade Show, sells out fast
+- name: Chaves Knives Direct
+  domain: chavesknives.com
+  url: https://chavesknives.com
+  status: active-source
+  origin: sources.yaml
+  notes: Redencion 229, Ultramar — show exclusives
+- name: Zero Tolerance
+  domain: zt.kaiusa.com
+  url: https://www.zt.kaiusa.com/all-products.html
+  status: active-source
+  origin: sources.yaml
+  notes: 20th anniversary model — hot at Blade Show 2026
+- name: Iron Ethos
+  domain: ironethos.com
+  url: https://ironethos.com
+  status: active-source
+  origin: sources.yaml
+  notes: New maker, EDC fixed blades — Blade Show 2026 debut
+- name: KnifeNews — All News
+  domain: knifenews.com
+  url: https://knifenews.com/all-news/
+  status: active-source
+  origin: sources.yaml
+  notes: Fastest coverage of Blade Show reveals and drops
+- name: Adept Knives — Blade Show Coverage
+  domain: adeptknives.com
+  url: https://www.adeptknives.com/blogs/adept-knives/blade-show-atlanta-2026-complete-news-new-knife-releases-live-coverage-hub
+  status: active-source
+  origin: sources.yaml
+  notes: Live-updating Blade Show 2026 coverage hub
+- name: Ubiquiti UVC-G6-180-W Camera (White)
+  domain: store.ui.com
+  url: https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w
+  status: active-source
+  origin: sources.yaml
+  notes: Boss wants WHITE version — alert when Coming Soon changes to Add to Cart
+- name: Ncblade
+  domain: ncblade.com
+  url: https://ncblade.com
+  status: active-source
+  origin: sources.yaml
+- name: Rickhindererknives
+  domain: rickhindererknives.com
+  url: https://rickhindererknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Kizerknives
+  domain: kizerknives.com
+  url: https://kizerknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Collectorknives
+  domain: collectorknives.net
+  url: https://collectorknives.net
+  status: active-source
+  origin: sources.yaml
+- name: Quietcarry
+  domain: quietcarry.com
+  url: https://quietcarry.com
+  status: active-source
+  origin: sources.yaml
+- name: Bentoboxshop
+  domain: bentoboxshop.com
+  url: https://bentoboxshop.com
+  status: active-source
+  origin: sources.yaml
+- name: Edgeworksonline
+  domain: edgeworksonline.com
+  url: https://edgeworksonline.com
+  status: active-source
+  origin: sources.yaml
+- name: Soonerstateknives
+  domain: soonerstateknives.com
+  url: https://soonerstateknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Stnicksknives
+  domain: stnicksknives.com
+  url: https://stnicksknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Okluma
+  domain: okluma.com
+  url: https://okluma.com
+  status: active-source
+  origin: sources.yaml
+- name: Whitemountainknives
+  domain: whitemountainknives.com
+  url: https://whitemountainknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Pvk
+  domain: pvk.com
+  url: https://pvk.com
+  status: active-source
+  origin: sources.yaml
+- name: Nullknives
+  domain: nullknives.com
+  url: https://nullknives.com
+  status: active-source
+  origin: sources.yaml
+- name: Everburn
+  domain: everburn.store
+  url: https://everburn.store
+  status: active-source
+  origin: sources.yaml
+- name: Blade City
+  domain: blade-city.com
+  url: https://blade-city.com
+  status: active-source
+  origin: sources.yaml
+- name: 1911 Custom Solutions
+  domain: 1911customsolutions.com
+  url: https://www.1911customsolutions.com/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+- name: Blade Ops
+  domain: bladeops.com
+  url: https://bladeops.com/chris-reeve-knives/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: Castle Gate
+  domain: castlegate.com
+  url: https://www.castlegate.com/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: magento
+- name: Clayton's Range
+  domain: claytonsrangepa.com
+  url: https://claytonsrangepa.com/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: woocommerce
+- name: Deepak Chopra Inc.
+  domain: deepakc.com
+  url: https://www.deepakc.com/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: magento
+- name: Fred Eisen Art Knives
+  domain: artknives.com
+  url: https://www.artknives.com/art-knives/chris-reeve-knives/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: woocommerce
+- name: Helacious Blades
+  domain: helacious.com
+  url: https://www.helacious.com
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: magento
+- name: JT Knives
+  domain: jtknives.com
+  url: https://www.jtknives.com/Chris-Reeve-Knives_c_12.html
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: shift4shop
+- name: Knifeworks
+  domain: knifeworks.com
+  url: https://knifeworks.com/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: Knives Plus
+  domain: knivesplus.com
+  url: https://www.knivesplus.com/chris-reeve-knives-crk.html
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+- name: Little Joe's Boots
+  domain: littlejoesboots.net
+  url: https://littlejoesboots.net/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: woocommerce
+- name: Martin's Firearms
+  domain: martinscf.com
+  url: https://martinscf.com
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: Pure Blades
+  domain: pureblades.com
+  url: https://pureblades.com/chris-reeve/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: Revolver Tactical
+  domain: revolvertactical.com
+  url: https://www.revolvertactical.com/product-category/all-products/chris-reeve-knives/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: woocommerce
+- name: Ski Mania
+  domain: stores.theeouterlimit.com
+  url: https://stores.theeouterlimit.com/knives/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: True North Knives
+  domain: truenorthknives.com
+  url: https://www.truenorthknives.com/
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+- name: Ye Ole Cutlery & Gift Shop
+  domain: mdggifts.com
+  url: https://mdggifts.com/Chris-Reeve-Knives_bymfg_420-4-1.html
+  status: candidate-verified
+  origin: crk-authorized-dealers-2026-06-10
+  platform: shift4shop
+- name: North River Outdoors
+  domain: northriveroutdoors.com
+  url: https://www.northriveroutdoors.com/collections/chris-reeve-knives
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+  platform: shopify
+- name: USA Made Blade
+  domain: usamadeblade.com
+  url: https://www.usamadeblade.com/
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: House of Blades
+  domain: houseofblades.com
+  url: https://www.houseofblades.com
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: Penchetta Pen & Knife
+  domain: penchetta.com
+  url: https://www.penchetta.com/
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: Rocky Mountain Specialty Gear
+  domain: rmsgear.com
+  url: https://www.rmsgear.com/
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: Willey Knives
+  domain: willeyknives.com
+  url: http://www.willeyknives.com/
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: We Be Knives
+  domain: webeknivessf.com
+  url: http://www.webeknivessf.com/
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: Mark's Outdoor Sports
+  domain: marksoutdoors.com
+  url: https://www.marksoutdoors.com/
+  status: candidate-bot-walled
+  origin: crk-authorized-dealers-2026-06-10
+- name: AG Russell
+  domain: agrussell.com
+  url: https://agrussell.com/knives/factorymade
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+- name: Blue Ridge Knives
+  domain: blueridgeknives.com
+  url: https://www.blueridgeknives.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: magento
+- name: Bucking Rainbow Outfitters
+  domain: buckingrainbow.com
+  url: https://www.buckingrainbow.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: squarespace
+- name: EDC Specialties
+  domain: edcspecialties.com
+  url: https://edcspecialties.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: woocommerce
+- name: Lafayette Shooters
+  domain: lafayetteshooters.com
+  url: https://lafayetteshooters.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: Nalpak Inc
+  domain: nalpak.com
+  url: https://www.nalpak.com
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: bigcommerce
+- name: Semper Fi Depot
+  domain: semperfidepot.com
+  url: https://semperfidepot.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: magento
+- name: Shooters of Jacksonville
+  domain: shootersjax.com
+  url: https://www.shootersjax.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+- name: Wade's Eastside Gun Shop
+  domain: wadesguns.com
+  url: https://www.wadesguns.com/
+  status: candidate-marginal
+  origin: crk-authorized-dealers-2026-06-10
+  platform: squarespace
+- name: Christensen Knife & Mfg
+  domain: signedknife.com
+  url: http://www.signedknife.com/
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: Hyatt Guns
+  domain: hyattguns.com
+  url: http://www.hyattguns.com/
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: Jim's Firearms
+  domain: jimsfirearms.net
+  url: https://www.jimsfirearms.net/baton-rouge/
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: M & D Tactical
+  domain: manddtactical.com
+  url: http://www.manddtactical.com/our-products.html
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: Moore Knives
+  domain: mooreknives.net
+  url: https://mooreknives.net/
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: Plaza Cutlery
+  domain: plazacutlery.com
+  url: https://plazacutlery.com
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: The Knife Room
+  domain: btsouth.com
+  url: https://www.btsouth.com/tkr
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: The Gadget Company
+  domain: thegadgetcompany.com
+  url: https://www.thegadgetcompany.com/knives/
+  status: brick-and-mortar
+  origin: crk-authorized-dealers-2026-06-10
+- name: Matt's Shooting Supplies
+  domain: mattsshootingsupplies.com
+  url: https://www.mattsshootingsupplies.com/
+  status: unreachable
+  origin: crk-authorized-dealers-2026-06-10
+- name: Nagel's Gun Shop
+  domain: nagelsguns.net
+  url: http://nagelsguns.net/knives/
+  status: unreachable
+  origin: crk-authorized-dealers-2026-06-10
+- name: Kelley's Cutlery
+  domain: facebook.com
+  url: https://www.facebook.com/kelleyscutlery/
+  status: non-storefront
+  origin: crk-authorized-dealers-2026-06-10
+- name: EDC Alaska
+  domain: (google maps only)
+  url: (google maps only)
+  status: non-storefront
+  origin: crk-authorized-dealers-2026-06-10
+- name: The Last Wind Up
+  domain: last-wind-up.square.site
+  url: https://last-wind-up.square.site/shop/knives/10
+  status: non-storefront
+  origin: crk-authorized-dealers-2026-06-10
+- name: Action Concepts (eBay)
+  domain: ebay.com
+  url: https://www.ebay.com/str/actionconcepts
+  status: non-storefront
+  origin: crk-authorized-dealers-2026-06-10

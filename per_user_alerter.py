@@ -22,6 +22,8 @@ import re
 import logging
 from datetime import datetime, timezone, timedelta
 
+import yaml
+
 import paths
 import db
 
@@ -43,6 +45,28 @@ logging.basicConfig(
     format='%(asctime)s [per_user_alerter] %(levelname)s %(message)s'
 )
 log = logging.getLogger(__name__)
+
+
+def load_no_user_alert_domains(path=None):
+    """Domains whose drops must NEVER reach users: sources.yaml entries flagged
+    user_alerts: false. We keep polling them for intel (e.g. chrisreeve.com — a
+    drop there signals a release wave hitting dealers) but the maker doesn't ship
+    direct, so a user alert deep-linking there is a dead end. Tolerant of a
+    missing/broken file: suppression must never take down the alerter."""
+    try:
+        with open(path or paths.SOURCES_YAML) as f:
+            sources = yaml.safe_load(f) or {}
+        return {domain_from_url(s.get('url', ''))
+                for s in sources.get('websites', []) or []
+                if isinstance(s, dict)
+                and not s.get('user_alerts', True)
+                and domain_from_url(s.get('url', ''))}
+    except Exception as e:
+        log.warning(f"could not load no-user-alert domains: {e}")
+        return set()
+
+
+NO_USER_ALERT_DOMAINS = load_no_user_alert_domains()
 
 
 def is_low_confidence(item):
@@ -187,6 +211,11 @@ def matches_for_watcher_drop(watcher, drop):
     drop_url     = (drop.get('url') or '').lower()
     is_user_drop = (drop.get('source') or '').endswith('(user)')
     searchable   = drop_searchable_text(drop)
+
+    # Monitor-only sources (user_alerts: false): never alert users, even on an
+    # explicit URL watch — the destination can't sell to them.
+    if domain_from_url(drop_url) in NO_USER_ALERT_DOMAINS:
+        return []
 
     if is_global:
         # Global watch: match maker+cool-list against EVERY curated drop.

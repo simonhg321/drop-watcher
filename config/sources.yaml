@@ -160,7 +160,7 @@ websites:
   - name: GP Knives
     url: https://www.gpknives.com
     poll_interval: 20
-    enabled: false
+    enabled: false # 403 bot-wall (verified 2026-06-10) — disabled ~Mar 2026 without a note; same class as Blade Gallery
 
   - name: Urban EDC Supply
     url: https://urbanedcsupply.com
@@ -230,11 +230,6 @@ websites:
     poll_interval: 30
     enabled: true
 
-  - name: Blade Gallery
-    url: https://www.bladegallery.com
-    poll_interval: 30
-    enabled: false # 403 blocking scrapers
-
   # ── Maker Direct Sites ─────────────────────────────────────────────────────
 
   - name: Steel Flame
@@ -261,7 +256,8 @@ websites:
     url: https://www.chrisreeve.com
     poll_interval: 10
     enabled: true
-    notes: 10-min poll standing — Umnumzaan/grail traffic (S54 kept 10 after Blade Show — no revert)
+    user_alerts: false
+    notes: 10-min poll standing — Umnumzaan/grail traffic (S54 kept 10 after Blade Show — no revert). user_alerts off 2026-06-10 — CRK does not ship direct, alerts here are dead ends for users; poll kept as release-wave intel.
 
   - name: Curtiss Custom Knives
     url: https://www.curtisscustomknives.com
