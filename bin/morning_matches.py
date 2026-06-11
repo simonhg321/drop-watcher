@@ -40,6 +40,9 @@ def load_recent_match_alerts():
             ts, to, subj, typ = m.groups()
             if typ != 'alert' or 'Match found' not in subj:
                 continue
+            # [TEST]/[REVIEW]/[RESEND] replays go to info@, not users — not drops.
+            if subj.startswith(('[TEST', '[REVIEW', '[RESEND')):
+                continue
             when = datetime.fromisoformat(ts.replace('Z', '+00:00'))
             if when < cutoff:
                 continue
