@@ -530,6 +530,50 @@ class TestMatchesForWatcherDrop:
         assert matches_for_watcher_drop(w, other) == []
 
 
+class TestAISpend:
+    """bin/ai_spend.py — session-start AI spend report (S60)."""
+
+    def test_cost_math_haiku_45(self):
+        sys.path.insert(0, os.path.join(ROOT, 'bin'))
+        import ai_spend
+        rows = [
+            {'caller': 'analyze_page', 'input_tokens': 1_000_000, 'output_tokens': 0},
+            {'caller': 'analyze_page', 'input_tokens': 0, 'output_tokens': 1_000_000},
+        ]
+        s = ai_spend.summarize(rows)
+        # Haiku 4.5: $1/MTok in, $5/MTok out
+        assert s['cost'] == pytest.approx(6.0)
+        assert s['calls'] == 2
+        assert s['in_tokens'] == 1_000_000
+        assert s['out_tokens'] == 1_000_000
+
+
+class TestAISchemaNullTolerance:
+    """S60: Haiku occasionally returns null for a single item field and the
+    whole page analysis was discarded (live: EKnives New Arrivals 2026-06-11,
+    notable_items_detail[12].price = null → entire scan lost)."""
+
+    def test_null_price_tolerated(self):
+        from ai_interpreter import parse_ai_response, PageAnalysis
+        raw = json.dumps({
+            'page_summary': 'new arrivals', 'alert_worthy': True,
+            'notable_items': ['Knife A'],
+            'notable_items_detail': [{'name': 'Knife A', 'url': None, 'price': None}],
+        })
+        result, _ = parse_ai_response(raw, PageAnalysis, 'test')
+        assert result['notable_items_detail'][0]['price'] == ''
+
+    def test_null_name_tolerated(self):
+        from ai_interpreter import parse_ai_response, PageAnalysis
+        raw = json.dumps({
+            'page_summary': 'new arrivals', 'alert_worthy': True,
+            'notable_items': ['Knife A'],
+            'notable_items_detail': [{'name': None, 'price': '$100'}],
+        })
+        result, _ = parse_ai_response(raw, PageAnalysis, 'test')
+        assert result['notable_items_detail'][0]['name'] == ''
+
+
 class TestBackfill:
     """backfill_alerter.py — one-time match against recent drop corpus."""
 

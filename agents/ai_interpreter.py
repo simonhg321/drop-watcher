@@ -59,6 +59,13 @@ class NotableItemDetail(BaseModel):
     url: Optional[str] = None
     price: str = ''
 
+    @field_validator('name', 'price', mode='before')
+    @classmethod
+    def null_to_empty(cls, v):
+        # The AI sometimes emits null for a missing field; one null must not
+        # invalidate the entire page analysis (S60: lost scans).
+        return '' if v is None else v
+
 class PageAnalysis(BaseModel):
     makers_found: list[str] = Field(default_factory=list)
     in_stock: dict[str, int] = Field(default_factory=dict)
@@ -507,7 +514,7 @@ def analyze_page(site_name, url, page_text, makers_list):
         log.info(f"Sending {site_name} to AI interpreter...")
         message = client.messages.create(
             model=MODEL,
-            max_tokens=1536,
+            max_tokens=4096,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -666,7 +673,7 @@ def analyze_user_page(url, page_text, user_keywords):
         log.info(f"Sending user watch {site_name} to AI (keywords: {keywords_formatted})...")
         message = client.messages.create(
             model=MODEL,
-            max_tokens=1536,
+            max_tokens=4096,
             messages=[{"role": "user", "content": prompt}]
         )
 
