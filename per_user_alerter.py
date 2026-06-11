@@ -40,6 +40,7 @@ import nkd
 import sharp
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
+SHARP_ENABLED = os.environ.get("DW_SHARP_ENABLED", "0") == "1"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -437,8 +438,11 @@ def build_alert_email(watcher, matches, drop):
 
     # Click attribution: dealer-bound HTML hrefs go via /go_shankyou/ (sharp.py).
     # Plain-text keeps raw URLs — transparency, and text clients are the fallback.
+    # Gated until the Apache route is live (bin/enable_shankyou.sh), else links 404.
     src_name = drop.get('source', '')
     def _tracked(dest):
+        if not SHARP_ENABLED:
+            return dest
         return sharp.make_link(watcher['id'], dest, src_name)
     tracked_page_url = html_mod.escape(_tracked(url)) if url else safe_url
 
