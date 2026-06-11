@@ -21,7 +21,7 @@ import logging
 import httpx
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -1278,6 +1278,25 @@ def feedback():
     if not (emailed or posted):
         return jsonify({'ok': False, 'error': 'Could not submit right now — please try again.'}), 502
     return jsonify({'ok': True})
+
+
+import sharp
+
+
+@app.route('/go_shankyou/<token>', methods=['GET'])
+@app.route('/sharp/<token>', methods=['GET'])   # alias — same handler, rename-proof
+@limiter.limit("120 per minute")
+def go_shankyou(token):
+    """Outbound click attribution: verify signed token, log, 302 to dealer.
+    The HMAC is the open-redirect guard — we only redirect to URLs we signed."""
+    data = sharp.verify_token(token)
+    if not data:
+        return redirect('https://instockornot.club/', code=302)
+    try:
+        sharp.record_click(data, user_agent=request.headers.get('User-Agent', ''))
+    except Exception as e:
+        log.error(f"outbound click log failed (still redirecting): {e}")
+    return redirect(data['d'], code=302)
 
 
 if __name__ == '__main__':

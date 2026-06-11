@@ -159,6 +159,18 @@ CREATE TABLE IF NOT EXISTS dealer_candidates (
     last_checked TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_dealer_candidates_status ON dealer_candidates(status);
+
+CREATE TABLE IF NOT EXISTS outbound_clicks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    watcher_id TEXT NOT NULL,
+    dest_url TEXT NOT NULL,
+    dest_domain TEXT NOT NULL,
+    source TEXT DEFAULT '',
+    link_ts INTEGER,                 -- when the link was minted (email build)
+    clicked_at TEXT NOT NULL,
+    user_agent TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_outbound_clicks_domain ON outbound_clicks(dest_domain, clicked_at);
 """
 
 

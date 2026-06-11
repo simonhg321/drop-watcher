@@ -37,6 +37,7 @@ from urls import normalize_watch_url, domain_from_url
 from makers import expand_maker
 import linkpick
 import nkd
+import sharp
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
 
@@ -434,6 +435,13 @@ def build_alert_email(watcher, matches, drop):
     # candidates; Reddit/feed via the post URL. Empty → fall back to plain notable text.
     matched_items = resolve_drop_items(drop, matches)
 
+    # Click attribution: dealer-bound HTML hrefs go via /go_shankyou/ (sharp.py).
+    # Plain-text keeps raw URLs — transparency, and text clients are the fallback.
+    src_name = drop.get('source', '')
+    def _tracked(dest):
+        return sharp.make_link(watcher['id'], dest, src_name)
+    tracked_page_url = html_mod.escape(_tracked(url)) if url else safe_url
+
     nkd_html = ''
     nkd_text_line = ''
     if NKD_ENABLED:
@@ -452,7 +460,7 @@ def build_alert_email(watcher, matches, drop):
     if matched_items:
         rows = ''
         for it in matched_items:
-            p_url   = html_mod.escape(it.get('url', ''))
+            p_url   = html_mod.escape(_tracked(it['url']) if it.get('url') else '')
             p_title = html_mod.escape(it.get('title', '') or it.get('url', ''))
             price   = it.get('price', '')
             price_s = f' <span style="color:#666">— ${html_mod.escape(str(price))}</span>' if price else ''
@@ -489,7 +497,7 @@ def build_alert_email(watcher, matches, drop):
 
       <div style="background: #161616; border: 1px solid #222; padding: 16px; margin: 20px 0;">
         <div style="color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Source</div>
-        <a href="{safe_url}" style="color: #ff6b2b;">{html_mod.escape(drop.get('source', ''))}</a>
+        <a href="{tracked_page_url}" style="color: #ff6b2b;">{html_mod.escape(drop.get('source', ''))}</a>
         <div style="color:#888;font-size:12px;margin-top:8px">{summary}</div>
       </div>
 
@@ -505,7 +513,7 @@ def build_alert_email(watcher, matches, drop):
       {keyword_hint}
 
       <p style="margin: 20px 0 0;">
-        <a href="{safe_url}" style="background: #ff2d2d; color: white; padding: 12px 24px; text-decoration: none; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">View Page Now →</a>
+        <a href="{tracked_page_url}" style="background: #ff2d2d; color: white; padding: 12px 24px; text-decoration: none; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">View Page Now →</a>
       </p>
 
       <p style="margin: 16px 0 0;">
