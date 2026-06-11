@@ -1008,6 +1008,34 @@ def stats():
     })
 
 
+_REGISTRY_CACHE = {'mtime': None, 'by_domain': {}}
+
+def lookup_known_site(domain):
+    """Bump a domain against the dealer registry (THE_SHARP_SOURCE).
+    Returns (name, status) or (None, None). Cached on file mtime."""
+    if not domain:
+        return None, None
+    # Registry isn't synced to /etc yet — fall back to the repo copy.
+    path = os.path.join(paths.CONFIG_DIR, 'dealer_registry.yaml')
+    if not os.path.exists(path):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            'config', 'dealer_registry.yaml')
+    try:
+        mtime = os.path.getmtime(path)
+        if _REGISTRY_CACHE['mtime'] != mtime:
+            import yaml
+            with open(path) as f:
+                reg = yaml.safe_load(f) or {}
+            _REGISTRY_CACHE['by_domain'] = {
+                d['domain'].lower(): (d.get('name', d['domain']), d.get('status', ''))
+                for d in reg.get('dealers', []) if d.get('domain')}
+            _REGISTRY_CACHE['mtime'] = mtime
+    except Exception as e:
+        log.warning(f"dealer registry lookup unavailable: {e}")
+        return None, None
+    return _REGISTRY_CACHE['by_domain'].get(domain.lower(), (None, None))
+
+
 @app.route('/api/check-url', methods=['POST'])
 @limiter.limit("10 per minute")
 def check_url():
@@ -1044,8 +1072,14 @@ def check_url():
     except Exception:
         return jsonify({'ok': False, 'msg': "Something went wrong reaching that URL."})
 
+    known_name, known_status = lookup_known_site(domain_from_url(url))
+
     if r.status_code == 403:
-        return jsonify({'ok': False, 'msg': "That site is blocking us (403 Forbidden). We won't be able to watch it."})
+        msg = "That site is blocking us (403 Forbidden). We won't be able to watch it."
+        if known_status in ('disabled-source', 'candidate-bot-walled'):
+            msg = (f"{known_name} blocks automated checks — we know, and we're already "
+                   "in touch with them about it. Until that lands we can't watch it reliably.")
+        return jsonify({'ok': False, 'msg': msg})
     if r.status_code == 429:
         return jsonify({'ok': False, 'msg': "That site is rate-limiting us. We won't be able to watch it reliably."})
     if r.status_code >= 400:
@@ -1067,7 +1101,11 @@ def check_url():
     if parsed.path in ('', '/'):
         warning = "Heads up — this looks like a homepage. A direct product or search page gets better results."
 
-    resp = {'ok': True, 'msg': "We can read this page. You're good to go."}
+    msg = "We can read this page. You're good to go."
+    if known_status == 'active-source':
+        msg = (f"Good news — {known_name} is already on our watch list. "
+               "Your keywords will ride coverage we've tuned.")
+    resp = {'ok': True, 'msg': msg}
     if warning:
         resp['warning'] = warning
     return jsonify(resp)
