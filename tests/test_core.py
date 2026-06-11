@@ -504,6 +504,20 @@ class TestMatchesForWatcherDrop:
                      'page_summary': 'Demko AD22', 'notable_items': []}
         assert matches_for_watcher_drop(w, user_drop) == []
 
+    def test_matches_keyword_only_in_product_titles(self):
+        """S60 regression: structured extraction can catch a product the prose
+        summary/excerpt missed (real case: Shirogorov Quantum Ursus on
+        eknives.com/new/ 2026-06-10). Matching must search products[*].title."""
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Shirogorov', 'keywords': 'Ursus'}
+        drop = {'source': 'EKnives', 'url': 'https://eknives.com/new/',
+                'page_summary': 'new arrivals featuring heretic and hinderer',
+                'notable_items': [], 'page_excerpt': 'heretic wraith hinderer xm',
+                'products': [{'title': 'Shirogorov Quantum Ursus Blue E-KAMO '
+                                       'Titanium 3.75" Stonewash',
+                              'url': 'https://eknives.com/shirogorov-quantum-ursus/'}]}
+        assert matches_for_watcher_drop(w, drop) == ['ursus']
+
     def test_url_watch_needs_domain_and_keyword(self):
         from per_user_alerter import matches_for_watcher_drop
         w = {'id': 'u1', 'url': 'https://knifejoy.com/c/hinderer',

@@ -185,14 +185,18 @@ DISCLAIMER_TEXT = (
 
 def drop_searchable_text(drop):
     """Lowercased blob of a drop's real page content used for keyword matching:
-    prose summary + notable items + the AI's detected keyword hits + page excerpt.
-    Single source of truth so the live alerter and the signup backfill search the
-    exact same text."""
+    prose summary + notable items + the AI's detected keyword hits + page excerpt
+    + structured product titles. Single source of truth so the live alerter and
+    the signup backfill search the exact same text."""
     summary  = (drop.get('page_summary') or '').lower()
     notable  = ' '.join(drop.get('notable_items') or []).lower()
     kw_found = ' '.join(drop.get('keywords_found') or []).lower()
     excerpt  = (drop.get('page_excerpt') or '').lower()
-    return f"{summary} {notable} {kw_found} {excerpt}"
+    # Structured extraction (S55) can catch products the prose missed —
+    # without these titles a listed item can silently never alert.
+    titles   = ' '.join((p.get('title') or '')
+                        for p in (drop.get('products') or [])).lower()
+    return f"{summary} {notable} {kw_found} {excerpt} {titles}"
 
 
 def matches_for_watcher_drop(watcher, drop):

@@ -33,9 +33,11 @@ EMAIL_EVERY_HOURS = 6   # summary cadence while failing — not per 30-min run
 
 CANARIES = [
     {
-        "name": "Norseman @ EDC Lifestyle",
+        # Was "Norseman @ EDC Lifestyle" — consignment item sold ~2026-06-08,
+        # canary went stale. Maker's own site always lists its flagship.
+        "name": "Norseman @ Grimsmo Knives",
         "watcher": {"url": "", "keywords": "Norseman", "maker": "Grimsmo"},
-        "expect_url": "edclifestyle.com",
+        "expect_url": "grimsmoknives.com",
     },
     {
         "name": "Inyoni @ Urban EDC",
