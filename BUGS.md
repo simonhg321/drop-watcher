@@ -16,7 +16,8 @@ iPad that had visited before then kept the stale copy.
 (`conf-available/html-nocache.conf`) setting `Cache-Control: no-cache,
 must-revalidate` on `*.html` only (assets still cache). Unchanged pages revalidate
 to a cheap 304. Run with sudo; script verifies the live header after reload.
-**Status:** script ready, awaiting sudo run.
+**Status:** RESOLVED 2026-06-11 — Simon ran the script; `cache-control: no-cache,
+must-revalidate` verified on live responses. HTML now revalidates everywhere.
 
 ## BUG-007: Stale web/ directory in repo
 **Logged:** 2026-03-14
