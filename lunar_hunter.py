@@ -54,16 +54,35 @@ HUNTER_EMAIL   = os.environ.get('DW_LUNAR_EMAIL') or os.environ.get('ALERT_TO')
 HUNTER_PHONE   = os.environ.get('DW_LUNAR_PHONE')   # E.164, e.g. +13472766172; SMS skipped if unset
 SEEN_TTL_HOURS = 24 * 14   # re-alert at most every 2 weeks for the SAME find/state
 
-# The signal. "lunar landing" is the canonical CGG name; the rest are safety nets.
-# On CRK-SCOPED dealer pages (scoped:True) a bare signal is enough. On UNSCOPED pages
-# — whole-store pre-owned/consignment catalogs and Reddit (mixed makers) — we additionally
-# require Chris Reeve context, since "lunar"/"apollo" alone are also CRKT/Civivi model names.
-LUNAR_SIGNALS = ['lunar landing', 'lunar', 'moon landing', 'first man on the moon', 'apollo']
+# The grail roster (S60: generalized from the single Lunar Landing hunt).
+# Per grail: an `exact` phrase always fires; bare `signals` fire on CRK-SCOPED
+# dealer pages, but on UNSCOPED pages (whole-store pre-owned catalogs, Reddit,
+# eBay — mixed makers) they ALSO need Chris Reeve context in the same blob:
+# "lunar"/"apollo" are also CRKT/Civivi model names, and "cross hatch" is a
+# handle texture on Jack Wolf knives (the S60 false positive).
 REEVE_CONTEXT = ['reeve', 'crk', 'sebenza', 'inkosi', 'mnandi', 'impinda', 'umnumzaan']
-# Pre-compile the word-boundary patterns once — _lunar_match runs per product
+
+GRAILS = [
+    {
+        'key': 'lunar', 'display': 'Lunar Landing', 'emoji': '🌙',
+        'subtitle': 'CHRIS REEVE · COMPUTER-GENERATED GRAPHIC',
+        'exact': ['lunar landing'],
+        'signals': ['lunar landing', 'lunar', 'moon landing', 'first man on the moon', 'apollo'],
+        'ebay_query': 'chris reeve lunar landing',
+    },
+    {
+        'key': 'crosshatch', 'display': 'Inkosi Cross Hatch', 'emoji': '⚔️',
+        'subtitle': 'CHRIS REEVE · CROSS HATCH GRAPHIC',
+        'exact': ['inkosi cross hatch'],
+        'signals': ['cross hatch', 'crosshatch', 'cross-hatch'],
+        'ebay_query': 'chris reeve cross hatch',
+    },
+]
+# Pre-compile the word-boundary patterns once — matching runs per product
 # (up to ~750/dealer × 14 dealers every 8 min), so recompiling per call was waste.
-_LUNAR_SIGNAL_RE = [re.compile(r'\b' + re.escape(s) + r'\b') for s in LUNAR_SIGNALS]
 _REEVE_CONTEXT_RE = [re.compile(r'\b' + re.escape(c) + r'\b') for c in REEVE_CONTEXT]
+for _g in GRAILS:
+    _g['_signal_re'] = [re.compile(r'\b' + re.escape(s) + r'\b') for s in _g['signals']]
 
 # ── The dealer fleet ──────────────────────────────────────────────────────────
 # scoped:True  → page is already filtered to Chris Reeve, so any lunar signal fires.
@@ -128,27 +147,26 @@ def fetch_page(url, ssl_permissive=False):
                                  ssl_permissive=ssl_permissive, headers=HEADERS, log=log)
 
 
-def _lunar_match(text, scoped):
-    """Does this blob name the Lunar Landing?
+def _grail_match(grail, text, scoped):
+    """Does this blob name the grail?
 
-    The exact phrase "lunar landing" always wins. Otherwise a bare signal
-    ("lunar"/"apollo"/…) only counts on a CRK-SCOPED page (scoped=True). On an
-    UNSCOPED page (a whole-store pre-owned catalog, or Reddit) we also require Chris
-    Reeve context, since 'Lunar'/'Apollo' are unrelated CRKT/Civivi model names.
+    An exact phrase always wins. Otherwise a bare signal only counts on a
+    CRK-SCOPED page (scoped=True). On an UNSCOPED page (a whole-store pre-owned
+    catalog, Reddit, eBay) we also require Chris Reeve context in the SAME blob.
     Reeve terms match on word boundaries so 'crk' does NOT match 'CRKT'."""
     t = (text or '').lower()
-    if 'lunar landing' in t:
+    if any(e in t for e in grail['exact']):
         return True
-    if not any(p.search(t) for p in _LUNAR_SIGNAL_RE):
+    if not any(p.search(t) for p in grail['_signal_re']):
         return False
     if scoped:
         return True
     return any(p.search(t) for p in _REEVE_CONTEXT_RE)
 
 
-def _reddit_match(text):
-    """Reddit posts span all makers → treat as unscoped (Reeve context required)."""
-    return _lunar_match(text, scoped=False)
+def _lunar_match(text, scoped):
+    """Back-compat shim: the original single-grail matcher (eBay default path)."""
+    return _grail_match(GRAILS[0], text, scoped)
 
 
 def scan_reddit():
@@ -172,17 +190,21 @@ def scan_reddit():
         for entry in feed.entries:
             # Include the sub name so r/crk counts as Reeve-context automatically.
             blob = f"{sub} {entry.get('title', '')} {entry.get('summary', '')}"
-            if _reddit_match(blob):
-                finds.append({
-                    'source':   f"Reddit r/{sub}",
-                    'title':    entry.get('title', 'Lunar Landing post')[:140],
-                    'url':      entry.get('link', url),
-                    'in_stock': None,        # it's a listing, not dealer stock
-                    'price':    '',
-                    'deep':     True,
-                })
-                hits += 1
-        log.info(f"Reddit r/{sub} — {len(feed.entries)} posts, {hits} lunar match(es)")
+            for g in GRAILS:
+                # Reddit posts span all makers → unscoped (Reeve context required).
+                if _grail_match(g, blob, scoped=False):
+                    finds.append({
+                        'source':   f"Reddit r/{sub}",
+                        'title':    entry.get('title', f"{g['display']} post")[:140],
+                        'url':      entry.get('link', url),
+                        'in_stock': None,        # it's a listing, not dealer stock
+                        'price':    '',
+                        'deep':     True,
+                        'grail':    g,
+                    })
+                    hits += 1
+                    break
+        log.info(f"Reddit r/{sub} — {len(feed.entries)} posts, {hits} grail match(es)")
     return finds
 
 
@@ -213,15 +235,15 @@ def _ebay_token(client_id, client_secret):
         return None
 
 
-def _ebay_search(token):
-    """Query the Browse API for the grail, newest first. Returns the raw
+def _ebay_search(token, query=None):
+    """Query the Browse API for one grail, newest first. Returns the raw
     itemSummaries list (or [] on any failure)."""
     try:
         r = requests.get(
             EBAY_SEARCH_URL,
             headers={'Authorization': f'Bearer {token}',
                      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US'},
-            params={'q': EBAY_QUERY, 'sort': 'newlyListed', 'limit': 50},
+            params={'q': query or EBAY_QUERY, 'sort': 'newlyListed', 'limit': 50},
             timeout=15,
         )
         r.raise_for_status()
@@ -231,23 +253,25 @@ def _ebay_search(token):
         return []
 
 
-def _ebay_finds_from_summaries(summaries):
-    """Map Browse API item summaries → find dicts, keeping only true Lunar Landing
+def _ebay_finds_from_summaries(summaries, grail=None):
+    """Map Browse API item summaries → find dicts, keeping only true grail
     listings. eBay best-match is fuzzy, so each title is re-checked with the shared
-    unscoped matcher (Reeve context required) to drop unrelated 'lunar' knives."""
+    unscoped matcher (Reeve context required) to drop unrelated knives."""
+    grail = grail or GRAILS[0]
     finds = []
     for s in summaries or []:
         title = s.get('title', '') or ''
-        if not _lunar_match(title, scoped=False):
+        if not _grail_match(grail, title, scoped=False):
             continue
         price = s.get('price') or {}
         finds.append({
             'source':   'eBay',
-            'title':    title or 'Chris Reeve Lunar Landing',
+            'title':    title or f"Chris Reeve {grail['display']}",
             'url':      s.get('itemWebUrl', '') or '',
             'in_stock': None,                 # active listing != dealer stock → "LISTED"
             'price':    price.get('value', '') if isinstance(price, dict) else '',
             'deep':     True,
+            'grail':    grail,
         })
     return finds
 
@@ -266,9 +290,12 @@ def scan_ebay():
     if not token:
         return []
 
-    summaries = _ebay_search(token)
-    finds = _ebay_finds_from_summaries(summaries)
-    log.info(f"eBay — {len(summaries)} result(s), {len(finds)} lunar match(es)")
+    finds = []
+    for g in GRAILS:
+        summaries = _ebay_search(token, g['ebay_query'])
+        g_finds = _ebay_finds_from_summaries(summaries, g)
+        log.info(f"eBay [{g['key']}] — {len(summaries)} result(s), {len(g_finds)} match(es)")
+        finds.extend(g_finds)
     return finds
 
 
@@ -289,62 +316,73 @@ def scan_source(src):
         for p in products:
             blob = (p.get('title', '') + ' ' + p.get('vendor', '') + ' '
                     + ' '.join(p.get('tags') or []) + ' ' + p.get('url', ''))
-            if _lunar_match(blob, scoped):
+            for g in GRAILS:
+                if _grail_match(g, blob, scoped):
+                    finds.append({
+                        'source':   src['name'],
+                        'title':    p.get('title', '') or f"Chris Reeve {g['display']}",
+                        'url':      p.get('url', '') or src['url'],
+                        'in_stock': bool(p.get('available')),
+                        'price':    p.get('price', ''),
+                        'deep':     True,
+                        'grail':    g,
+                    })
+                    break  # one product matches one grail
+    else:  # text-scan → one page-level find per grail signalled anywhere on the page
+        for g in GRAILS:
+            if _grail_match(g, text, scoped):
                 finds.append({
                     'source':   src['name'],
-                    'title':    p.get('title', '') or 'Chris Reeve Lunar Landing',
-                    'url':      p.get('url', '') or src['url'],
-                    'in_stock': bool(p.get('available')),
-                    'price':    p.get('price', ''),
-                    'deep':     True,
+                    'title':    f"Chris Reeve {g['display']} (listed on page)",
+                    'url':      src['url'],
+                    'in_stock': None,           # unknown from text scan
+                    'price':    '',
+                    'deep':     False,
+                    'grail':    g,
                 })
-    else:  # text-scan → one page-level find if the signal is anywhere on the page
-        if _lunar_match(text, scoped):
-            finds.append({
-                'source':   src['name'],
-                'title':    'Chris Reeve Lunar Landing (listed on page)',
-                'url':      src['url'],
-                'in_stock': None,           # unknown from text scan
-                'price':    '',
-                'deep':     False,
-            })
     if finds:
-        log.info(f"{src['name']} — 🌙 {len(finds)} LUNAR find(s)")
+        log.info(f"{src['name']} — {len(finds)} GRAIL find(s): "
+                 + ', '.join(f['grail']['key'] for f in finds))
     else:
-        log.info(f"{src['name']} — no lunar")
+        log.info(f"{src['name']} — no grails")
     return finds
 
 
 def _seen_key(find):
-    # Keyed on source + url + stock state, so a sold-out→in-stock flip re-alerts.
-    raw = f"lunar:{find['source']}|{find['url']}|{find['in_stock']}"
+    # Keyed on grail + source + url + stock state, so a sold-out→in-stock flip
+    # re-alerts. The 'lunar' prefix matches the original single-grail scheme so
+    # existing seen-state survived the multi-grail refactor (S60).
+    gkey = (find.get('grail') or GRAILS[0])['key']
+    raw = f"{gkey}:{find['source']}|{find['url']}|{find['in_stock']}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
 # ── The (deliberately over-built) email ───────────────────────────────────────
-def _shell(inner):
+def _shell(inner, grail=None):
+    grail = grail or GRAILS[0]
     return f"""
     <div style="font-family:'Courier New',monospace;background:#05070d;color:#dfe6f2;
                 padding:0;max-width:600px;border:1px solid #1b2740;">
       <div style="background:linear-gradient(135deg,#0b1226 0%,#1a2347 55%,#05070d 100%);
                   padding:28px 24px;border-bottom:1px solid #243357;text-align:center;">
-        <div style="font-size:40px;line-height:1;">🌙</div>
+        <div style="font-size:40px;line-height:1;">{grail['emoji']}</div>
         <div style="color:#9fb4e8;font-size:11px;letter-spacing:0.35em;margin-top:10px;">
           DROP WATCHER · GRAIL PROTOCOL</div>
         <div style="color:#fff;font-size:20px;letter-spacing:0.12em;margin-top:6px;">
-          LUNAR LANDING</div>
+          {html_mod.escape(grail['display'].upper())}</div>
         <div style="color:#5f7099;font-size:10px;letter-spacing:0.2em;margin-top:6px;">
-          CHRIS REEVE · COMPUTER-GENERATED GRAPHIC</div>
+          {html_mod.escape(grail['subtitle'])}</div>
       </div>
       <div style="padding:24px;">{inner}</div>
       <div style="padding:16px 24px;border-top:1px solid #1b2740;color:#46557a;font-size:10px;
                   letter-spacing:0.15em;">
-        instockornot.club · bespoke single-grail hunt · armed for Simon
+        instockornot.club · bespoke grail hunt · armed for Simon
       </div>
     </div>"""
 
 
-def build_find_email(finds):
+def build_find_email(finds, grail=None):
+    grail = grail or GRAILS[0]
     rows = ''
     for f in finds:
         if f['in_stock'] is True:
@@ -363,19 +401,21 @@ def build_find_email(finds):
              text-decoration:none;font-size:11px;letter-spacing:0.15em;">{cta}</a>
         </div>"""
     n = len(finds)
+    disp = grail['display']
     inner = (f'<p style="color:#dfe6f2;font-size:14px;">Simon — the hunt hit. '
-             f'<b style="color:#fff;">{n} Lunar Landing listing'
+             f'<b style="color:#fff;">{n} {html_mod.escape(disp)} listing'
              f'{"s" if n != 1 else ""}</b> surfaced. Move fast.</p>{rows}'
              f'<p style="color:#46557a;font-size:11px;margin-top:18px;">'
              f'Blind spots (bot-blocked, check by hand): {", ".join(BLIND_SPOTS)}.</p>')
-    subj = f"🌙 LUNAR LANDING FOUND — {n} listing{'s' if n != 1 else ''} ({finds[0]['source']}…)"
+    subj = (f"{grail['emoji']} {disp.upper()} FOUND — {n} listing"
+            f"{'s' if n != 1 else ''} ({finds[0]['source']}…)")
     txt_lines = [f"- [{('IN STOCK' if f['in_stock'] else 'SOLD OUT' if f['in_stock'] is False else 'LISTED')}] "
                  f"{f['source']}: {f['title']}{(' — $'+str(f['price'])) if f['price'] else ''}\n  {f['url']}"
                  for f in finds]
-    txt = ("LUNAR LANDING — Chris Reeve CGG — FOUND\n\n" + "\n".join(txt_lines) +
+    txt = (f"{disp.upper()} — {grail['subtitle']} — FOUND\n\n" + "\n".join(txt_lines) +
            f"\n\nBlind spots (check by hand): {', '.join(BLIND_SPOTS)}\n"
            "instockornot.club bespoke grail hunt")
-    return subj, _shell(inner), txt
+    return subj, _shell(inner, grail), txt
 
 
 def _short_url(url):
@@ -394,8 +434,10 @@ def build_armed_email():
     blind = list(BLIND_SPOTS)
     if not _ebay_active():
         blind.append('eBay (no API creds set — dormant)')
-    inner = (f'<p style="color:#dfe6f2;font-size:14px;">The Lunar Landing hunt is '
-             f'<b style="color:#39d98a;">ARMED</b> and running every 8 minutes.</p>'
+    roster = ' + '.join(g['display'] for g in GRAILS)
+    inner = (f'<p style="color:#dfe6f2;font-size:14px;">The grail hunt is '
+             f'<b style="color:#39d98a;">ARMED</b> for <b style="color:#fff;">'
+             f'{html_mod.escape(roster)}</b>, running every 8 minutes.</p>'
              f'<div style="background:#0b101f;border:1px solid #1f2c4a;padding:16px;margin:16px 0;">'
              f'<div style="color:#7f93c4;font-size:10px;letter-spacing:0.2em;margin-bottom:8px;">'
              f'FLEET UNDER WATCH</div><ul style="margin:0;padding-left:18px">{fleet}</ul></div>'
@@ -405,29 +447,30 @@ def build_armed_email():
              f'<p style="color:#46557a;font-size:11px;margin-top:14px;">Known blind spots '
              f'(bot-blocked, not auto-scanned): {", ".join(blind)}.</p>')
     fleet_names = [s['name'] for s in SOURCES] + (['eBay'] if _ebay_active() else [])
-    return "🌙 Lunar Landing hunt is ARMED", _shell(inner), (
-        "Lunar Landing hunt ARMED — running every 8 min.\n\nFleet: "
+    return "🗡 Grail hunt ARMED — " + " + ".join(g['display'] for g in GRAILS), _shell(inner), (
+        f"Grail hunt ARMED ({' + '.join(g['display'] for g in GRAILS)}) — running every 8 min.\n\nFleet: "
         + ", ".join(fleet_names)
         + f"\nBlind spots (bot-blocked): {', '.join(blind)}\n")
 
 
-def build_find_sms(finds):
+def build_find_sms(finds, grail=None):
     """Short SMS body for a find. The email carries the full detail + links."""
+    grail = grail or GRAILS[0]
     n = len(finds)
     f = finds[0]
     state = 'IN STOCK' if f['in_stock'] else ('listed' if f['in_stock'] is None else 'sold out')
-    head = f"🌙 LUNAR LANDING — {n} listing{'s' if n != 1 else ''} found!"
+    head = f"{grail['emoji']} {grail['display'].upper()} — {n} listing{'s' if n != 1 else ''} found!"
     lead = f"{f['source']} ({state})"
     return f"{head}\n{lead}\n{f['url']}\nDetails: {HUNTER_EMAIL}\nReply STOP to opt out."
 
 
-def send_find_sms(finds):
+def send_find_sms(finds, grail=None):
     if not HUNTER_PHONE:
         log.info("no DW_LUNAR_PHONE set — skipping SMS")
         return
-    body = build_find_sms(finds)
+    body = build_find_sms(finds, grail)
     if _send_twilio_sms(HUNTER_PHONE, body):
-        log.info(f"🌙 SMS sent to {HUNTER_PHONE}")
+        log.info(f"SMS sent to {HUNTER_PHONE}")
     else:
         log.error(f"SMS failed to {HUNTER_PHONE}")
 
@@ -461,15 +504,24 @@ def run():
         log.info(f"Hunt done — {len(all_finds)} find(s), none fresh.")
         return
 
-    fresh_finds = [f for f, _ in fresh]
-    subj, html, txt = build_find_email(fresh_finds)
-    if send_email(subj, html, txt, to_addr=HUNTER_EMAIL):
-        for _, key in fresh:
-            db.mark_feed_seen(key)
-        log.info(f"🌙 ALERT SENT — {len(fresh)} fresh Lunar find(s) to {HUNTER_EMAIL}")
-        send_find_sms(fresh_finds)   # text fires alongside email; never blocks it
-    else:
-        log.error("send_email failed — not marking seen, will retry next run")
+    # One email (+SMS) per grail, each with its own branding.
+    by_grail = {}
+    for f, key in fresh:
+        gkey = (f.get('grail') or GRAILS[0])['key']
+        by_grail.setdefault(gkey, []).append((f, key))
+
+    for gkey, items in by_grail.items():
+        grail = next(g for g in GRAILS if g['key'] == gkey)
+        finds_g = [f for f, _ in items]
+        subj, html, txt = build_find_email(finds_g, grail)
+        if send_email(subj, html, txt, to_addr=HUNTER_EMAIL):
+            for _, key in items:
+                db.mark_feed_seen(key)
+            log.info(f"{grail['emoji']} ALERT SENT — {len(items)} fresh "
+                     f"{grail['display']} find(s) to {HUNTER_EMAIL}")
+            send_find_sms(finds_g, grail)   # text fires alongside email; never blocks it
+        else:
+            log.error(f"send_email failed for {gkey} — not marking seen, will retry next run")
 
 
 def arm():
@@ -477,7 +529,7 @@ def arm():
     ok = send_email(subj, html, txt, to_addr=HUNTER_EMAIL)
     log.info(f"Armed notice sent: {ok}")
     if HUNTER_PHONE:
-        body = (f"🌙 Lunar Landing hunt ARMED — watching dealers + Reddit every 8 min. "
+        body = (f"🗡 Grail hunt ARMED ({' + '.join(g['display'] for g in GRAILS)}) — watching dealers + Reddit every 8 min. "
                 f"You'll get a text the instant one appears. Reply STOP to opt out.")
         log.info(f"Armed SMS sent: {_send_twilio_sms(HUNTER_PHONE, body)}")
 

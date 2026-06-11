@@ -183,20 +183,28 @@ DISCLAIMER_TEXT = (
 )
 
 
-def drop_searchable_text(drop):
-    """Lowercased blob of a drop's real page content used for keyword matching:
-    prose summary + notable items + the AI's detected keyword hits + page excerpt
-    + structured product titles. Single source of truth so the live alerter and
-    the signup backfill search the exact same text."""
+def drop_prose_text(drop):
+    """Lowercased blob of a drop's page prose: summary + notable items + the
+    AI's detected keyword hits + page excerpt. Global watches match maker and
+    keyword against this page-level text; product titles are deliberately NOT
+    here — for titles, maker and keyword must co-occur in the same title (see
+    matches_for_watcher_drop) or a competitor's model name next to an unrelated
+    maker mention fires a false alert (S60 Jack Wolf 'Cross Hatch Handle')."""
     summary  = (drop.get('page_summary') or '').lower()
     notable  = ' '.join(drop.get('notable_items') or []).lower()
     kw_found = ' '.join(drop.get('keywords_found') or []).lower()
     excerpt  = (drop.get('page_excerpt') or '').lower()
-    # Structured extraction (S55) can catch products the prose missed —
-    # without these titles a listed item can silently never alert.
-    titles   = ' '.join((p.get('title') or '')
-                        for p in (drop.get('products') or [])).lower()
-    return f"{summary} {notable} {kw_found} {excerpt} {titles}"
+    return f"{summary} {notable} {kw_found} {excerpt}"
+
+
+def drop_searchable_text(drop):
+    """Prose + structured product titles. Used by URL-scoped watches (the user
+    picked the site, so a keyword anywhere on it is a legit match) and by the
+    canary monitor. Structured extraction (S55) can catch products the prose
+    missed — without titles a listed item can silently never alert."""
+    titles = ' '.join((p.get('title') or '')
+                      for p in (drop.get('products') or [])).lower()
+    return f"{drop_prose_text(drop)} {titles}"
 
 
 def matches_for_watcher_drop(watcher, drop):
@@ -226,7 +234,20 @@ def matches_for_watcher_drop(watcher, drop):
         # Skip user-watch drops (those belong to their exact-URL owner).
         if is_user_drop:
             return []
-        return global_watch_matches(maker, kws, searchable)
+        hits = global_watch_matches(maker, kws, drop_prose_text(drop))
+        if hits:
+            return hits
+        # Product titles: maker and keyword must co-occur in the SAME title.
+        # Page-level OR across titles let "Chris Reeve" (pocket clips in prose)
+        # + "Cross Hatch" (a Jack Wolf handle texture) fire one alert (S60).
+        maker_terms = expand_maker(maker)
+        for p in drop.get('products') or []:
+            title = (p.get('title') or '').lower()
+            if maker_terms and any(kw_matches(m, title) for m in maker_terms):
+                hits = keywords_match(title, kws)
+                if hits:
+                    return hits
+        return []
 
     # URL-scoped watch. A user-watch drop is produced from ONE specific page, so it
     # may only match the watcher of that exact URL — otherwise two watches on the

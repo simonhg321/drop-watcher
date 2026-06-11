@@ -518,6 +518,40 @@ class TestMatchesForWatcherDrop:
                               'url': 'https://eknives.com/shirogorov-quantum-ursus/'}]}
         assert matches_for_watcher_drop(w, drop) == ['ursus']
 
+    def test_global_title_match_requires_maker_in_same_title(self):
+        """S60 false positive (Simon's 'cross hatch' watch): NWK page mentioned
+        Chris Reeve (pocket clips) in prose AND had Jack Wolf knives with
+        'Titanium Cross Hatch Handle' in product titles. Maker and keyword from
+        DIFFERENT products must not fire a global watch."""
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Chris Reeve', 'keywords': 'cross hatch'}
+        drop = {'source': 'Northwest Knives', 'url': 'https://www.northwestknives.com',
+                'page_summary': 'dealer inventory including chris reeve pocket clips',
+                'notable_items': [], 'page_excerpt': '',
+                'products': [{'title': 'Jack Wolf Knives Gunslinger Jack Slip Joint '
+                                       '- Titanium Cross Hatch Handle',
+                              'url': 'https://www.northwestknives.com/products/jw'}]}
+        assert matches_for_watcher_drop(w, drop) == []
+
+    def test_global_title_match_fires_when_maker_in_same_title(self):
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Chris Reeve', 'keywords': 'cross hatch'}
+        drop = {'source': 'DLT', 'url': 'https://www.dlttrading.com',
+                'page_summary': 'new arrivals', 'notable_items': [], 'page_excerpt': '',
+                'products': [{'title': 'Chris Reeve Knives Inkosi Cross Hatch Drop Point',
+                              'url': 'https://www.dlttrading.com/inkosi-ch'}]}
+        assert matches_for_watcher_drop(w, drop) == ['cross hatch']
+
+    def test_global_prose_match_unchanged(self):
+        """Page-level prose matching must not regress: maker + keyword both in
+        the prose summary still fires even with no products array."""
+        from per_user_alerter import matches_for_watcher_drop
+        w = {'id': 'g1', 'url': '', 'maker': 'Chris Reeve', 'keywords': 'cross hatch'}
+        drop = {'source': 'Reddit', 'url': 'https://reddit.com/x',
+                'page_summary': 'WTS chris reeve sebenza cross hatch mint',
+                'notable_items': []}
+        assert matches_for_watcher_drop(w, drop) == ['cross hatch']
+
     def test_url_watch_needs_domain_and_keyword(self):
         from per_user_alerter import matches_for_watcher_drop
         w = {'id': 'u1', 'url': 'https://knifejoy.com/c/hinderer',
@@ -1498,6 +1532,61 @@ class TestCollectionFetch:
         assert 'Sebenza' in line and 'IN STOCK' in line and '$500' in line and 'grail' in line
         sold = cf._product_line({'title': 'X', 'vendor': 'Y', 'available': False, 'price': '1', 'tags': []})
         assert 'SOLD OUT' in sold
+
+
+class TestGrailRoster:
+    """lunar_hunter multi-grail layer (S60): the hunter sweeps a roster of
+    grails per run — Lunar Landing + Inkosi Cross Hatch — with per-grail
+    match rules and per-grail seen-keys."""
+
+    @pytest.fixture
+    def lh(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_LOG_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import lunar_hunter as _lh
+        importlib.reload(_lh)
+        return _lh
+
+    def test_roster_has_crosshatch(self, lh):
+        keys = [g['key'] for g in lh.GRAILS]
+        assert 'lunar' in keys and 'crosshatch' in keys
+
+    def test_crosshatch_exact_wins_unscoped(self, lh):
+        g = next(g for g in lh.GRAILS if g['key'] == 'crosshatch')
+        assert lh._grail_match(g, 'chris reeve inkosi cross hatch drop point', scoped=False)
+        assert lh._grail_match(g, 'inkosi cross hatch', scoped=False)
+
+    def test_crosshatch_signal_needs_reeve_context_unscoped(self, lh):
+        g = next(g for g in lh.GRAILS if g['key'] == 'crosshatch')
+        # The S60 false positive: a handle texture, no Reeve context
+        assert not lh._grail_match(
+            g, 'jack wolf knives gunslinger jack slip joint - titanium cross hatch handle',
+            scoped=False)
+        # Reeve context in the same blob → fires (e.g. r/knife_swap sebenza 21 crosshatch)
+        assert lh._grail_match(g, 'wts crk large sebenza 21 crosshatch mint', scoped=False)
+
+    def test_crosshatch_signal_alone_ok_on_scoped_page(self, lh):
+        g = next(g for g in lh.GRAILS if g['key'] == 'crosshatch')
+        assert lh._grail_match(g, 'small cross hatch glass blasted', scoped=True)
+
+    def test_lunar_behavior_unchanged(self, lh):
+        g = next(g for g in lh.GRAILS if g['key'] == 'lunar')
+        assert lh._grail_match(g, 'lunar landing cgg', scoped=False)
+        assert not lh._grail_match(g, 'crkt lunar folding knife', scoped=False)
+        assert lh._grail_match(g, 'lunar', scoped=True)
+
+    def test_seen_key_preserves_lunar_prefix(self, lh):
+        """Existing lunar seen-state must survive the refactor — same key as the
+        old 'lunar:source|url|stock' scheme, and crosshatch keys must differ."""
+        import hashlib
+        lunar = next(g for g in lh.GRAILS if g['key'] == 'lunar')
+        ch = next(g for g in lh.GRAILS if g['key'] == 'crosshatch')
+        f = {'source': 'KnifeJoy', 'url': 'https://x/y', 'in_stock': True}
+        old = hashlib.md5("lunar:KnifeJoy|https://x/y|True".encode()).hexdigest()
+        assert lh._seen_key({**f, 'grail': lunar}) == old
+        assert lh._seen_key({**f, 'grail': ch}) != old
 
 
 class TestEbayScan:
