@@ -11,6 +11,7 @@ HGR
 """
 
 import os
+import re
 import json
 import logging
 import yaml
@@ -170,6 +171,76 @@ MODEL = 'claude-haiku-4-5-20251001'
 # (e.g. a Damascus listing in the bottom half of a Chris Reeve collection page).
 USER_PAGE_CHAR_LIMIT = 8000
 CURATED_CHAR_LIMIT   = 6000
+
+
+# ── 'Read more' backstop ─────────────────────────────────────────────────────
+# WooCommerce archive pages render a non-purchasable product with a 'Read more'
+# button where 'Add to cart' would be. PAGE_ANALYSIS_PROMPT tells the model to
+# exclude those, but it intermittently ignores the rule (2026-06-12: all 13
+# 'Read more' items on the MSC catalog reported in stock — false alerts to 4
+# users, each starting a 6h cooldown that would mask the real drop). The page
+# text is the ground truth; this filter enforces the rule in code.
+PURCHASABLE_MARKERS   = ('add to cart', 'add-to-cart', 'buy now')
+UNPURCHASABLE_MARKER  = 'read more'
+_MARKER_WINDOW        = 120  # chars after the item name where its button text lives
+
+
+def _listing_status(page_text_lower, name):
+    """'unpurchasable' | 'purchasable' | 'unknown' for one listed item.
+
+    The item's button text follows its name (and price) in the flattened page
+    text: 'Stub – Grandpa Finish $ 795.00 Read more'. Whitespace differs
+    between what the model echoes back and the page ('( Custom' vs '(Custom'),
+    so match the name with whitespace made optional everywhere.
+    """
+    chars = [c for c in name.lower() if not c.isspace()]
+    if not chars:
+        return 'unknown'
+    pattern = r'\s*'.join(re.escape(c) for c in chars)
+    m = re.search(pattern, page_text_lower)
+    if not m:
+        return 'unknown'
+    window = page_text_lower[m.end():m.end() + _MARKER_WINDOW]
+    hits = [(window.find(mk), 'purchasable') for mk in PURCHASABLE_MARKERS]
+    hits.append((window.find(UNPURCHASABLE_MARKER), 'unpurchasable'))
+    hits = [(pos, status) for pos, status in hits if pos != -1]
+    if not hits:
+        return 'unknown'
+    return min(hits)[1]  # whichever marker appears first is this item's button
+
+
+def filter_unpurchasable(result, page_text):
+    """Remove notable items whose listing shows 'Read more' instead of a
+    purchase button. Mutates and returns result. Items not found in the page
+    text are kept — truncation must not suppress a real drop."""
+    items = result.get('notable_items') or []
+    if not items:
+        return result
+
+    low = page_text.lower()
+    removed = [i for i in items if _listing_status(low, i) == 'unpurchasable']
+    if not removed:
+        return result
+
+    kept = [i for i in items if i not in removed]
+    log.warning(f"{result.get('site', '?')}: dropped {len(removed)} 'Read more' "
+                f"(not purchasable) items the AI marked in-stock: {removed}")
+    result['notable_items'] = kept
+    result['notable_items_detail'] = [
+        d for d in (result.get('notable_items_detail') or [])
+        if (d.get('name') if isinstance(d, dict) else d.name) in kept
+    ]
+    in_stock = result.get('in_stock') or {}
+    if not kept:
+        result['in_stock'] = {}
+        announced = (result.get('drop_announcement') or {}).get('detected', False)
+        result['alert_worthy'] = bool(announced)
+        if not announced:
+            result['priority'] = 'medium'
+    elif len(in_stock) == 1:
+        maker = next(iter(in_stock))
+        result['in_stock'][maker] = min(in_stock[maker], len(kept))
+    return result
 
 
 def build_keyword_excerpt(page_text, keywords, limit=USER_PAGE_CHAR_LIMIT,
@@ -527,6 +598,7 @@ def analyze_page(site_name, url, page_text, makers_list):
         result['site'] = site_name
         result['url'] = url
         result['model'] = MODEL
+        filter_unpurchasable(result, truncated)
 
         log.info(f"{site_name} — AI analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Items: {len(result.get('notable_items', []))} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
         log_ai_call('analyze_page', site_name, url, truncated, result)

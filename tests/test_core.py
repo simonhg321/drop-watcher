@@ -2235,3 +2235,87 @@ class TestAssessKeywordQuality:
             result = assess_keyword_quality('anything')
 
         assert result == {'quality': 'unknown'}
+
+
+# ── filter_unpurchasable: 'Read more' deterministic backstop ─────────────────
+
+class TestFilterUnpurchasable:
+    """The PAGE_ANALYSIS_PROMPT tells the model 'Read more' items are not
+    purchasable, but it intermittently ignores the rule (2026-06-12: all 13
+    'Read more' items on the MSC catalog page reported in stock — false alerts
+    to 4 users, each starting a 6h cooldown that would mask the real drop).
+    filter_unpurchasable is the code-side enforcement of that rule."""
+
+    # Actual page text from the incident (ai_calls id 36185), trimmed.
+    MSC_PAGE = (
+        "Mick Strider Custom Knives – Page 2 Showing 22–34 of 34 results "
+        "MSC CC SnG Tanto $ 1,475.00 Read more "
+        "MSC Jibble Hand Ground ( Custom Pocket Clip) Read more "
+        "Stub – Grandpa Finish $ 795.00 Read more "
+        "Zipper $ 120.00 Read more Menu"
+    )
+
+    def _result(self, items, in_stock=None, detected=False):
+        return {
+            'makers_found': ['Mick Strider Custom Knives'],
+            'in_stock': in_stock if in_stock is not None else {'Mick Strider Custom Knives': len(items)},
+            'out_of_stock': {},
+            'drop_announcement': {'detected': detected},
+            'notable_items': list(items),
+            'notable_items_detail': [{'name': i, 'url': None, 'price': ''} for i in items],
+            'page_summary': 'catalog page',
+            'priority': 'critical',
+            'alert_worthy': True,
+        }
+
+    def test_all_read_more_items_filtered(self):
+        from agents.ai_interpreter import filter_unpurchasable
+        result = self._result(['MSC CC SnG Tanto', 'Stub – Grandpa Finish', 'Zipper'])
+        filtered = filter_unpurchasable(result, self.MSC_PAGE)
+        assert filtered['notable_items'] == []
+        assert filtered['notable_items_detail'] == []
+        assert filtered['in_stock'] == {}
+        assert filtered['alert_worthy'] is False
+
+    def test_whitespace_mismatch_still_filtered(self):
+        # Model returned '(Custom Pocket Clip)'; page text has '( Custom Pocket Clip)'
+        from agents.ai_interpreter import filter_unpurchasable
+        result = self._result(['MSC Jibble Hand Ground (Custom Pocket Clip)'])
+        filtered = filter_unpurchasable(result, self.MSC_PAGE)
+        assert filtered['notable_items'] == []
+        assert filtered['alert_worthy'] is False
+
+    def test_add_to_cart_item_kept(self):
+        from agents.ai_interpreter import filter_unpurchasable
+        page = (self.MSC_PAGE + " MSC Performance PT $ 550.00 Add to cart")
+        result = self._result(['Stub – Grandpa Finish', 'MSC Performance PT'])
+        filtered = filter_unpurchasable(result, page)
+        assert filtered['notable_items'] == ['MSC Performance PT']
+        assert [d['name'] for d in filtered['notable_items_detail']] == ['MSC Performance PT']
+        assert filtered['in_stock'] == {'Mick Strider Custom Knives': 1}
+        assert filtered['alert_worthy'] is True
+
+    def test_item_not_in_text_kept(self):
+        # Truncation can cut an item out of the text we kept — give it the
+        # benefit of the doubt rather than suppress a real drop.
+        from agents.ai_interpreter import filter_unpurchasable
+        result = self._result(['MSC Ghost Knife'])
+        filtered = filter_unpurchasable(result, self.MSC_PAGE)
+        assert filtered['notable_items'] == ['MSC Ghost Knife']
+        assert filtered['alert_worthy'] is True
+
+    def test_no_markers_page_unchanged(self):
+        # Shopify-style page with no button text at all — filter must not touch it.
+        from agents.ai_interpreter import filter_unpurchasable
+        page = "Grimsmo Norseman #2741 $1,800.00 In stock ships today"
+        result = self._result(['Grimsmo Norseman #2741'])
+        filtered = filter_unpurchasable(result, page)
+        assert filtered['notable_items'] == ['Grimsmo Norseman #2741']
+        assert filtered['alert_worthy'] is True
+
+    def test_drop_announcement_survives_empty_items(self):
+        from agents.ai_interpreter import filter_unpurchasable
+        result = self._result(['Stub – Grandpa Finish'], detected=True)
+        filtered = filter_unpurchasable(result, self.MSC_PAGE)
+        assert filtered['notable_items'] == []
+        assert filtered['alert_worthy'] is True  # real announcement still alert-worthy
