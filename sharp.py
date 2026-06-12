@@ -22,6 +22,7 @@ import json
 import os
 import secrets
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import db
@@ -93,12 +94,16 @@ def verify_token(token: str) -> dict | None:
 
 
 def record_click(data: dict, user_agent: str = "") -> None:
+    dest_domain = (data["d"].split("//", 1)[-1].split("/", 1)[0]).lower().removeprefix("www.")
     with db.get_db() as conn:
         conn.execute(
             """INSERT INTO outbound_clicks
                (watcher_id, dest_url, dest_domain, source, link_ts, clicked_at, user_agent)
                VALUES (?, ?, ?, ?, ?, datetime('now'), ?)""",
-            (data["w"], data["d"],
-             (data["d"].split("//", 1)[-1].split("/", 1)[0]).lower().removeprefix("www."),
+            (data["w"], data["d"], dest_domain,
              data.get("s", ""), int(data["t"]), user_agent[:200]),
         )
+    # Episode engagement (spec 2026-06-12): the user saw this alert — stop the
+    # reminder ladder, reset the teardown strike counter.
+    db.stamp_engagement(data["w"], dest_domain,
+                        datetime.now(timezone.utc).isoformat())

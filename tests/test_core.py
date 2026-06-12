@@ -2541,3 +2541,29 @@ class TestEpisodeSweep:
         assert not db.get_watcher_by_id('w001')['active']
         assert db.get_watcher_by_id('w002')['active']
         assert db.get_open_episode('ck1') is None
+
+
+class TestClickEngagement:
+    def test_record_click_stamps_open_episode(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import sharp
+        importlib.reload(sharp)
+
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': 'https://shop.com/p/1',
+                        'keywords': 'x', 'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-06-12T00:00:00+00:00'})
+        db.update_watcher('w001', strikes=7)
+        db.open_episode('ck1', 'w001', 'shop.com', 'https://shop.com/p/1', 'x', '',
+                        '2026-06-12T20:00:00+00:00')
+
+        sharp.record_click({'w': 'w001', 'd': 'https://shop.com/p/1?utm=x',
+                            's': 'alert', 't': 1760000000}, user_agent='UA')
+
+        ep = db.get_open_episode('ck1')
+        assert ep['engaged_at'] is not None
+        assert db.get_watcher_by_id('w001')['strikes'] == 0
