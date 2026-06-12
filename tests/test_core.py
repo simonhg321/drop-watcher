@@ -2594,3 +2594,31 @@ class TestWatchRemoveRoute:
         r = client.get('/api/watch-remove/w002/WRONG')
         assert r.status_code == 404
         assert db.get_watcher_by_id('w002')['active']
+
+
+class TestFalsePositiveSelfHeals:
+    def test_false_alert_episode_closes_then_real_drop_alerts(self, tmp_path, monkeypatch):
+        """The 2026-06-12 MSC incident under the episode model: a false alert
+        opens an episode; the corrected next scan closes it; a real drop after
+        that is NOT blocked (old behavior: 6h blind spot)."""
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import per_user_alerter as pua
+        importlib.reload(pua)
+
+        ck = pua.cooldown_key('w001', 'https://msc.com/cat/page/2/', ['grandpa finish'])
+        # false alert fires at T0 → episode opens
+        db.open_episode(ck, 'w001', 'msc.com', 'https://msc.com/cat/page/2/',
+                        'grandpa finish', 'a@b.c', '2026-06-12T15:54:00+00:00')
+        assert pua.episode_blocks(ck)
+        # next scan: filter_unpurchasable stripped the items → empty in-stock text
+        db.record_page_scan('https://msc.com/cat/page/2/', 'msc.com', '',
+                            '2026-06-12T16:15:00+00:00')
+        with patch.object(pua, 'send_email', return_value=True):
+            pua.episode_sweep(datetime(2026, 6, 12, 16, 20, tzinfo=timezone.utc))
+        # 26 minutes after the false alert the watch is re-armed
+        assert not pua.episode_blocks(ck)
