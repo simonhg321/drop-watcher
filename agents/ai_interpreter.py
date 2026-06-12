@@ -197,16 +197,22 @@ def _listing_status(page_text_lower, name):
     if not chars:
         return 'unknown'
     pattern = r'\s*'.join(re.escape(c) for c in chars)
-    m = re.search(pattern, page_text_lower)
-    if not m:
-        return 'unknown'
-    window = page_text_lower[m.end():m.end() + _MARKER_WINDOW]
-    hits = [(window.find(mk), 'purchasable') for mk in PURCHASABLE_MARKERS]
-    hits.append((window.find(UNPURCHASABLE_MARKER), 'unpurchasable'))
-    hits = [(pos, status) for pos, status in hits if pos != -1]
-    if not hits:
-        return 'unknown'
-    return min(hits)[1]  # whichever marker appears first is this item's button
+    # The name can appear several times (keyword header, nav, the listing
+    # itself) — judge every occurrence. A purchase button at any occurrence
+    # proves buyable; otherwise any 'Read more' occurrence means not.
+    statuses = set()
+    for m in re.finditer(pattern, page_text_lower):
+        window = page_text_lower[m.end():m.end() + _MARKER_WINDOW]
+        hits = [(window.find(mk), 'purchasable') for mk in PURCHASABLE_MARKERS]
+        hits.append((window.find(UNPURCHASABLE_MARKER), 'unpurchasable'))
+        hits = [(pos, status) for pos, status in hits if pos != -1]
+        if hits:
+            statuses.add(min(hits)[1])  # first marker after this occurrence
+    if 'purchasable' in statuses:
+        return 'purchasable'
+    if 'unpurchasable' in statuses:
+        return 'unpurchasable'
+    return 'unknown'
 
 
 def filter_unpurchasable(result, page_text):
@@ -240,6 +246,39 @@ def filter_unpurchasable(result, page_text):
     elif len(in_stock) == 1:
         maker = next(iter(in_stock))
         result['in_stock'][maker] = min(in_stock[maker], len(kept))
+    return result
+
+
+def filter_unpurchasable_user(result, page_text):
+    """User-page variant of filter_unpurchasable (2026-06-12 23:47: the user-watch
+    path lacked the backstop and re-shipped the morning's false positive, with
+    SMS). UserPageAnalysis notable_items are 'Name — STATUS — price' strings;
+    check the name part against the page's button text and kill the alert when
+    nothing claimed purchasable actually has a purchase button."""
+    items = result.get('notable_items') or []
+    if not items or not result.get('alert_worthy'):
+        return result
+
+    low = page_text.lower()
+    kept = []
+    removed = []
+    for item in items:
+        # Split on em dash only — the 'Name — STATUS — price' separator the
+        # prompt mandates. Names themselves contain en dashes/hyphens
+        # ('Stub – Grandpa Finish'), which must stay intact.
+        name = re.split(r'\s+—\s+', item)[0].strip()
+        if name and _listing_status(low, name) == 'unpurchasable':
+            removed.append(item)
+        else:
+            kept.append(item)
+    if not removed:
+        return result
+
+    log.warning(f"{result.get('site', '?')} (user): dropped {len(removed)} 'Read more' "
+                f"(not purchasable) items the AI marked available: {removed}")
+    result['notable_items'] = kept
+    if not kept:
+        result['alert_worthy'] = False
     return result
 
 
@@ -534,6 +573,7 @@ Return ONLY valid JSON in this exact format, no other text:
 Rules:
 - alert_worthy = true ONLY if at least one keyword-matching item can be purchased right now (Add to Cart, Buy Now, In Stock, Available)
 - SOLD OUT, Out of Stock, Coming Soon, Notify Me, Waitlist, Unavailable = NOT alert worthy
+- A "Read more" button instead of "Add to cart" means the item is NOT purchasable (WooCommerce shows "Read more" for items that cannot be bought) — NOT alert worthy
 - Include ALL keyword-matching items in notable_items with their real status — even sold-out ones — but only set alert_worthy true for purchasable items
 - page_summary MUST name the user's keywords and their stock status so downstream keyword matching works
 - Be conservative — only alert on clear availability signals, false positives waste the user's time
@@ -758,6 +798,7 @@ def analyze_user_page(url, page_text, user_keywords):
         result['site'] = site_name
         result['url'] = url
         result['model'] = MODEL
+        filter_unpurchasable_user(result, truncated)
 
         log.info(f"{site_name} — user page analysis complete. Alert worthy: {result.get('alert_worthy', False)} Priority: {result.get('priority', 'medium')} Tokens: {message.usage.input_tokens}in/{message.usage.output_tokens}out")
         log_ai_call('analyze_user_page', site_name, url, f"keywords: {keywords_formatted}\n{truncated}", result)

@@ -2737,3 +2737,49 @@ class TestAgeoutEmptyLastAlert:
             ageout_no_use.nudge(datetime(2026, 6, 12, 23, 0, tzinfo=timezone.utc))
         assert se.call_count == 0
         assert db.get_watcher_by_id('w001')['ageout_email_sent'] is None
+
+
+class TestFilterUnpurchasableUserPage:
+    """23:47 incident: analyze_user_page (user-watch path) lacked the Read-more
+    backstop and re-shipped the exact morning false positive, this time with SMS."""
+
+    MSC_PAGE = ("Mick Strider Custom Knives – Page 2 "
+                "Stub – Grandpa Finish $ 795.00 Read more "
+                "Zipper $ 120.00 Add to cart Menu")
+
+    def _result(self, items, worthy=True):
+        return {'keywords_found': ['grandpa finish'], 'notable_items': list(items),
+                'page_summary': 'available for purchase', 'priority': 'high',
+                'alert_worthy': worthy}
+
+    def test_read_more_item_kills_alert(self):
+        from agents.ai_interpreter import filter_unpurchasable_user
+        result = self._result(['Stub – Grandpa Finish — AVAILABLE FOR PURCHASE — $795.00'])
+        filter_unpurchasable_user(result, self.MSC_PAGE)
+        assert result['notable_items'] == []
+        assert result['alert_worthy'] is False
+
+    def test_genuine_add_to_cart_item_survives(self):
+        from agents.ai_interpreter import filter_unpurchasable_user
+        result = self._result(['Zipper — IN STOCK — $120.00'])
+        filter_unpurchasable_user(result, self.MSC_PAGE)
+        assert result['notable_items'] == ['Zipper — IN STOCK — $120.00']
+        assert result['alert_worthy'] is True
+
+    def test_item_not_in_text_kept(self):
+        from agents.ai_interpreter import filter_unpurchasable_user
+        result = self._result(['Ghost Knife — IN STOCK — $1'])
+        filter_unpurchasable_user(result, self.MSC_PAGE)
+        assert result['alert_worthy'] is True
+
+    def test_real_incident_shape_with_keyword_header(self):
+        # The actual 23:47 prompt shape: keyword header repeats the name with
+        # no marker nearby; the real listing later says 'Read more'. The
+        # header occurrence must not mask the listing verdict.
+        from agents.ai_interpreter import filter_unpurchasable_user
+        page = ("keywords: stub, grandpa finish\n"
+                "Mick Strider Custom Knives – Page 2 "
+                "Stub – Grandpa Finish $ 795.00 Read more Zipper $ 120.00 Read more Menu")
+        result = self._result(['Stub – Grandpa Finish — AVAILABLE FOR PURCHASE — $795.00'])
+        filter_unpurchasable_user(result, page)
+        assert result['alert_worthy'] is False
