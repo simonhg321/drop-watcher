@@ -93,16 +93,44 @@ def verify_token(token: str) -> dict | None:
         return None
 
 
-def record_click(data: dict, user_agent: str = "") -> None:
+# Email scanners (Outlook SafeLinks, Proofpoint, Gmail) prefetch links at
+# delivery. Many use realistic browser UAs (observed in the wild: one link
+# "clicked" by an iPhone UA and a Windows UA 4s apart), so the gate is UA
+# markers + empty UA + click-within-seconds-of-mint. Corp task 20 (Sky).
+SCANNER_UA_MARKERS = (
+    'safelinks', 'office', 'outlook', 'bingpreview', 'googleimageproxy',
+    'proofpoint', 'mimecast', 'barracuda', 'urldefense', 'symantec',
+    'headlesschrome', 'phantomjs', 'python', 'curl', 'wget', 'go-http',
+    'okhttp', 'java/', 'libwww', 'bot', 'spider', 'crawl', 'preview',
+)
+MIN_HUMAN_CLICK_AGE_S = 5  # prefetch happens at delivery; humans need to see the email first
+
+
+def is_probable_scanner(user_agent: str, link_age_s: float | None) -> bool:
+    ua = (user_agent or '').lower().strip()
+    if not ua:
+        return True
+    if any(m in ua for m in SCANNER_UA_MARKERS):
+        return True
+    if link_age_s is not None and link_age_s < MIN_HUMAN_CLICK_AGE_S:
+        return True
+    return False
+
+
+def record_click(data: dict, user_agent: str = "", method: str = "GET") -> None:
     dest_domain = (data["d"].split("//", 1)[-1].split("/", 1)[0]).lower().removeprefix("www.")
+    link_age_s = time.time() - int(data["t"])
+    scanner = is_probable_scanner(user_agent, link_age_s) or method != "GET"
     with db.get_db() as conn:
         conn.execute(
             """INSERT INTO outbound_clicks
-               (watcher_id, dest_url, dest_domain, source, link_ts, clicked_at, user_agent)
-               VALUES (?, ?, ?, ?, ?, datetime('now'), ?)""",
+               (watcher_id, dest_url, dest_domain, source, link_ts, clicked_at, user_agent, scanner)
+               VALUES (?, ?, ?, ?, ?, datetime('now'), ?, ?)""",
             (data["w"], data["d"], dest_domain,
-             data.get("s", ""), int(data["t"]), user_agent[:200]),
+             data.get("s", ""), int(data["t"]), user_agent[:200], int(scanner)),
         )
+    if scanner:
+        return
     # Episode engagement (spec 2026-06-12): the user saw this alert — stop the
     # reminder ladder, reset the teardown strike counter.
     db.stamp_engagement(data["w"], dest_domain,

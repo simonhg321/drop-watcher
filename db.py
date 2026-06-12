@@ -168,7 +168,8 @@ CREATE TABLE IF NOT EXISTS outbound_clicks (
     source TEXT DEFAULT '',
     link_ts INTEGER,                 -- when the link was minted (email build)
     clicked_at TEXT NOT NULL,
-    user_agent TEXT DEFAULT ''
+    user_agent TEXT DEFAULT '',
+    scanner INTEGER DEFAULT 0        -- 1 = probable email-scanner prefetch, not a human
 );
 CREATE INDEX IF NOT EXISTS idx_outbound_clicks_domain ON outbound_clicks(dest_domain, clicked_at);
 
@@ -225,6 +226,10 @@ def _migrate(conn):
     # on it. Normalise once so the class is gone.
     conn.execute("UPDATE watchers SET maker='' WHERE maker IS NULL")
     conn.execute("UPDATE watchers SET strikes=0 WHERE strikes IS NULL")
+
+    click_cols = {r['name'] for r in conn.execute("PRAGMA table_info(outbound_clicks)").fetchall()}
+    if 'scanner' not in click_cols:
+        conn.execute("ALTER TABLE outbound_clicks ADD COLUMN scanner INTEGER DEFAULT 0")
 
     # Unique backstop for the signup check-then-act race (gunicorn -w 2): one
     # watch per (email, url, maker). Maker is part of the key because global

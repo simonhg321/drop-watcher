@@ -891,14 +891,28 @@ def track_pageview():
     return '', 204
 
 
-@app.route('/api/watch-remove/<watch_id>/<token>', methods=['GET'])
+@app.route('/api/watch-remove/<watch_id>/<token>', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")
 def watch_remove(watch_id, token):
-    """One-click single-watch removal from alert/keep-or-delete emails.
-    Token-authed like unsubscribe, but removes ONLY this watch."""
+    """Single-watch removal from alert/keep-or-delete emails. Token-authed like
+    unsubscribe, but removes ONLY this watch. GET shows a confirm form; the
+    deactivation happens on POST only — email scanners prefetch GETs (Corp
+    task 20) and must not be able to kill a watch."""
     target = db.get_watcher_by_id(watch_id)
     if not target or not hmac.compare_digest(target.get('unsubscribe_token', '') or '', token):
         return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'GET':
+        return f"""
+            <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                <h1 style="color:#c0392b">DROP WATCHER</h1>
+                <p style="font-size:18px;margin-top:24px">Remove your watch for
+                   <strong>{html_mod.escape(target.get('keywords', ''))}</strong>?</p>
+                <form method="POST" style="margin-top:24px">
+                    <button type="submit" style="background:#c0392b;color:#fff;border:none;padding:12px 32px;font-family:inherit;font-size:16px;cursor:pointer">Yes, remove it</button>
+                </form>
+                <p style="margin-top:24px"><a href="https://instockornot.club" style="color:#e67e22">Never mind</a></p>
+            </body></html>""", 200
 
     db.update_watcher(watch_id, active=False)
     remaining = sum(1 for w in db.get_watchers_by_email(target.get('email', '').lower())
@@ -921,6 +935,17 @@ def ack_watch(token):
     w = db.get_watcher_by_unsub_token(token)
     if not w:
         return jsonify({'error': 'Not found'}), 404
+
+    # Scanner prefetch must not count as a keep-alive (Corp task 20): skip the
+    # side effects but still return the friendly page.
+    if sharp.is_probable_scanner(request.headers.get('User-Agent', ''), None):
+        log.info(f"Ack skipped — scanner UA for token {token[:8]}…")
+        return """
+            <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                <h1 style="color:#27ae60">DROP WATCHER</h1>
+                <p style="font-size:18px;margin-top:24px">✓ Watch kept alive.</p>
+                <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
+            </body></html>""", 200
 
     email = w.get('email', '').lower()
     now = datetime.now(timezone.utc).isoformat()
@@ -1356,7 +1381,8 @@ def go_shankyou(token):
     if not data:
         return redirect('https://instockornot.club/', code=302)
     try:
-        sharp.record_click(data, user_agent=request.headers.get('User-Agent', ''))
+        sharp.record_click(data, user_agent=request.headers.get('User-Agent', ''),
+                           method=request.method)
     except Exception as e:
         log.error(f"outbound click log failed (still redirecting): {e}")
     return redirect(data['d'], code=302)

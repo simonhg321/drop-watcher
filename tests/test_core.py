@@ -2586,12 +2586,12 @@ class TestWatchRemoveRoute:
                             'unsubscribe_token': 'tok1', 'active': 1,
                             'created': '2026-06-12T00:00:00+00:00'})
 
-        r = client.get('/api/watch-remove/w001/tok1')
+        r = client.post('/api/watch-remove/w001/tok1')
         assert r.status_code == 200
         assert not db.get_watcher_by_id('w001')['active']
         assert db.get_watcher_by_id('w002')['active']
 
-        r = client.get('/api/watch-remove/w002/WRONG')
+        r = client.post('/api/watch-remove/w002/WRONG')
         assert r.status_code == 404
         assert db.get_watcher_by_id('w002')['active']
 
@@ -2622,3 +2622,90 @@ class TestFalsePositiveSelfHeals:
             pua.episode_sweep(datetime(2026, 6, 12, 16, 20, tzinfo=timezone.utc))
         # 26 minutes after the false alert the watch is re-armed
         assert not pua.episode_blocks(ck)
+
+
+class TestScannerGate:
+    """Corp task 20 (Sky): email-scanner prefetch must not stamp engagement,
+    reset strikes, or remove watches. Scanners use realistic browser UAs
+    (wild data: same link 'clicked' by iPhone + Windows UAs 4s apart), so
+    the destructive action is POST-gated and engagement is heuristic-gated."""
+
+    def test_is_probable_scanner_heuristics(self):
+        import sharp
+        assert sharp.is_probable_scanner('', 300)                      # empty UA
+        assert sharp.is_probable_scanner('python-requests/2.31', 300)  # tooling
+        assert sharp.is_probable_scanner(
+            'Mozilla/5.0 (compatible; MSOffice; SafeLinks)', 300)      # scanner marker
+        assert sharp.is_probable_scanner(
+            'Mozilla/5.0 (Macintosh) Chrome/126', 2)                   # <5s after mint
+        assert not sharp.is_probable_scanner(
+            'Mozilla/5.0 (Macintosh) Chrome/126', 90)                  # human-ish
+
+    def test_scanner_click_logged_but_not_engaged(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import sharp
+        importlib.reload(sharp)
+
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': 'https://shop.com/p/1',
+                        'keywords': 'x', 'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-06-12T00:00:00+00:00'})
+        db.update_watcher('w001', strikes=7)
+        db.open_episode('ck1', 'w001', 'shop.com', 'https://shop.com/p/1', 'x', '',
+                        '2026-06-12T20:00:00+00:00')
+
+        import time as _time
+        sharp.record_click({'w': 'w001', 'd': 'https://shop.com/p/1',
+                            's': 'alert', 't': int(_time.time())},   # minted "now" → prefetch
+                           user_agent='python-requests/2.31')
+
+        ep = db.get_open_episode('ck1')
+        assert ep['engaged_at'] is None                    # no engagement
+        assert db.get_watcher_by_id('w001')['strikes'] == 7  # strikes untouched
+        with db.get_db() as conn:
+            row = conn.execute("SELECT scanner FROM outbound_clicks").fetchone()
+        assert row['scanner'] == 1                          # still logged, flagged
+
+
+class TestWatchRemoveScannerSafe:
+    @pytest.fixture
+    def client_env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import watcher_signup
+        importlib.reload(watcher_signup)
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': 'https://a.com',
+                        'keywords': 'x', 'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-06-12T00:00:00+00:00'})
+        return db, watcher_signup.app.test_client()
+
+    def test_get_shows_confirm_does_not_deactivate(self, client_env):
+        db, client = client_env
+        r = client.get('/api/watch-remove/w001/tok1')
+        assert r.status_code == 200
+        assert b'form' in r.data.lower()                    # confirm form, not action
+        assert db.get_watcher_by_id('w001')['active']       # STILL ACTIVE
+
+    def test_post_deactivates(self, client_env):
+        db, client = client_env
+        r = client.post('/api/watch-remove/w001/tok1')
+        assert r.status_code == 200
+        assert not db.get_watcher_by_id('w001')['active']
+
+    def test_ack_scanner_ua_skips_side_effects(self, client_env):
+        db, client = client_env
+        db.update_watcher('w001', strikes=9)
+        r = client.get('/api/ack/tok1', headers={'User-Agent': 'python-requests/2.31'})
+        assert r.status_code == 200
+        assert db.get_watcher_by_id('w001')['strikes'] == 9  # untouched
+        r = client.get('/api/ack/tok1', headers={'User-Agent':
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 26_5 like Mac OS X) Safari/605.1.15'})
+        assert db.get_watcher_by_id('w001')['strikes'] == 0  # human resets
