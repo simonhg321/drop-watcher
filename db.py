@@ -171,6 +171,33 @@ CREATE TABLE IF NOT EXISTS outbound_clicks (
     user_agent TEXT DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_outbound_clicks_domain ON outbound_clicks(dest_domain, clicked_at);
+
+CREATE TABLE IF NOT EXISTS alert_episodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    match_key TEXT NOT NULL,            -- per_user_alerter.cooldown_key hash
+    watcher_id TEXT NOT NULL,
+    domain TEXT NOT NULL,
+    drop_url TEXT NOT NULL,
+    matches TEXT NOT NULL,              -- comma-joined matched keywords
+    recipient TEXT DEFAULT '',
+    opened_at TEXT NOT NULL,
+    closed_at TEXT,                     -- NULL = open; open episode = cooldown
+    emails_sent INTEGER DEFAULT 1,
+    last_email_at TEXT,
+    engaged_at TEXT,                    -- first outbound click after the alert
+    keep_delete_sent_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_episodes_match_open
+    ON alert_episodes(match_key) WHERE closed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_episodes_watcher
+    ON alert_episodes(watcher_id, domain);
+
+CREATE TABLE IF NOT EXISTS page_scans (
+    url TEXT PRIMARY KEY,               -- latest scan per URL only
+    domain TEXT NOT NULL,
+    scanned_at TEXT NOT NULL,
+    instock_text TEXT DEFAULT ''        -- everything observed purchasable this scan
+);
 """
 
 
@@ -189,6 +216,7 @@ def _migrate(conn):
         ('last_acked',        'ALTER TABLE watchers ADD COLUMN last_acked TEXT'),
         ('ageout_email_sent', 'ALTER TABLE watchers ADD COLUMN ageout_email_sent TEXT'),
         ('maker',             'ALTER TABLE watchers ADD COLUMN maker TEXT'),
+        ('strikes',           'ALTER TABLE watchers ADD COLUMN strikes INTEGER DEFAULT 0'),
     ):
         if col not in cols:
             conn.execute(ddl)
@@ -196,6 +224,7 @@ def _migrate(conn):
     # Legacy pre-ALTER rows have maker NULL (new rows ''); clients .toLowerCase()
     # on it. Normalise once so the class is gone.
     conn.execute("UPDATE watchers SET maker='' WHERE maker IS NULL")
+    conn.execute("UPDATE watchers SET strikes=0 WHERE strikes IS NULL")
 
     # Unique backstop for the signup check-then-act race (gunicorn -w 2): one
     # watch per (email, url, maker). Maker is part of the key because global
@@ -332,7 +361,7 @@ WATCHER_UPDATABLE_FIELDS = {
     'sms_approved', 'sms_verify_code', 'sms_verify_expires',
     'active', 'verify_token',
     'last_alert', 'alert_count', 'consecutive_not_found',
-    'last_acked', 'ageout_email_sent',
+    'last_acked', 'ageout_email_sent', 'strikes',
 }
 
 
@@ -567,6 +596,99 @@ def is_cooldown_active(cooldown_key, hours=6):
 
 def mark_cooldown(cooldown_key, recipient=''):
     mark_alert_sent(cooldown_key, alert_type='per_user', recipient=recipient)
+
+
+# ── Alert episodes (spec 2026-06-12: episode-based cooldown) ─────────────────
+# One open episode per (watcher, domain, matched keywords) = "the user already
+# knows this item is in stock". Open episode replaces the old 6h timed cooldown;
+# it closes when a scan observes the item not purchasable.
+
+def open_episode(match_key, watcher_id, domain, drop_url, matches, recipient, now_iso):
+    with get_db() as db:
+        cur = db.execute("""
+            INSERT INTO alert_episodes
+                (match_key, watcher_id, domain, drop_url, matches, recipient,
+                 opened_at, emails_sent, last_email_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+        """, (match_key, watcher_id, domain, drop_url, matches, recipient,
+              now_iso, now_iso))
+        return cur.lastrowid
+
+
+def get_open_episode(match_key):
+    with get_db() as db:
+        row = db.execute("""
+            SELECT * FROM alert_episodes
+            WHERE match_key=? AND closed_at IS NULL
+            ORDER BY id DESC LIMIT 1
+        """, (match_key,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_open_episodes():
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM alert_episodes WHERE closed_at IS NULL ORDER BY id"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def close_episode(episode_id, now_iso):
+    with get_db() as db:
+        db.execute("UPDATE alert_episodes SET closed_at=? WHERE id=? AND closed_at IS NULL",
+                   (now_iso, episode_id))
+
+
+def bump_episode_email(episode_id, now_iso):
+    with get_db() as db:
+        db.execute("""UPDATE alert_episodes
+                      SET emails_sent=emails_sent+1, last_email_at=?
+                      WHERE id=?""", (now_iso, episode_id))
+
+
+def stamp_engagement(watcher_id, domain, now_iso):
+    """A verified outbound click: mark this watcher's open episodes on the domain
+    engaged (first click wins) and reset the watch's strike counter."""
+    with get_db() as db:
+        db.execute("""UPDATE alert_episodes
+                      SET engaged_at=COALESCE(engaged_at, ?)
+                      WHERE watcher_id=? AND domain=? AND closed_at IS NULL""",
+                   (now_iso, watcher_id, domain))
+        db.execute("UPDATE watchers SET strikes=0, last_acked=? WHERE id=?",
+                   (now_iso, watcher_id))
+
+
+def episodes_awaiting_keep_delete(cutoff_iso):
+    """Open, engaged episodes whose engagement is older than cutoff and whose
+    keep-or-delete email hasn't been sent."""
+    with get_db() as db:
+        rows = db.execute("""
+            SELECT * FROM alert_episodes
+            WHERE closed_at IS NULL AND keep_delete_sent_at IS NULL
+              AND engaged_at IS NOT NULL AND engaged_at <= ?
+            ORDER BY id
+        """, (cutoff_iso,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def mark_keep_delete_sent(episode_id, now_iso):
+    with get_db() as db:
+        db.execute("UPDATE alert_episodes SET keep_delete_sent_at=? WHERE id=?",
+                   (now_iso, episode_id))
+
+
+# ── Page scans (latest in-stock observation per URL) ─────────────────────────
+
+def record_page_scan(url, domain, instock_text, now_iso):
+    with get_db() as db:
+        db.execute("""INSERT OR REPLACE INTO page_scans (url, domain, scanned_at, instock_text)
+                      VALUES (?, ?, ?, ?)""", (url, domain, now_iso, instock_text))
+
+
+def get_page_scan(url):
+    with get_db() as db:
+        row = db.execute("SELECT * FROM page_scans WHERE url=?", (url,)).fetchone()
+        return dict(row) if row else None
 
 
 def is_sms_sent(alert_id, phone):

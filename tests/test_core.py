@@ -2319,3 +2319,94 @@ class TestFilterUnpurchasable:
         filtered = filter_unpurchasable(result, self.MSC_PAGE)
         assert filtered['notable_items'] == []
         assert filtered['alert_worthy'] is True  # real announcement still alert-worthy
+
+
+# ── Episode-based cooldown (spec 2026-06-12) ─────────────────────────────────
+
+class TestAlertEpisodes:
+    """Episode-based cooldown primitives (spec 2026-06-12)."""
+
+    @pytest.fixture
+    def tmp_db(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        yield db
+
+    def test_open_get_close_episode(self, tmp_db):
+        db = tmp_db
+        now = '2026-06-12T20:00:00+00:00'
+        eid = db.open_episode('ck1', 'w001', 'shop.com',
+                              'https://shop.com/p/1', 'grandpa finish',
+                              'a@b.c', now)
+        ep = db.get_open_episode('ck1')
+        assert ep['id'] == eid
+        assert ep['matches'] == 'grandpa finish'
+        assert ep['emails_sent'] == 1
+        assert ep['last_email_at'] == now
+        db.close_episode(eid, '2026-06-12T21:00:00+00:00')
+        assert db.get_open_episode('ck1') is None
+
+    def test_get_open_episodes_lists_only_open(self, tmp_db):
+        db = tmp_db
+        now = '2026-06-12T20:00:00+00:00'
+        e1 = db.open_episode('ck1', 'w001', 'a.com', 'https://a.com', 'x', '', now)
+        db.open_episode('ck2', 'w002', 'b.com', 'https://b.com', 'y', '', now)
+        db.close_episode(e1, now)
+        open_eps = db.get_open_episodes()
+        assert [e['match_key'] for e in open_eps] == ['ck2']
+
+    def test_bump_episode_email(self, tmp_db):
+        db = tmp_db
+        eid = db.open_episode('ck1', 'w001', 'a.com', 'https://a.com', 'x', '',
+                              '2026-06-12T20:00:00+00:00')
+        db.bump_episode_email(eid, '2026-06-12T21:00:00+00:00')
+        ep = db.get_open_episode('ck1')
+        assert ep['emails_sent'] == 2
+        assert ep['last_email_at'] == '2026-06-12T21:00:00+00:00'
+
+    def test_stamp_engagement_resets_strikes(self, tmp_db):
+        db = tmp_db
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': 'https://a.com',
+                        'keywords': 'x', 'unsubscribe_token': 'tok1',
+                        'created': '2026-06-12T00:00:00+00:00'})
+        db.update_watcher('w001', strikes=5)
+        now = '2026-06-12T20:30:00+00:00'
+        db.open_episode('ck1', 'w001', 'a.com', 'https://a.com/p', 'x', '',
+                        '2026-06-12T20:00:00+00:00')
+        db.stamp_engagement('w001', 'a.com', now)
+        ep = db.get_open_episode('ck1')
+        assert ep['engaged_at'] == now
+        assert db.get_watcher_by_id('w001')['strikes'] == 0
+        # second stamp must not overwrite the first engagement time
+        db.stamp_engagement('w001', 'a.com', '2026-06-12T23:00:00+00:00')
+        assert db.get_open_episode('ck1')['engaged_at'] == now
+
+    def test_page_scan_latest_only(self, tmp_db):
+        db = tmp_db
+        db.record_page_scan('https://a.com/p', 'a.com', 'item one', '2026-06-12T20:00:00+00:00')
+        db.record_page_scan('https://a.com/p', 'a.com', '', '2026-06-12T21:00:00+00:00')
+        scan = db.get_page_scan('https://a.com/p')
+        assert scan['instock_text'] == ''
+        assert scan['scanned_at'] == '2026-06-12T21:00:00+00:00'
+        assert db.get_page_scan('https://nope.com') is None
+
+    def test_episodes_awaiting_keep_delete(self, tmp_db):
+        db = tmp_db
+        t0 = '2026-06-12T20:00:00+00:00'
+        e1 = db.open_episode('ck1', 'w001', 'a.com', 'https://a.com', 'x', '', t0)
+        db.open_episode('ck2', 'w002', 'b.com', 'https://b.com', 'y', '', t0)
+        db.stamp_engagement('w001', 'a.com', '2026-06-12T20:05:00+00:00')
+        due = db.episodes_awaiting_keep_delete('2026-06-12T20:25:00+00:00')
+        assert [e['id'] for e in due] == [e1]
+        db.mark_keep_delete_sent(e1, '2026-06-12T20:30:00+00:00')
+        assert db.episodes_awaiting_keep_delete('2026-06-12T20:35:00+00:00') == []
+
+    def test_strikes_column_migrated(self, tmp_db):
+        db = tmp_db
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': '', 'keywords': 'x',
+                        'unsubscribe_token': 'tok1', 'created': '2026-06-12T00:00:00+00:00'})
+        assert db.get_watcher_by_id('w001')['strikes'] == 0
