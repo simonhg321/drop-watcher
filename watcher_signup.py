@@ -158,7 +158,7 @@ def quick_keyword_check(url, keywords_str):
     from safe_fetch import safe_get
 
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club)'}
+        headers = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'}
         # safe_get validates the URL and every redirect hop (SSRF guard).
         r = safe_get(url, headers=headers, timeout=10)
         r.raise_for_status()
@@ -1057,7 +1057,7 @@ def check_url():
     url = normalize_url(url)
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club)'
+        'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'
     }
 
     # safe_get validates the URL and every redirect hop (SSRF guard).

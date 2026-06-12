@@ -75,7 +75,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('dealer_scout')
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'}
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 

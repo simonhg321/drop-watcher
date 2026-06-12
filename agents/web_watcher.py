@@ -287,7 +287,7 @@ class PermissiveSSLAdapter(HTTPAdapter):
 
 # ── Fetch ─────────────────────────────────────────────────────────────────────
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
+    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'
 }
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024  # 2MB — reject oversized pages

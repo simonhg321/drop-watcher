@@ -59,8 +59,17 @@ def make_token(watcher_id: str, dest_url: str, source: str = "", ts: int | None 
     return f"{_b64url_encode(payload)}.{_b64url_encode(sig)}"
 
 
+def _with_utm(dest_url: str) -> str:
+    """Tag the dealer-bound URL so the dealer's own analytics (Shopify/GA)
+    attribute the visit — and the order — to us with zero setup on their end."""
+    if "utm_source=" in dest_url:
+        return dest_url
+    sep = "&" if "?" in dest_url else "?"
+    return f"{dest_url}{sep}utm_source=dropwatcher&utm_medium=alert"
+
+
 def make_link(watcher_id: str, dest_url: str, source: str = "") -> str:
-    return BASE_URL + make_token(watcher_id, dest_url, source)
+    return BASE_URL + make_token(watcher_id, _with_utm(dest_url), source)
 
 
 def verify_token(token: str) -> dict | None:

@@ -127,7 +127,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('lunar_hunter')
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'}
 MAX_RESPONSE_BYTES = 3 * 1024 * 1024
 
 # ── eBay Browse API ─────────────────────────────────────────────────────────

@@ -91,7 +91,7 @@ def write_alert(settings, alert):
 
 # ── Fetch RSS feed ────────────────────────────────────────────────────────────
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; personal use)'
+    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'
 }
 
 def fetch_feed(url):
