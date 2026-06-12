@@ -93,6 +93,7 @@ def nudge(now):
             SELECT * FROM watchers
             WHERE active = 1
               AND last_alert IS NOT NULL
+              AND last_alert <> ''
               AND last_alert < ?
               AND ageout_email_sent IS NULL
               AND (last_acked IS NULL OR last_acked < last_alert)

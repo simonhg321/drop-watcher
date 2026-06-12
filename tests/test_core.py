@@ -2709,3 +2709,31 @@ class TestWatchRemoveScannerSafe:
         r = client.get('/api/ack/tok1', headers={'User-Agent':
             'Mozilla/5.0 (iPhone; CPU iPhone OS 26_5 like Mac OS X) Safari/605.1.15'})
         assert db.get_watcher_by_id('w001')['strikes'] == 0  # human resets
+
+
+class TestAgeoutEmptyLastAlert:
+    def test_empty_string_last_alert_not_nudged(self, tmp_path, monkeypatch):
+        """'' sorts before every ISO date, so a watch with last_alert='' looked
+        infinitely stale and got aged out within hours (bit Simon's grandpa
+        watch 2026-06-12 after a manual reset used '' instead of NULL)."""
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import sys as _sys, os as _os
+        _sys.path.insert(0, _os.path.join(_os.path.dirname(db.__file__), 'bin'))
+        import ageout_no_use
+        importlib.reload(ageout_no_use)
+
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': 'https://a.com',
+                        'keywords': 'x', 'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-01-01T00:00:00+00:00'})
+        with db.get_db() as conn:
+            conn.execute("UPDATE watchers SET last_alert='' WHERE id='w001'")
+
+        with patch.object(ageout_no_use, 'send_email', return_value=True) as se:
+            ageout_no_use.nudge(datetime(2026, 6, 12, 23, 0, tzinfo=timezone.utc))
+        assert se.call_count == 0
+        assert db.get_watcher_by_id('w001')['ageout_email_sent'] is None
