@@ -691,6 +691,14 @@ def get_page_scan(url):
         return dict(row) if row else None
 
 
+def touch_page_scan(url, now_iso):
+    """Refresh scanned_at without changing instock_text — for fingerprint-unchanged
+    pages, where the previous observation provably still holds. Keeps hourly
+    reminders alive while an item sits in stock on a static page."""
+    with get_db() as db:
+        db.execute("UPDATE page_scans SET scanned_at=? WHERE url=?", (now_iso, url))
+
+
 def is_sms_sent(alert_id, phone):
     with get_db() as db:
         row = db.execute("""

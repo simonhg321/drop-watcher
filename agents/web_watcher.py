@@ -92,6 +92,40 @@ def page_fingerprint(text, products):
         return hashlib.md5(repr(proj).encode('utf-8')).hexdigest()
     return fingerprint(text)
 
+# ── Page-scan recording for episode closure (spec 2026-06-12) ────────────────
+# Every analysis writes the latest observed in-stock text per URL; the alerter's
+# episode sweep compares matched keywords against it to close episodes (item no
+# longer purchasable) and to gate hourly reminders (still purchasable).
+
+# analyze_user_page notable_items embed status text ("X — SOLD OUT — $200");
+# entries with these markers are NOT in stock and must not keep episodes open.
+NEGATIVE_STATUS_MARKERS = ('sold out', 'out of stock', 'unavailable',
+                           'coming soon', 'notify me', 'waitlist')
+
+
+def scan_instock_text(result, products=None):
+    """Text of everything observed IN STOCK on this scan — notable items
+    (post filter_unpurchasable, minus negative-status entries) plus structured
+    in-stock product titles."""
+    parts = [i for i in (result.get('notable_items') or [])
+             if not any(m in i.lower() for m in NEGATIVE_STATUS_MARKERS)]
+    for p in instock_products(products or []):
+        t = p.get('title') or ''
+        if t:
+            parts.append(t)
+    return ' '.join(parts)
+
+
+def record_scan(url, result, products=None, instock_text=None):
+    """Best-effort: a failed write must never break the scan loop."""
+    try:
+        text = instock_text if instock_text is not None else scan_instock_text(result, products)
+        db.record_page_scan(url, domain_from_url(url) or '', text,
+                            datetime.now(timezone.utc).isoformat())
+    except Exception as e:
+        log.warning(f"page_scan record failed for {url}: {e}")
+
+
 # ── Structured products for deep-linking matched items ────────────────────────
 PRODUCTS_STORE_CAP = 256
 
@@ -259,6 +293,8 @@ def scan_one_url(url, source_name=None, hints=None):
         return None
 
     result = analyze_page(name, url, text, makers_list)
+    if result is not None:
+        record_scan(url, result, products)
     if result is None or not result.get('alert_worthy'):
         return None
 
@@ -469,6 +505,8 @@ def run():
                 if prefilter(text, keywords):
                     log.info(f"{name} — makers found on baseline, running AI analysis...")
                     result = analyze_page(name, url, text, makers_list)
+                    if result is not None:
+                        record_scan(url, result, products)
                     if result and result.get('alert_worthy'):
                         new_items = filter_new_items(name, result.get('notable_items', []))
                         if new_items or not result.get('notable_items'):
@@ -493,6 +531,12 @@ def run():
 
             if fp == old_fp:
                 log.info(f"{name} — no change")
+                # Unchanged fingerprint = the last analyzed observation still
+                # holds; refresh its timestamp so reminder gating stays live.
+                try:
+                    db.touch_page_scan(url, datetime.now(timezone.utc).isoformat())
+                except Exception as e:
+                    log.warning(f"page_scan touch failed for {url}: {e}")
                 continue
 
             # Page changed
@@ -512,6 +556,7 @@ def run():
             if result is None:
                 log.error(f"{name} — AI analysis failed")
                 continue
+            record_scan(url, result, products)
 
             if result.get('alert_worthy'):
                 new_items = filter_new_items(name, result.get('notable_items', []))
@@ -596,6 +641,9 @@ def run():
             kw_found = any(kw.lower() in text_lower for kw in user_kws)
             if not kw_found:
                 log.info(f"{uname} — no keywords in page text, skipping AI")
+                # Keywords absent from the raw page = certainly not in stock;
+                # record an empty observation so open episodes can close.
+                record_scan(uurl, None, instock_text='')
                 stale_watch_count[uurl] = stale_watch_count.get(uurl, 0) + 1
                 if stale_watch_count[uurl] == STALE_THRESHOLD:
                     log.info(f"{uname} — {STALE_THRESHOLD} consecutive no-finds, throttling to hourly")
@@ -606,6 +654,7 @@ def run():
             if result is None:
                 log.error(f"{uname} — AI analysis failed")
                 continue
+            record_scan(uurl, result, products)
 
             if result.get('alert_worthy'):
                 stale_watch_count[uurl] = 0  # reset — found something

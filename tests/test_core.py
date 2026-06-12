@@ -2410,3 +2410,14 @@ class TestAlertEpisodes:
         db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': '', 'keywords': 'x',
                         'unsubscribe_token': 'tok1', 'created': '2026-06-12T00:00:00+00:00'})
         assert db.get_watcher_by_id('w001')['strikes'] == 0
+
+    def test_touch_page_scan_refreshes_timestamp_only(self, tmp_db):
+        db = tmp_db
+        db.record_page_scan('https://a.com/p', 'a.com', 'item one', '2026-06-12T20:00:00+00:00')
+        db.touch_page_scan('https://a.com/p', '2026-06-12T21:00:00+00:00')
+        scan = db.get_page_scan('https://a.com/p')
+        assert scan['instock_text'] == 'item one'
+        assert scan['scanned_at'] == '2026-06-12T21:00:00+00:00'
+        # touching a never-scanned url is a no-op, not an insert
+        db.touch_page_scan('https://nope.com', '2026-06-12T21:00:00+00:00')
+        assert db.get_page_scan('https://nope.com') is None
