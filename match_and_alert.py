@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import db
 from per_user_alerter import (
     matches_for_watcher_drop, build_alert_email, cooldown_key,
-    COOLDOWN_HOURS,
+    episode_blocks, teardown_watch, STRIKE_LIMIT,
 )
 from alerter import send_email
 from urls import domain_from_url
@@ -37,7 +37,7 @@ def match_drop(drop):
 
         drop_url = (drop.get('url') or '').lower()
         ck = cooldown_key(watcher['id'], drop_url, matches)
-        if db.is_cooldown_active(ck, hours=COOLDOWN_HOURS):
+        if episode_blocks(ck):
             continue
 
         email = watcher['email']
@@ -47,6 +47,13 @@ def match_drop(drop):
 
     for email, alerts in email_alerts.items():
         for watcher, matches, ck in alerts:
+            # 12 consecutive unengaged emails: tear the watch down instead of #13
+            if (watcher.get('strikes') or 0) >= STRIKE_LIMIT:
+                try:
+                    teardown_watch(watcher, now)
+                except Exception as e:
+                    log.error(f"Teardown failed for {watcher.get('id')}: {e}")
+                continue
             try:
                 subject, html, txt = build_alert_email(watcher, matches, drop)
                 result = send_email(subject, html, txt, to_addr=email)
@@ -56,9 +63,15 @@ def match_drop(drop):
 
             if result:
                 db.mark_cooldown(ck, recipient=email)
+                db.open_episode(ck, watcher['id'],
+                                domain_from_url(drop.get('url') or '') or '',
+                                drop.get('url') or '',
+                                ','.join(sorted(matches)),
+                                email, now.isoformat())
                 db.update_watcher(watcher['id'],
                     last_alert=now.isoformat(),
-                    alert_count=watcher.get('alert_count', 0) + 1)
+                    alert_count=watcher.get('alert_count', 0) + 1,
+                    strikes=(watcher.get('strikes') or 0) + 1)
                 log.info(f"[event] Alert sent to {email} for {drop.get('source', '')}")
                 sent += 1
 

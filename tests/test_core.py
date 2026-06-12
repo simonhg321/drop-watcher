@@ -669,9 +669,10 @@ class TestBackfill:
         from per_user_alerter import cooldown_key
         wid = self._seed_global_watcher(db)
         self._seed_drop(db, url='https://reddit.com/r/knife_swap/1')
-        # Pre-mark cooldown for the exact (watcher,url,matches) tuple
+        # Pre-open an episode for the exact (watcher,url,matches) tuple
         ck = cooldown_key(wid, 'https://reddit.com/r/knife_swap/1', ['ad22', 'compact'])
-        db.mark_cooldown(ck, recipient='fan@example.com')
+        db.open_episode(ck, wid, 'reddit.com', 'https://reddit.com/r/knife_swap/1',
+                        'ad22,compact', 'fan@example.com', '2026-06-12T20:00:00+00:00')
         with patch('backfill_alerter.send_email', return_value=True) as mock_send:
             res = backfill_alerter.backfill_for_email('fan@example.com')
         mock_send.assert_not_called()
@@ -2421,3 +2422,122 @@ class TestAlertEpisodes:
         # touching a never-scanned url is a no-op, not an insert
         db.touch_page_scan('https://nope.com', '2026-06-12T21:00:00+00:00')
         assert db.get_page_scan('https://nope.com') is None
+
+
+class TestEpisodeCooldown:
+    """Alerter skips matches with an open episode; opening replaces the 6h timer."""
+
+    def test_open_episode_blocks_rematch(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import per_user_alerter as pua
+        importlib.reload(pua)
+
+        ck = pua.cooldown_key('w001', 'https://shop.com/p/1', ['grandpa finish'])
+        assert pua.episode_blocks(ck) is False
+        db.open_episode(ck, 'w001', 'shop.com', 'https://shop.com/p/1',
+                        'grandpa finish', 'a@b.c', '2026-06-12T20:00:00+00:00')
+        assert pua.episode_blocks(ck) is True
+        db.close_episode(db.get_open_episode(ck)['id'], '2026-06-12T21:00:00+00:00')
+        assert pua.episode_blocks(ck) is False
+
+
+class TestEpisodeSweep:
+    @pytest.fixture
+    def env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import per_user_alerter as pua
+        importlib.reload(pua)
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c',
+                        'url': 'https://shop.com/p/1', 'keywords': 'grandpa finish',
+                        'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-06-12T00:00:00+00:00'})
+        return db, pua
+
+    def _open(self, db, opened='2026-06-12T20:00:00+00:00'):
+        return db.open_episode('ck1', 'w001', 'shop.com', 'https://shop.com/p/1',
+                               'grandpa finish', 'a@b.c', opened)
+
+    def test_close_when_scan_lacks_keywords(self, env):
+        db, pua = env
+        self._open(db)
+        db.record_page_scan('https://shop.com/p/1', 'shop.com',
+                            '', '2026-06-12T20:30:00+00:00')  # nothing in stock
+        with patch.object(pua, 'send_email', return_value=True):
+            pua.episode_sweep(datetime(2026, 6, 12, 21, 0, tzinfo=timezone.utc))
+        assert db.get_open_episode('ck1') is None
+
+    def test_stays_open_while_in_stock_and_reminds_after_1h(self, env):
+        db, pua = env
+        self._open(db)
+        db.record_page_scan('https://shop.com/p/1', 'shop.com',
+                            'Stub Grandpa Finish', '2026-06-12T20:30:00+00:00')
+        with patch.object(pua, 'send_email', return_value=True) as se:
+            pua.episode_sweep(datetime(2026, 6, 12, 20, 45, tzinfo=timezone.utc))
+            assert se.call_count == 0          # <1h: no reminder yet
+            pua.episode_sweep(datetime(2026, 6, 12, 21, 5, tzinfo=timezone.utc))
+            assert se.call_count == 1          # ≥1h + still in stock: reminder
+        ep = db.get_open_episode('ck1')
+        assert ep['emails_sent'] == 2
+        assert db.get_watcher_by_id('w001')['strikes'] == 1
+
+    def test_no_reminder_without_fresh_scan(self, env):
+        db, pua = env
+        self._open(db)   # no page_scan rows at all (feed drop)
+        with patch.object(pua, 'send_email', return_value=True) as se:
+            pua.episode_sweep(datetime(2026, 6, 12, 22, 0, tzinfo=timezone.utc))
+        assert se.call_count == 0
+        assert db.get_open_episode('ck1') is not None  # <24h: still open
+
+    def test_stale_unscanned_episode_closes_at_24h(self, env):
+        db, pua = env
+        self._open(db, opened='2026-06-11T10:00:00+00:00')
+        with patch.object(pua, 'send_email', return_value=True):
+            pua.episode_sweep(datetime(2026, 6, 12, 21, 0, tzinfo=timezone.utc))
+        assert db.get_open_episode('ck1') is None
+
+    def test_engaged_episode_no_reminders_gets_keep_delete(self, env):
+        db, pua = env
+        self._open(db)
+        db.record_page_scan('https://shop.com/p/1', 'shop.com',
+                            'Stub Grandpa Finish', '2026-06-12T20:30:00+00:00')
+        db.stamp_engagement('w001', 'shop.com', '2026-06-12T20:10:00+00:00')
+        with patch.object(pua, 'send_email', return_value=True) as se:
+            pua.episode_sweep(datetime(2026, 6, 12, 21, 0, tzinfo=timezone.utc))
+        assert se.call_count == 1               # keep/delete email, NOT a reminder
+        subject = se.call_args[0][0]
+        assert 'keep' in subject.lower()
+        ep = db.get_open_episode('ck1')
+        assert ep['keep_delete_sent_at'] is not None
+        # sweep again: no second keep/delete
+        with patch.object(pua, 'send_email', return_value=True) as se2:
+            pua.episode_sweep(datetime(2026, 6, 12, 22, 0, tzinfo=timezone.utc))
+        assert se2.call_count == 0
+
+    def test_teardown_at_strike_limit(self, env):
+        db, pua = env
+        db.add_watcher({'id': 'w002', 'email': 'a@b.c', 'url': 'https://other.com',
+                        'keywords': 'sebenza', 'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-06-12T00:00:00+00:00'})
+        db.update_watcher('w001', strikes=pua.STRIKE_LIMIT)
+        self._open(db)
+        db.record_page_scan('https://shop.com/p/1', 'shop.com',
+                            'Stub Grandpa Finish', '2026-06-12T20:30:00+00:00')
+        with patch.object(pua, 'send_email', return_value=True) as se:
+            pua.episode_sweep(datetime(2026, 6, 12, 22, 0, tzinfo=timezone.utc))
+        assert se.call_count == 1               # the teardown email
+        body_txt = se.call_args[0][2]
+        assert 'removed' in body_txt.lower()
+        assert 'sebenza' in body_txt.lower()    # remaining watch listed
+        assert not db.get_watcher_by_id('w001')['active']
+        assert db.get_watcher_by_id('w002')['active']
+        assert db.get_open_episode('ck1') is None

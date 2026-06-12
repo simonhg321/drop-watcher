@@ -27,7 +27,12 @@ import yaml
 import paths
 import db
 
-COOLDOWN_HOURS = 6
+# Episode model (spec 2026-06-12): an open episode replaces the old 6h timed
+# cooldown. It closes when a scan observes the item not purchasable.
+STRIKE_LIMIT          = 12   # consecutive unengaged emails before watch teardown
+REMINDER_INTERVAL_H   = 1    # still-in-stock nudge cadence while unclicked
+KEEP_DELETE_DELAY_MIN = 20   # keep-or-delete email this long after a click
+EPISODE_STALE_H       = 24   # close-valve for never-rescanned sources (feeds)
 DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with cron)
 
 from alerter import send_email
@@ -128,6 +133,165 @@ def cooldown_key(watcher_id, drop_url, matches):
     domain = domain_from_url(drop_url) or drop_url
     raw = f"{watcher_id}|{domain}|{match_str}"
     return hashlib.md5(raw.encode()).hexdigest()
+
+
+def episode_blocks(ck):
+    """Cooldown semantics under the episode model: an open episode for this
+    (watcher, domain, matches) means the user already knows — don't re-alert.
+    Reminders/teardown for open episodes are handled by episode_sweep."""
+    return db.get_open_episode(ck) is not None
+
+
+def build_reminder_email(watcher, ep):
+    token = watcher.get('unsubscribe_token', '')
+    nth = ep.get('emails_sent', 1)
+    link = ep.get('drop_url', '')
+    subject = f"[DROP WATCHER] Still in stock — {ep.get('domain','')}: {ep.get('matches','')}"
+    txt = (
+        f"Hey {watcher.get('name') or 'there'},\n\n"
+        f"Still in stock (reminder #{nth}): {ep.get('matches','')}\n"
+        f"  {link}\n\n"
+        f"We'll keep nudging hourly while it's in stock, until you click through.\n"
+        f"Keep this watch alive: https://instockornot.club/api/ack/{token}\n"
+        f"Remove this watch: https://instockornot.club/api/watch-remove/{watcher['id']}/{token}\n"
+        f"Dashboard: https://instockornot.club/my-alerts.html?token={token}\n"
+    )
+    html = (
+        f"<p>Still <strong>in stock</strong> (reminder #{nth}): {ep.get('matches','')}</p>"
+        f"<p><a href='{link}'>{link}</a></p>"
+        f"<p style='color:#888;font-size:12px'>We'll keep nudging hourly while it's in stock, "
+        f"until you click through.</p>"
+        f"<p><a href='https://instockornot.club/api/ack/{token}'>Keep this watch alive</a> · "
+        f"<a href='https://instockornot.club/api/watch-remove/{watcher['id']}/{token}'>Remove this watch</a> · "
+        f"<a href='https://instockornot.club/my-alerts.html?token={token}'>Dashboard</a></p>"
+    )
+    return subject, html, txt
+
+
+def build_keep_delete_email(watcher, ep):
+    token = watcher.get('unsubscribe_token', '')
+    subject = f"[DROP WATCHER] Keep or remove your watch for {ep.get('matches','')}?"
+    keep_url   = f"https://instockornot.club/api/ack/{token}"
+    remove_url = f"https://instockornot.club/api/watch-remove/{watcher['id']}/{token}"
+    txt = (
+        f"Hey {watcher.get('name') or 'there'},\n\n"
+        f"You clicked through to {ep.get('domain','')} for: {ep.get('matches','')}.\n"
+        f"Did you get what you needed?\n\n"
+        f"  KEEP watching:  {keep_url}\n"
+        f"  REMOVE this watch: {remove_url}\n\n"
+        f"No action needed — if we don't hear from you, we keep watching.\n"
+        f"Dashboard: https://instockornot.club/my-alerts.html?token={token}\n"
+    )
+    html = (
+        f"<p>You clicked through to <strong>{ep.get('domain','')}</strong> for: "
+        f"<strong>{ep.get('matches','')}</strong>. Did you get what you needed?</p>"
+        f"<p><a href='{keep_url}' style='color:#27ae60'>KEEP watching</a> &nbsp;·&nbsp; "
+        f"<a href='{remove_url}' style='color:#c0392b'>REMOVE this watch</a></p>"
+        f"<p style='color:#888;font-size:12px'>No action needed — if we don't hear from you, "
+        f"we keep watching.</p>"
+    )
+    return subject, html, txt
+
+
+def build_teardown_email(watcher, remaining):
+    token = watcher.get('unsubscribe_token', '')
+    what = watcher.get('keywords', '')
+    subject = f"[DROP WATCHER] Watch removed — {what}"
+    if remaining:
+        still = '\n'.join(f"  - {w.get('keywords','')} @ {domain_from_url(w.get('url') or '') or 'all sites'}"
+                          for w in remaining)
+        still_html = '<br>'.join(f"&nbsp;&nbsp;• {w.get('keywords','')} @ "
+                                 f"{domain_from_url(w.get('url') or '') or 'all sites'}"
+                                 for w in remaining)
+    else:
+        still = "  (none — this was your last watch)"
+        still_html = "&nbsp;&nbsp;(none — this was your last watch)"
+    txt = (
+        f"Hey {watcher.get('name') or 'there'},\n\n"
+        f"We sent {STRIKE_LIMIT} alerts for \"{what}\" without hearing back, so we removed "
+        f"that watch to keep your inbox sane.\n\n"
+        f"Your other watches are still running:\n{still}\n\n"
+        f"Re-add or manage everything here: https://instockornot.club/my-alerts.html?token={token}\n"
+    )
+    html = (
+        f"<p>We sent {STRIKE_LIMIT} alerts for <strong>{what}</strong> without hearing back, "
+        f"so we removed that watch to keep your inbox sane.</p>"
+        f"<p>Your other watches are still running:<br>{still_html}</p>"
+        f"<p><a href='https://instockornot.club/my-alerts.html?token={token}'>"
+        f"Re-add or manage everything on your dashboard</a></p>"
+    )
+    return subject, html, txt
+
+
+def teardown_watch(watcher, now):
+    """STRIKE_LIMIT unengaged emails: deactivate the watch, tell the user what remains."""
+    db.update_watcher(watcher['id'], active=False)
+    remaining = [w for w in db.get_watchers_by_email(watcher['email'])
+                 if w.get('active') and w['id'] != watcher['id']]
+    subject, html, txt = build_teardown_email(watcher, remaining)
+    send_email(subject, html, txt, to_addr=watcher['email'])
+    log.info(f"[{watcher['id']}] TEARDOWN after {STRIKE_LIMIT} unengaged emails "
+             f"({watcher['email']}, {watcher.get('keywords','')})")
+
+
+def episode_sweep(now):
+    """Per-episode state machine, run every alerter cycle:
+      1. close episodes whose item is observed not-purchasable (or stale-unscanned)
+      2. keep-or-delete email 20 min after an outbound click
+      3. hourly still-in-stock reminders while unclicked
+      4. teardown at STRIKE_LIMIT consecutive unengaged emails
+    All timestamps are UTC isoformat strings — string comparison is safe."""
+    now_iso = now.isoformat()
+    stale_cutoff = (now - timedelta(hours=EPISODE_STALE_H)).isoformat()
+    remind_cutoff = (now - timedelta(hours=REMINDER_INTERVAL_H)).isoformat()
+    kd_cutoff = (now - timedelta(minutes=KEEP_DELETE_DELAY_MIN)).isoformat()
+
+    for ep in db.get_open_episodes():
+        scan = db.get_page_scan(ep['drop_url'])
+        fresh = bool(scan and scan['scanned_at'] > ep['opened_at'])
+
+        # 1. closure: a fresh scan no longer shows the matched keywords in stock
+        if fresh and not keywords_match((scan['instock_text'] or '').lower(), ep['matches']):
+            db.close_episode(ep['id'], now_iso)
+            log.info(f"[{ep['watcher_id']}] episode {ep['id']} closed — "
+                     f"'{ep['matches']}' no longer in stock on {ep['domain']}")
+            continue
+        # 1b. valve: never-rescanned source (feeds) — close after EPISODE_STALE_H
+        if not fresh and ep['opened_at'] < stale_cutoff:
+            db.close_episode(ep['id'], now_iso)
+            log.info(f"[{ep['watcher_id']}] episode {ep['id']} closed — stale, no rescan")
+            continue
+
+        watcher = db.get_watcher_by_id(ep['watcher_id'])
+        if not watcher or not watcher.get('active'):
+            db.close_episode(ep['id'], now_iso)
+            continue
+
+        # 2. engaged: no reminders; keep-or-delete once, 20 min after the click
+        if ep['engaged_at']:
+            if not ep['keep_delete_sent_at'] and ep['engaged_at'] <= kd_cutoff:
+                subject, html, txt = build_keep_delete_email(watcher, ep)
+                if send_email(subject, html, txt, to_addr=watcher['email']):
+                    db.mark_keep_delete_sent(ep['id'], now_iso)
+                    log.info(f"[{watcher['id']}] keep-or-delete sent for "
+                             f"'{ep['matches']}' on {ep['domain']}")
+            continue
+
+        # 3/4. unengaged + still in stock on a fresh scan: remind hourly,
+        # teardown instead of the email past STRIKE_LIMIT
+        last_email = ep['last_email_at'] or ep['opened_at']
+        if fresh and last_email <= remind_cutoff and scan['scanned_at'] > last_email:
+            if (watcher.get('strikes') or 0) >= STRIKE_LIMIT:
+                teardown_watch(watcher, now)
+                db.close_episode(ep['id'], now_iso)
+                continue
+            subject, html, txt = build_reminder_email(watcher, ep)
+            if send_email(subject, html, txt, to_addr=watcher['email']):
+                db.bump_episode_email(ep['id'], now_iso)
+                db.update_watcher(watcher['id'],
+                                  strikes=(watcher.get('strikes') or 0) + 1)
+                log.info(f"[{watcher['id']}] reminder #{ep['emails_sent']} sent "
+                         f"for '{ep['matches']}' on {ep['domain']}")
 
 
 def load_recent_drops():
@@ -573,6 +737,13 @@ def build_alert_email(watcher, matches, drop):
 
 
 def run():
+    # Episode lifecycle first — closures, reminders, keep/delete, teardowns
+    # must happen every cycle even when there are no new drops.
+    try:
+        episode_sweep(datetime.now(timezone.utc))
+    except Exception as e:
+        log.error(f"episode_sweep failed: {e}")
+
     active = db.get_active_watchers()
     log.info(f"Checking {len(active)} active watchers against recent drops")
 
@@ -607,10 +778,10 @@ def run():
             if not matches:
                 continue
 
-            # Check per-URL-per-keyword cooldown
+            # Check per-URL-per-keyword cooldown (open episode = user already knows)
             ck = cooldown_key(wid, drop_url, matches)
-            if db.is_cooldown_active(ck, hours=COOLDOWN_HOURS):
-                log.info(f"[{wid}] Cooldown active for {drop_domain} / {matches}")
+            if episode_blocks(ck):
+                log.info(f"[{wid}] Episode open for {drop_domain} / {matches}")
                 continue
 
             log.info(f"[{wid}] MATCH for {email}: {matches} on {drop_domain}")
@@ -637,6 +808,14 @@ def run():
                 continue
             seen_drops.add(drop_key)
 
+            # 12 consecutive unengaged emails: tear the watch down instead of #13
+            if (watcher.get('strikes') or 0) >= STRIKE_LIMIT:
+                try:
+                    teardown_watch(watcher, now)
+                except Exception as e:
+                    log.error(f"Teardown failed for {watcher.get('id')}: {e}")
+                continue
+
             try:
                 subject, html, txt = build_alert_email(watcher, matches, drop)
 
@@ -648,11 +827,17 @@ def run():
                 continue
 
             if result:
-                # Mark cooldown for THIS watcher's match only
+                # Audit row + open the episode for THIS watcher's match only
                 db.mark_cooldown(ck, recipient=email)
+                db.open_episode(ck, watcher['id'],
+                                domain_from_url(drop.get('url') or '') or '',
+                                drop.get('url') or '',
+                                ','.join(sorted(matches)),
+                                email, now.isoformat())
                 db.update_watcher(watcher['id'],
                     last_alert=now.isoformat(),
-                    alert_count=watcher.get('alert_count', 0) + 1)
+                    alert_count=watcher.get('alert_count', 0) + 1,
+                    strikes=(watcher.get('strikes') or 0) + 1)
                 log.info(f"Alert sent to {email} for {drop.get('source', '')}")
 
                 # SMS fan-out — only sms_approved watchers, only high/critical priority.

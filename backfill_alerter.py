@@ -33,8 +33,9 @@ from per_user_alerter import (
     KEYWORD_HINT_TEXT,
     disclaimer_html,
     DISCLAIMER_TEXT,
-    COOLDOWN_HOURS,
+    episode_blocks,
 )
+from urls import domain_from_url
 from alerter import send_email
 
 LOOKBACK_DAYS = 7
@@ -87,7 +88,7 @@ def find_backfill_matches(watchers, drops):
             if not matches:
                 continue
             ck = cooldown_key(w['id'], (drop.get('url') or '').lower(), matches)
-            if db.is_cooldown_active(ck, hours=COOLDOWN_HOURS):
+            if episode_blocks(ck):
                 continue
             tuples.append((w, matches, drop, ck))
 
@@ -291,6 +292,11 @@ def backfill_for_email(email, days=LOOKBACK_DAYS, dry_run=False, bcc=None,
         if _drop_key(drop) not in shown_keys:
             continue
         db.mark_cooldown(ck, recipient=email)
+        db.open_episode(ck, w['id'],
+                        domain_from_url(drop.get('url') or '') or '',
+                        drop.get('url') or '',
+                        ','.join(sorted(_matches)),
+                        email, now)
         bumped.setdefault(w['id'], w)
     for wid, w in bumped.items():
         db.update_watcher(
