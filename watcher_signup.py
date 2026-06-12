@@ -10,6 +10,7 @@ Apache proxies /api/ → localhost:5001
 HGR
 """
 
+import hmac
 import html as html_mod
 import json
 import os
@@ -890,6 +891,29 @@ def track_pageview():
     return '', 204
 
 
+@app.route('/api/watch-remove/<watch_id>/<token>', methods=['GET'])
+@limiter.limit("20 per minute")
+def watch_remove(watch_id, token):
+    """One-click single-watch removal from alert/keep-or-delete emails.
+    Token-authed like unsubscribe, but removes ONLY this watch."""
+    target = db.get_watcher_by_id(watch_id)
+    if not target or not hmac.compare_digest(target.get('unsubscribe_token', '') or '', token):
+        return jsonify({'error': 'Not found'}), 404
+
+    db.update_watcher(watch_id, active=False)
+    remaining = sum(1 for w in db.get_watchers_by_email(target.get('email', '').lower())
+                    if w.get('active'))
+    log.info(f"Watch removed via email link: {watch_id} ({target.get('email')}) — "
+             f"{remaining} still active")
+    return f"""
+            <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                <h1 style="color:#c0392b">DROP WATCHER</h1>
+                <p style="font-size:18px;margin-top:24px">✓ Watch removed.</p>
+                <p style="color:#888;font-size:13px">{remaining} other watch(es) still running.</p>
+                <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
+            </body></html>""", 200
+
+
 @app.route('/api/ack/<token>', methods=['GET'])
 @limiter.limit("20 per minute")
 def ack_watch(token):
@@ -903,7 +927,8 @@ def ack_watch(token):
     # Reactivate only watches that age-out turned off. ageout_email_sent IS NOT NULL
     # distinguishes age-out victims from unsubscribes or unverified signups.
     revived = db.revive_aged_out(email, now)
-    db.update_watchers_by_email(email, last_acked=now, ageout_email_sent=None)
+    db.update_watchers_by_email(email, last_acked=now, ageout_email_sent=None,
+                                strikes=0)
     if revived:
         log.info(f"Ack from {email} — revived {revived} aged-out watch(es)")
     else:

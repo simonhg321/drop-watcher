@@ -2567,3 +2567,30 @@ class TestClickEngagement:
         ep = db.get_open_episode('ck1')
         assert ep['engaged_at'] is not None
         assert db.get_watcher_by_id('w001')['strikes'] == 0
+
+
+class TestWatchRemoveRoute:
+    def test_get_remove_deactivates_single_watch(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import watcher_signup
+        importlib.reload(watcher_signup)
+        client = watcher_signup.app.test_client()
+
+        for wid, url in (('w001', 'https://a.com'), ('w002', 'https://b.com')):
+            db.add_watcher({'id': wid, 'email': 'a@b.c', 'url': url, 'keywords': 'x',
+                            'unsubscribe_token': 'tok1', 'active': 1,
+                            'created': '2026-06-12T00:00:00+00:00'})
+
+        r = client.get('/api/watch-remove/w001/tok1')
+        assert r.status_code == 200
+        assert not db.get_watcher_by_id('w001')['active']
+        assert db.get_watcher_by_id('w002')['active']
+
+        r = client.get('/api/watch-remove/w002/WRONG')
+        assert r.status_code == 404
+        assert db.get_watcher_by_id('w002')['active']
