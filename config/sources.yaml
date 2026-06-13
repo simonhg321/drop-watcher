@@ -663,18 +663,6 @@ websites:
     poll_interval: 20
     enabled: true
 
-  # auto-added 2026-06-12 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Shindo, Kyohei Shindo)
-  - name: Chefknivestogo
-    url: https://chefknivestogo.com
-    poll_interval: 20
-    enabled: true
-
-  # auto-added 2026-06-13 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Shindo, Kyohei Shindo)
-  - name: Chefknivestogo
-    url: https://chefknivestogo.com
-    poll_interval: 20
-    enabled: true
-
 feeds:
   - name: Steel Flame Instagram
     url: https://rss.app/feeds/PLACEHOLDER_STEEL_FLAME.xml
