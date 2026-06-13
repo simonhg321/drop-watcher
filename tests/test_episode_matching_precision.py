@@ -19,8 +19,10 @@ with no notable_items fall back to current page-level behaviour (don't regress t
 availability watches or sites that emit no per-product lines).
 """
 
+import json
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -130,3 +132,59 @@ def test_maker_watch_fires_when_maker_and_keyword_share_a_line():
         ['Chris Reeve Inkosi Insingo Magnacut - $475.00', 'Spyderco Para 3 - $180.00'],
     )
     assert pua.matches_for_watcher_drop(w, drop) == ['inkosi']
+
+
+# ── C wiring helpers: capture matched line at open, self-heal at re-scan ──────
+def test_lines_for_matches_captures_the_triggering_product_line():
+    """At episode-open we store the specific notable_items line(s) that carried a
+    matched keyword — so self-heal can later check THAT product, not the keyword."""
+    notable = ['Benchmade Bugout - $140.00', 'Chris Reeve Small Sebenza 31 - $475.00']
+    assert pua.lines_for_matches(notable, ['sebenza']) == [
+        'Chris Reeve Small Sebenza 31 - $475.00'
+    ]
+
+
+def test_matched_lines_in_text_true_when_product_still_listed():
+    """instock_text is the space-joined in-stock lines; the stored product line is
+    still present (despite a price change) → episode stays open."""
+    stored = ['Chris Reeve Small Sebenza 31 - $475.00']
+    fresh_blob = 'benchmade bugout - $140.00 chris reeve small sebenza 31 - $499.00'
+    assert pua.matched_lines_in_text(stored, fresh_blob) is True
+
+
+def test_matched_lines_in_text_false_when_specific_product_gone():
+    """The keyword 'sebenza' could still be store-wide, but the SPECIFIC product that
+    opened the episode is gone from the fresh in-stock text → self-heal can close."""
+    stored = ['Chris Reeve Small Sebenza 31 Insingo - $475.00']
+    fresh_blob = 'chris reeve large sebenza 31 tanzanite - $1200.00 spyderco para 3'
+    assert pua.matched_lines_in_text(stored, fresh_blob) is False
+
+
+# ── C wired end-to-end through episode_sweep ─────────────────────────────────
+def test_episode_self_heals_through_sweep_when_product_gone(tmp_path):
+    """End-to-end: an open episode whose stored product line is gone from the fresh
+    scan self-heals (closes) — even though the keyword 'sebenza' is still in stock
+    store-wide. This is the exact #21 teardown bug; the old keyword-on-blob closure
+    would keep it open and grind reminders to the 12-strike teardown."""
+    dbm = pua.db
+    dbm.DB_PATH = str(tmp_path / 'ep.db')
+    dbm._initialized_paths.discard(dbm.DB_PATH)
+
+    now = datetime.now(timezone.utc)
+    url = 'https://knifejoy.com/'
+    opened = (now - timedelta(hours=2)).isoformat()
+    dbm.open_episode(
+        'k1', 'w1', 'knifejoy.com', url, 'sebenza', 'e@x.z', opened,
+        matched_lines=json.dumps(['Chris Reeve Small Sebenza 31 - $475.00']),
+    )
+    # Fresh scan: the watched product is GONE, but a DIFFERENT Sebenza is in stock —
+    # keyword 'sebenza' still present store-wide.
+    dbm.record_page_scan(
+        url, 'knifejoy.com',
+        'Chris Reeve Large Sebenza 31 Tanzanite - $1200.00',
+        (now - timedelta(hours=1)).isoformat(),
+    )
+
+    pua.episode_sweep(now)
+
+    assert dbm.get_open_episode('k1') is None  # self-healed → closed

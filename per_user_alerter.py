@@ -250,12 +250,23 @@ def episode_sweep(now):
         scan = db.get_page_scan(ep['drop_url'])
         fresh = bool(scan and scan['scanned_at'] > ep['opened_at'])
 
-        # 1. closure: a fresh scan no longer shows the matched keywords in stock
-        if fresh and not keywords_match((scan['instock_text'] or '').lower(), ep['matches']):
-            db.close_episode(ep['id'], now_iso)
-            log.info(f"[{ep['watcher_id']}] episode {ep['id']} closed — "
-                     f"'{ep['matches']}' no longer in stock on {ep['domain']}")
-            continue
+        # 1. closure: a fresh scan no longer shows the item in stock. Corp #21 C — if we
+        # captured the specific product line(s) that opened this episode, self-heal on
+        # THAT product leaving stock (even if the keyword persists store-wide). Legacy
+        # episodes with no stored line fall back to the keyword-presence check.
+        if fresh:
+            blob = (scan['instock_text'] or '').lower()
+            try:
+                stored_lines = json.loads(ep.get('matched_lines') or '[]')
+            except (ValueError, TypeError):
+                stored_lines = []
+            still_in_stock = (matched_lines_in_text(stored_lines, blob) if stored_lines
+                              else bool(keywords_match(blob, ep['matches'])))
+            if not still_in_stock:
+                db.close_episode(ep['id'], now_iso)
+                log.info(f"[{ep['watcher_id']}] episode {ep['id']} closed — "
+                         f"'{ep['matches']}' no longer in stock on {ep['domain']}")
+                continue
         # 1b. valve: never-rescanned source (feeds) — close after EPISODE_STALE_H
         if not fresh and ep['opened_at'] < stale_cutoff:
             db.close_episode(ep['id'], now_iso)
@@ -334,6 +345,29 @@ def matched_line_in_stock(matched_line, fresh_lines):
     if not target:
         return False
     return any(_product_identity(f) == target for f in (fresh_lines or []))
+
+
+def lines_for_matches(notable_items, matched_keywords):
+    """The notable_items line(s) that carry at least one matched keyword — the specific
+    product line(s) that triggered an alert. Stored on the episode at open so self-heal
+    can later track THAT product rather than the keyword (Corp #21 C)."""
+    kws = (','.join(matched_keywords)
+           if isinstance(matched_keywords, (list, tuple)) else (matched_keywords or ''))
+    return [line for line in (notable_items or [])
+            if keywords_match((line or '').lower(), kws)]
+
+
+def matched_lines_in_text(matched_lines, instock_text):
+    """True if ANY stored matched line's product identity still appears in the fresh
+    in-stock text (which is the space-joined in-stock lines, so a present product shows
+    up contiguously). False = every product that opened the episode is gone — the
+    episode can self-heal even though the keyword may persist store-wide (Corp #21 C)."""
+    blob = _product_identity(instock_text)
+    for line in matched_lines or []:
+        ident = _product_identity(line)
+        if ident and ident in blob:
+            return True
+    return False
 
 
 def same_line_maker_matches(notable_items, maker, keywords_str):
@@ -890,7 +924,9 @@ def run():
                                 domain_from_url(drop.get('url') or '') or '',
                                 drop.get('url') or '',
                                 ','.join(sorted(matches)),
-                                email, now.isoformat())
+                                email, now.isoformat(),
+                                matched_lines=json.dumps(
+                                    lines_for_matches(drop.get('notable_items'), matches)))
                 db.update_watcher(watcher['id'],
                     last_alert=now.isoformat(),
                     alert_count=watcher.get('alert_count', 0) + 1,

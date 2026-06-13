@@ -186,7 +186,8 @@ CREATE TABLE IF NOT EXISTS alert_episodes (
     emails_sent INTEGER DEFAULT 1,
     last_email_at TEXT,
     engaged_at TEXT,                    -- first outbound click after the alert
-    keep_delete_sent_at TEXT
+    keep_delete_sent_at TEXT,
+    matched_lines TEXT DEFAULT '[]'     -- JSON: notable_items line(s) that triggered (Corp #21 C self-heal)
 );
 CREATE INDEX IF NOT EXISTS idx_episodes_match_open
     ON alert_episodes(match_key) WHERE closed_at IS NULL;
@@ -230,6 +231,10 @@ def _migrate(conn):
     click_cols = {r['name'] for r in conn.execute("PRAGMA table_info(outbound_clicks)").fetchall()}
     if 'scanner' not in click_cols:
         conn.execute("ALTER TABLE outbound_clicks ADD COLUMN scanner INTEGER DEFAULT 0")
+
+    ep_cols = {r['name'] for r in conn.execute("PRAGMA table_info(alert_episodes)").fetchall()}
+    if 'matched_lines' not in ep_cols:
+        conn.execute("ALTER TABLE alert_episodes ADD COLUMN matched_lines TEXT DEFAULT '[]'")
 
     # Unique backstop for the signup check-then-act race (gunicorn -w 2): one
     # watch per (email, url, maker). Maker is part of the key because global
@@ -608,15 +613,16 @@ def mark_cooldown(cooldown_key, recipient=''):
 # knows this item is in stock". Open episode replaces the old 6h timed cooldown;
 # it closes when a scan observes the item not purchasable.
 
-def open_episode(match_key, watcher_id, domain, drop_url, matches, recipient, now_iso):
+def open_episode(match_key, watcher_id, domain, drop_url, matches, recipient, now_iso,
+                 matched_lines='[]'):
     with get_db() as db:
         cur = db.execute("""
             INSERT INTO alert_episodes
                 (match_key, watcher_id, domain, drop_url, matches, recipient,
-                 opened_at, emails_sent, last_email_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+                 opened_at, emails_sent, last_email_at, matched_lines)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
         """, (match_key, watcher_id, domain, drop_url, matches, recipient,
-              now_iso, now_iso))
+              now_iso, now_iso, matched_lines))
         return cur.lastrowid
 
 
