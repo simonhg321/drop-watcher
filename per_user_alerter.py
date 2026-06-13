@@ -314,6 +314,50 @@ def keywords_match(searchable_text, keywords_str):
     return [kw for kw in keywords if kw_matches_any(kw, searchable_text)]
 
 
+_PRICE_RE = re.compile(r'\$[\d,]+(?:\.\d+)?')
+
+
+def _product_identity(line):
+    """Price-insensitive identity for a product line: lowercased, prices stripped,
+    non-alphanumerics collapsed. Two lines for the same product but different prices
+    share an identity."""
+    t = _PRICE_RE.sub('', (line or '').lower())
+    return re.sub(r'[^a-z0-9]+', ' ', t).strip()
+
+
+def matched_line_in_stock(matched_line, fresh_lines):
+    """True if a fresh-scan line still carries the matched line's product identity
+    (Corp #21 C). When this is False the specific product that opened an episode is no
+    longer listed — even if the keyword persists store-wide — so the episode can
+    self-heal instead of grinding reminders to the 12-strike teardown."""
+    target = _product_identity(matched_line)
+    if not target:
+        return False
+    return any(_product_identity(f) == target for f in (fresh_lines or []))
+
+
+def same_line_maker_matches(notable_items, maker, keywords_str):
+    """Matched keywords that co-occur with a maker alias inside a SINGLE product line.
+
+    The URL-scoped analogue of the global path's same-title rule (Corp #21 A+B): a
+    maker-carrying watch must not fire when its maker and keyword appear in different
+    catalog items of a multi-product page dump. Returns matched keywords (deduped,
+    order-preserving), or [] if no single notable_items line carries both.
+    """
+    maker_terms = expand_maker(maker)
+    if not maker_terms:
+        return []
+    seen, out = set(), []
+    for line in notable_items or []:
+        t = (line or '').lower()
+        if any(kw_matches(m, t) for m in maker_terms):
+            for kw in keywords_match(t, keywords_str):
+                if kw not in seen:
+                    seen.add(kw)
+                    out.append(kw)
+    return out
+
+
 def global_watch_matches(maker, keywords_str, searchable_text):
     """Global (no-URL) watch: fire iff the text names the maker (or an alias) AND at
     least one cool-list keyword. Returns the matched cool-list terms (empty = no fire)."""
@@ -426,6 +470,19 @@ def matches_for_watcher_drop(watcher, drop):
             return []
     elif not w_domain or w_domain != domain_from_url(drop_url):
         return []
+    # Corp #21 (A+B): a maker-carrying URL-scoped watch requires maker+keyword in the
+    # SAME product line. Maker-less watches (62/65 of the population) keep firing on
+    # keyword alone against the page text.
+    if (maker or '').strip():
+        line_hits = same_line_maker_matches(drop.get('notable_items'), maker, kws)
+        if line_hits:
+            return line_hits
+        # No line carried both. With per-product lines present, that's a real no-match
+        # (cross-product leakage rejected). With NO lines to bind to, fall back to
+        # page-level so maker watches on line-less drops still fire.
+        if drop.get('notable_items'):
+            return []
+        return keywords_match(searchable, kws)
     return keywords_match(searchable, kws)
 
 
