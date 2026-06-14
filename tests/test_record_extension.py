@@ -38,6 +38,14 @@ def test_parse_products_defaults_when_absent():
     assert rec["image_urls"] == []
 
 
+def test_parse_products_original_price_is_string_even_when_numeric():
+    raw = [{"handle": "n", "title": "N", "vendor": "", "tags": "",
+            "variants": [{"available": True, "price": "10.00", "compare_at_price": 19.0}]}]
+    rec = collection_fetch._parse_products(raw, "https://example.com")[0]
+    assert rec["original_price"] == "19.0"
+    assert isinstance(rec["original_price"], str)
+
+
 def test_jsonld_carries_new_fields_or_defaults():
     html = '''<script type="application/ld+json">
     {"@type":"Product","name":"Sebenza 31","brand":"Chris Reeve",
@@ -48,3 +56,5 @@ def test_jsonld_carries_new_fields_or_defaults():
     assert out, "expected one product"
     assert "original_price" in out[0]
     assert "image_urls" in out[0]
+    assert out[0]["image_urls"] == ["https://cdn/sebenza.jpg"]
+    assert out[0]["original_price"] is None

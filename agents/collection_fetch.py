@@ -128,6 +128,8 @@ def _parse_products(products, base_url):
         original_price = variants[0].get('compare_at_price') if variants else None
         if original_price in ('', '0.00', '0', 0):
             original_price = None
+        if original_price is not None:
+            original_price = str(original_price).strip()
         images = pr.get('images', []) or []
         image_urls = [im.get('src', '') for im in images if isinstance(im, dict) and im.get('src')]
         # No handle (3rd-party-feed items, gift-card/bundle pseudo-products) → no
