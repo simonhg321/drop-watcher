@@ -55,6 +55,29 @@ def test_promote_one_allows_clean_candidate(monkeypatch):
     assert appended == [cand]                        # added as normal
 
 
+def test_promote_one_blocks_review_verdict(monkeypatch):
+    # A borderline 'review' verdict is also blocked (operator can --approve to override).
+    cand = {"domain": "borderline.com", "category": "knife", "sample_url": "https://borderline.com"}
+    _patch_curated_empty(monkeypatch)
+    monkeypatch.setattr(dealer_scout.scam_gate, "evaluate",
+                        lambda *a, **k: Verdict(action="review", score=3, reasons=["uniform discount"]))
+    appended = []
+    monkeypatch.setattr(dealer_scout, "_append_dealer_to_sources", lambda c: appended.append(c) or True)
+    statuses = []
+    monkeypatch.setattr(dealer_scout.db, "set_dealer_candidate_status",
+                        lambda d, s: statuses.append((d, s)))
+    notified = []
+    monkeypatch.setattr(dealer_scout.scam_gate, "notify_operator",
+                        lambda *a, **k: notified.append(a[0]))
+
+    ok = dealer_scout._promote_one(cand)
+
+    assert ok is False
+    assert appended == []
+    assert ("borderline.com", "rejected") in statuses
+    assert "borderline.com" in notified
+
+
 def test_promote_one_override_bypasses_gate(monkeypatch):
     cand = {"domain": "flagged-but-approved.com", "category": "knife",
             "sample_url": "https://flagged-but-approved.com",

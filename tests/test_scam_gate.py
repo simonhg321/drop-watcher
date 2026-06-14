@@ -34,6 +34,16 @@ def test_evaluate_flags_scam(monkeypatch):
     assert v.action == "quarantine"
 
 
+def test_notify_operator_subject_includes_action():
+    sent = []
+    def fake_send(subject, html, body, to_addr=None):
+        sent.append(subject)
+    from scam_source_filter import Verdict
+    scam_gate.notify_operator("borderline.com", "https://borderline.com",
+                              Verdict(action="review", score=3, reasons=["x"]), fake_send)
+    assert any("review" in s and "borderline.com" in s for s in sent)
+
+
 def test_evaluate_passes_legit(monkeypatch):
     legit = [{"title": f"Knife {i}", "price": "425.00", "original_price": None, "image_urls": []}
              for i in range(6)]

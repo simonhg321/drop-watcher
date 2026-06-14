@@ -49,7 +49,7 @@ def evaluate(domain, sample_url, fetch_page, log=None):
 
 
 def notify_operator(domain, sample_url, verdict, send_email):
-    subject = f"[SCAM GATE] rejected {domain} (score {verdict.score})"
+    subject = f"[SCAM GATE] blocked {domain} — {verdict.action} (score {verdict.score})"
     reasons = "\n".join(f"  - {r}" for r in verdict.reasons)
     body = (f"dealer_scout tried to add a source that the scam filter flagged.\n\n"
             f"Domain:  {domain}\nURL:     {sample_url}\n"
