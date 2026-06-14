@@ -33,7 +33,8 @@ def _same_site_url(abs_url, base_url):
     return bool(base_host) and same_site(urlparse(abs_url).hostname, base_host)
 
 
-def _product_record(title, url, available, price='', vendor='', tags=None, confidence='high'):
+def _product_record(title, url, available, price='', vendor='', tags=None, confidence='high',
+                    original_price=None, image_urls=None):
     return {
         'title': (title or '').strip(),
         'vendor': (vendor or '').strip(),
@@ -42,6 +43,8 @@ def _product_record(title, url, available, price='', vendor='', tags=None, confi
         'tags': tags or [],
         'price': str(price or '').strip(),
         'confidence': confidence,
+        'original_price': original_price,
+        'image_urls': image_urls if image_urls is not None else [],
     }
 
 
@@ -99,12 +102,39 @@ def from_structured_data(html, base_url):
             if abs_url and not _same_site_url(abs_url, base_url):
                 continue
             available = any(_availability_in_stock((o or {}).get('availability')) for o in offer_list)
+            # original_price: prefer highPrice, then listPrice, then priceSpecification list price
+            orig = (first_offer.get('highPrice')
+                    or first_offer.get('listPrice')
+                    or None)
+            if orig is None:
+                for spec in (first_offer.get('priceSpecification') or []):
+                    if isinstance(spec, dict) and spec.get('priceType') in ('ListPrice', 'list'):
+                        orig = spec.get('price')
+                        break
+            original_price = str(orig).strip() if orig not in (None, '', '0', '0.00', 0) else None
+            # image_urls: JSON-LD image may be a string or a list of strings/dicts
+            raw_image = pr.get('image')
+            if raw_image is None:
+                image_urls = []
+            elif isinstance(raw_image, str):
+                image_urls = [raw_image] if raw_image else []
+            elif isinstance(raw_image, list):
+                image_urls = [
+                    (x if isinstance(x, str) else x.get('url') or x.get('contentUrl') or '')
+                    for x in raw_image
+                    if x
+                ]
+                image_urls = [u for u in image_urls if u]
+            else:
+                image_urls = []
             out.append(_product_record(
                 title=pr.get('name'),
                 url=abs_url,
                 available=available,
                 price=first_offer.get('price', ''),
                 vendor=(pr.get('brand') or {}).get('name') if isinstance(pr.get('brand'), dict) else pr.get('brand') or '',
+                original_price=original_price,
+                image_urls=image_urls,
             ))
     return [p for p in out if p['title']]
 

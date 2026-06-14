@@ -125,6 +125,11 @@ def _parse_products(products, base_url):
         variants  = pr.get('variants', []) or []
         available = any(v.get('available') for v in variants)
         price     = variants[0].get('price', '') if variants else ''
+        original_price = variants[0].get('compare_at_price') if variants else None
+        if original_price in ('', '0.00', '0', 0):
+            original_price = None
+        images = pr.get('images', []) or []
+        image_urls = [im.get('src', '') for im in images if isinstance(im, dict) and im.get('src')]
         # No handle (3rd-party-feed items, gift-card/bundle pseudo-products) → no
         # item-level deep-link. Leave url empty so the alerter skips it and falls back
         # to the collection page link, rather than mislinking the item to the collection.
@@ -137,6 +142,8 @@ def _parse_products(products, base_url):
             'tags': tags_list,
             'price': price,
             'confidence': 'high',
+            'original_price': original_price,
+            'image_urls': image_urls,
         })
     return out
 
