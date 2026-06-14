@@ -55,6 +55,7 @@ import paths
 import db
 import collection_fetch
 import safe_fetch
+import scam_gate
 from ai_interpreter import classify_dealer
 from alerter import send_email
 
@@ -312,15 +313,33 @@ def _reload_web_watcher():
     return False
 
 
-def _promote_one(cand):
+def _promote_one(cand, override=False):
     """Add one candidate to sources.yaml and mark it promoted. Idempotent: a domain
-    already curated is marked promoted without a second write."""
+    already curated is marked promoted without a second write.
+
+    override=True: bypasses the scam gate (operator --approve is the human whitelist).
+    override=False (default): runs scam_gate.evaluate before writing; a quarantine/review
+    verdict rejects the candidate and emails the operator instead of writing to sources.yaml.
+    """
     domain = cand['domain']
     if domain in curated_domains():
         log.info(f"{domain} already curated — marking promoted, no write")
         db.set_dealer_candidate_status(domain, 'promoted')
         db.mark_dealer_candidate_notified(domain)
         return False
+
+    if not override:
+        cand_url = cand.get('sample_url') or f"https://{domain}"
+        verdict = scam_gate.evaluate(domain, cand_url, fetch_page, log=log)
+        if verdict.action != "ingest":
+            log.warning(f"SCAM GATE blocked {domain}: action={verdict.action} "
+                        f"score={verdict.score} reasons={verdict.reasons}")
+            db.set_dealer_candidate_status(domain, 'rejected')
+            scam_gate.notify_operator(domain, cand_url, verdict, send_email)
+            return False
+    else:
+        log.info(f"{domain} — operator override, skipping scam gate")
+
     if not _append_dealer_to_sources(cand):
         return False
     db.set_dealer_candidate_status(domain, 'promoted')
@@ -461,7 +480,7 @@ if __name__ == '__main__':
         cand = db.get_dealer_candidate(domain)
         if not cand:
             print(f"no candidate for {domain}")
-        elif _promote_one(cand):
+        elif _promote_one(cand, override=True):
             _reload_web_watcher()
             print(f"promoted {domain} → sources.yaml")
         else:
