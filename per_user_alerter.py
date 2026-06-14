@@ -406,28 +406,21 @@ def global_watch_matches(maker, keywords_str, searchable_text):
     return keywords_match(searchable_text, keywords_str)
 
 
-def disclaimer_html():
-    """Early-days disclaimer + feedback ask, shared by every results email (live
-    alert + signup backfill) so the message stays consistent."""
-    return (
-        '<p style="color:#e8e8e8;font-size:12px;line-height:1.6;margin-top:24px;'
-        'border-top:1px solid #222;padding-top:16px">'
-        'These results are brand new and instockornot.club is still being refined — '
-        'we expect matches to get sharper the more Drop Watcher is used, and '
-        '<strong>the better your keywords, the better the results</strong>. '
-        'We\'re grateful to our new users. Got feedback? We\'d love it: '
-        '<a href="mailto:info@instockornot.club" style="color:#ff8c42">info@instockornot.club</a>'
-        '</p>'
-    )
-
-
 DISCLAIMER_TEXT = (
-    "\n--\n"
-    "These results are brand new and instockornot.club is still being refined — we expect\n"
-    "matches to get sharper the more Drop Watcher is used, and the better your keywords, the\n"
-    "better the results. We're grateful to our new users.\n"
-    "Got feedback? We'd love it: info@instockornot.club\n"
+    "Links to third-party sellers are screened for fraud signals but are not endorsements "
+    "or guarantees. In Stock or Not is not a party to your transactions — verify sellers and "
+    "use buyer protections before paying. Report a suspicious source and we'll review it."
 )
+DISCLAIMER_HTML = (
+    '<p style="color:#888;font-size:12px;margin-top:24px;border-top:1px solid #333;padding-top:12px;">'
+    + DISCLAIMER_TEXT + '</p>'
+)
+
+
+def disclaimer_html():
+    """Screened-not-endorsed fine print, shared by every outbound user email (live
+    alert + signup backfill) so the message stays consistent."""
+    return DISCLAIMER_HTML
 
 
 def drop_prose_text(drop):
@@ -822,7 +815,7 @@ def build_alert_email(watcher, matches, drop):
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"{nkd_text_line}"
-        f"{DISCLAIMER_TEXT}"
+        f"\n{DISCLAIMER_TEXT}\n"
         f"Keep this watch alive: https://instockornot.club/api/ack/{unsub_token}\n"
         f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
     )
@@ -964,6 +957,36 @@ def run():
     db.set_hwm('per_user_alerter', max_id)
     log.info(f"HWM advanced to {max_id}")
     log.info("Done.")
+
+
+def _render_alert_for_test():
+    """Return (html_body, text_body) from the real build_alert_email with minimal stubs.
+    Used by tests/test_fine_print.py to confirm the disclaimer appears in both formats."""
+    stub_watcher = {
+        'id': 'test-watcher-001',
+        'email': 'test@example.com',
+        'name': 'Tester',
+        'keywords': 'sebenza',
+        'url': 'https://knivesetc.example.com',
+        'maker': '',
+        'unsubscribe_token': 'tok_test_abc123',
+        'strikes': 0,
+        'active': True,
+    }
+    stub_drop = {
+        'url': 'https://knivesetc.example.com/collections/all',
+        'source': 'KnivesEtc Example',
+        'page_summary': 'Sebenza 31 in stock.',
+        'notable_items': ['Chris Reeve Sebenza 31 — $450.00 (in stock)'],
+        'keywords_found': ['sebenza'],
+        'page_excerpt': 'Chris Reeve Sebenza 31 in stock now.',
+        'products': [],
+        'link_candidates': [],
+        'notable_items_detail': [],
+    }
+    stub_matches = ['sebenza']
+    _subj, html_body, text_body = build_alert_email(stub_watcher, stub_matches, stub_drop)
+    return html_body, text_body
 
 
 if __name__ == '__main__':

@@ -809,9 +809,8 @@ class TestBackfill:
             'Fan', [(['ad22'], {'source': 'Reddit', 'url': 'https://x.com',
                                 'page_summary': 'Demko AD22'})], 'tok123')
         for body in (html, text):
-            assert 'info@instockornot.club' in body
-            assert 'still being refined' in body
-            assert 'better your keywords' in body
+            assert 'not endorsements or guarantees' in body
+            assert 'verify sellers' in body
 
     def test_backfill_scopes_to_only_watcher_ids(self, tmp_env):
         import db, backfill_alerter, uuid
