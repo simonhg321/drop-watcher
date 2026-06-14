@@ -208,6 +208,22 @@ CREATE TABLE IF NOT EXISTS sent_alerts (
     ts        TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sent_alerts_recip_ts ON sent_alerts(recipient, ts);
+
+-- FTS5 product index (record_index.py) — one row per in-stock product per scan.
+-- Rebuilt per source_url on each scan; only available=1 products are stored.
+-- product_records_fts is a standalone FTS5 table (not external-content) that stores
+-- its own copy of the searchable columns plus source_url for scoped deletes.
+CREATE TABLE IF NOT EXISTS product_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_url TEXT NOT NULL,
+    title TEXT, vendor TEXT, tags TEXT,
+    url TEXT, price TEXT, available INTEGER DEFAULT 1,
+    scanned_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_product_records_source ON product_records(source_url);
+CREATE VIRTUAL TABLE IF NOT EXISTS product_records_fts USING fts5(
+    source_url, title, vendor, tags
+);
 """
 
 
