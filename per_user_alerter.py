@@ -224,14 +224,17 @@ def build_teardown_email(watcher, remaining):
 
 
 def teardown_watch(watcher, now):
-    """STRIKE_LIMIT unengaged emails: deactivate the watch, tell the user what remains."""
-    db.update_watcher(watcher['id'], active=False)
-    remaining = [w for w in db.get_watchers_by_email(watcher['email'])
-                 if w.get('active') and w['id'] != watcher['id']]
-    subject, html, txt = build_teardown_email(watcher, remaining)
-    send_email(subject, html, txt, to_addr=watcher['email'])
-    log.info(f"[{watcher['id']}] TEARDOWN after {STRIKE_LIMIT} unengaged emails "
-             f"({watcher['email']}, {watcher.get('keywords','')})")
+    """STRIKE_LIMIT unengaged reminders: quiet the reminder ladder and reset strikes,
+    but KEEP the watch active.
+
+    Simon 2026-06-14: stop the teardown bleed — deactivating watches at the strike limit
+    was killing real grail hunters on noise (Pro-Tech Avalon got 73 alerts then removed,
+    Strider SMF / CRK CGG / Demko likewise). We no longer deactivate or send a removal
+    email; the noisy episode is closed by the caller and the watch gets a fresh ladder on
+    the next genuine drop."""
+    db.update_watcher(watcher['id'], strikes=0)
+    log.info(f"[{watcher['id']}] reminder ladder reset at {STRIKE_LIMIT} unengaged — "
+             f"watch KEPT active ({watcher['email']}, {watcher.get('keywords','')})")
 
 
 def episode_sweep(now):

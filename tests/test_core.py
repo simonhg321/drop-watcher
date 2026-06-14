@@ -2523,7 +2523,11 @@ class TestEpisodeSweep:
             pua.episode_sweep(datetime(2026, 6, 12, 22, 0, tzinfo=timezone.utc))
         assert se2.call_count == 0
 
-    def test_teardown_at_strike_limit(self, env):
+    def test_strike_limit_quiets_episode_without_deactivating(self, env):
+        # Simon 2026-06-14: stop the teardown bleed. At STRIKE_LIMIT we no longer
+        # deactivate the watch (wrongful teardowns on grail watches aren't worth it) —
+        # we close the noisy episode and reset the strike ladder, keeping the watch
+        # active so the next genuine drop alerts fresh.
         db, pua = env
         db.add_watcher({'id': 'w002', 'email': 'a@b.c', 'url': 'https://other.com',
                         'keywords': 'sebenza', 'unsubscribe_token': 'tok1', 'active': 1,
@@ -2534,13 +2538,10 @@ class TestEpisodeSweep:
                             'Stub Grandpa Finish', '2026-06-12T20:30:00+00:00')
         with patch.object(pua, 'send_email', return_value=True) as se:
             pua.episode_sweep(datetime(2026, 6, 12, 22, 0, tzinfo=timezone.utc))
-        assert se.call_count == 1               # the teardown email
-        body_txt = se.call_args[0][2]
-        assert 'removed' in body_txt.lower()
-        assert 'sebenza' in body_txt.lower()    # remaining watch listed
-        assert not db.get_watcher_by_id('w001')['active']
-        assert db.get_watcher_by_id('w002')['active']
-        assert db.get_open_episode('ck1') is None
+        assert se.call_count == 0                       # no removal email
+        assert db.get_watcher_by_id('w001')['active']   # watch KEPT active
+        assert (db.get_watcher_by_id('w001')['strikes'] or 0) == 0  # ladder reset
+        assert db.get_open_episode('ck1') is None        # noisy episode closed
 
 
 class TestClickEngagement:
