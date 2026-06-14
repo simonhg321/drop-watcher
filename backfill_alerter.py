@@ -33,6 +33,8 @@ from per_user_alerter import (
     KEYWORD_HINT_TEXT,
     disclaimer_html,
     DISCLAIMER_TEXT,
+    BETA_NOTICE_TEXT,
+    BETA_NOTICE_HTML,
     episode_blocks,
 )
 from urls import domain_from_url
@@ -215,6 +217,7 @@ def build_backfill_digest(name, shown, unsub_token, note=None, verify=False):
         <a href="https://instockornot.club/my-alerts.html?token={unsub_token}"
            style="background:#e67e22;color:#fff;padding:10px 20px;text-decoration:none;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">My Alerts Dashboard</a>
       </p>
+      {BETA_NOTICE_HTML}
       {disclaimer_html()}
       <hr style="border:none;border-top:1px solid #222;margin:32px 0">
       <p style="color:#444;font-size:11px">
@@ -231,7 +234,8 @@ def build_backfill_digest(name, shown, unsub_token, note=None, verify=False):
         f"watch{'es' if n != 1 else ''} right now:\n\n"
         f"{rows_text}"
         f"{digest_keyword_hint_text}"
-        f"{DISCLAIMER_TEXT}\n"
+        f"{BETA_NOTICE_TEXT}\n"
+        f"\n{DISCLAIMER_TEXT}\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
     )

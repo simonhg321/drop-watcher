@@ -9,10 +9,17 @@ def test_disclaimer_constants_exist():
     assert "not endorsements" in per_user_alerter.DISCLAIMER_HTML
 
 
+def test_beta_notice_constants_exist():
+    assert "still being refined" in per_user_alerter.BETA_NOTICE_TEXT
+    assert "still being refined" in per_user_alerter.BETA_NOTICE_HTML
+
+
 def test_alert_email_contains_disclaimer():
     html, text = per_user_alerter._render_alert_for_test()
     assert "not endorsements or guarantees" in html
     assert "not endorsements or guarantees" in text
+    assert "still being refined" in html
+    assert "still being refined" in text
 
 
 def test_backfill_digest_contains_disclaimer():
@@ -26,3 +33,5 @@ def test_backfill_digest_contains_disclaimer():
     )
     assert "not endorsements or guarantees" in html
     assert "not endorsements or guarantees" in text
+    assert "still being refined" in html
+    assert "still being refined" in text

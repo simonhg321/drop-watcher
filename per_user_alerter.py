@@ -406,6 +406,21 @@ def global_watch_matches(maker, keywords_str, searchable_text):
     return keywords_match(searchable_text, keywords_str)
 
 
+BETA_NOTICE_TEXT = (
+    "These results are brand new and instockornot.club is still being refined — we expect "
+    "matches to get sharper the more Drop Watcher is used, and the better your keywords, the "
+    "better the results. We're grateful to our new users. Got feedback? We'd love it: "
+    "info@instockornot.club"
+)
+BETA_NOTICE_HTML = (
+    '<p style="color:#e8e8e8;font-size:12px;margin-top:16px;">'
+    'These results are brand new and instockornot.club is still being refined — we expect '
+    'matches to get sharper the more Drop Watcher is used, and '
+    '<strong>the better your keywords, the better the results</strong>. We\'re grateful to our '
+    'new users. Got feedback? We\'d love it: '
+    '<a href="mailto:info@instockornot.club">info@instockornot.club</a></p>'
+)
+
 DISCLAIMER_TEXT = (
     "Links to third-party sellers are screened for fraud signals but are not endorsements "
     "or guarantees. In Stock or Not is not a party to your transactions — verify sellers and "
@@ -776,6 +791,8 @@ def build_alert_email(watcher, matches, drop):
       </p>
       {nkd_html}
 
+      {BETA_NOTICE_HTML}
+
       {disclaimer_html()}
 
       <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
@@ -815,6 +832,7 @@ def build_alert_email(watcher, matches, drop):
         f"View: {url}\n\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={unsub_token}\n"
         f"{nkd_text_line}"
+        f"\n{BETA_NOTICE_TEXT}\n"
         f"\n{DISCLAIMER_TEXT}\n"
         f"Keep this watch alive: https://instockornot.club/api/ack/{unsub_token}\n"
         f"Unsubscribe: https://instockornot.club/api/unsubscribe/{unsub_token}"
