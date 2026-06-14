@@ -40,6 +40,7 @@ load_dotenv(paths.ENV_FILE)
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 from ai_interpreter import analyze_page, analyze_user_page
 import collection_fetch
+import record_index
 from safe_fetch import is_safe_url
 from urls import normalize_watch_url, domain_from_url
 from config_load import load_yaml, build_keywords, prefilter
@@ -285,6 +286,12 @@ def scan_one_url(url, source_name=None, hints=None):
     if text is None:
         return None
 
+    try:
+        if products:
+            record_index.index_scan(url, products)
+    except Exception as e:
+        log.warning(f"record_index.index_scan failed for {url}: {e}")
+
     if is_homepage_junk(text):
         return None
 
@@ -486,6 +493,12 @@ def run():
                 time.sleep(retry_delay)
                 continue
 
+            try:
+                if products:
+                    record_index.index_scan(url, products)
+            except Exception as e:
+                log.warning(f"record_index.index_scan failed for {url}: {e}")
+
             failure_count[url] = 0
 
             fp     = page_fingerprint(text, products)
@@ -612,6 +625,12 @@ def run():
                 if failure_count[uurl] >= fail_thresh:
                     log.error(f"{uname} has failed {failure_count[uurl]} times in a row")
                 continue
+
+            try:
+                if products:
+                    record_index.index_scan(uurl, products)
+            except Exception as e:
+                log.warning(f"record_index.index_scan failed for {uurl}: {e}")
 
             failure_count[uurl] = 0
 

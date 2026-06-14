@@ -44,6 +44,7 @@ import linkpick
 import nkd
 import sharp
 import daily_cap
+import record_match
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
 SHARP_ENABLED = os.environ.get("DW_SHARP_ENABLED", "0") == "1"
@@ -471,6 +472,34 @@ def drop_searchable_text(drop):
     return f"{drop_prose_text(drop)} {titles}"
 
 
+def _matcher_mode():
+    """Return the active matcher: 'blob' (default) or 'fts5' (opt-in via DW_MATCHER).
+
+    Production safety: with DW_MATCHER unset the return is always 'blob' and the
+    dispatch below is never entered — zero behavior change in prod.
+    """
+    return os.environ.get('DW_MATCHER', 'blob').strip().lower()
+
+
+def _record_hits_to_matches(watcher, recs):
+    """Translate FTS5 product_records hits into the same shape matches_for_watcher_drop
+    returns under the blob path: a list of matched keyword strings (e.g. ['smf']).
+
+    Each record already passed FTS5 title+tags matching, so we confirm which of the
+    watcher's keywords appears in the record's title or tags, then return the unique
+    matched keyword strings — the same list callers receive from keywords_match().
+    """
+    kws = watcher.get('keywords', '')
+    seen, out = set(), []
+    for rec in recs:
+        hay = ((rec.get('title') or '') + ' ' + (rec.get('tags') or '')).lower()
+        for kw in keywords_match(hay, kws):
+            if kw not in seen:
+                seen.add(kw)
+                out.append(kw)
+    return out
+
+
 def matches_for_watcher_drop(watcher, drop):
     """Matched keywords for ONE watcher against ONE drop, or [] if no match.
 
@@ -479,6 +508,9 @@ def matches_for_watcher_drop(watcher, drop):
     two can never diverge on what counts as a match. Encapsulates the
     global-vs-URL-scoped branch and user-drop scoping.
     """
+    if _matcher_mode() == 'fts5':
+        recs = record_match.query(watcher, source_url=drop.get('url'))
+        return _record_hits_to_matches(watcher, recs if isinstance(recs, list) else [])
     w_url = (watcher.get('url') or '').lower()
     kws   = watcher.get('keywords', '')
     maker = watcher.get('maker', '')
