@@ -39,6 +39,7 @@ from per_user_alerter import (
 )
 from urls import domain_from_url
 from alerter import send_email
+import daily_cap
 
 LOOKBACK_DAYS = 7
 MAX_DROPS_PER_DIGEST = 8
@@ -273,6 +274,11 @@ def backfill_for_email(email, days=LOOKBACK_DAYS, dry_run=False, bcc=None,
         result['preview'] = [(m, d.get('source', ''), d.get('url', '')) for m, d in shown]
         return result
 
+    if not daily_cap.under_daily_cap(email):
+        log.warning(f"CAP: skipping backfill digest to {email} — 24h cap reached")
+        result['error'] = 'cap_reached'
+        return result
+
     name = watchers[0].get('name') or 'Watcher'
     unsub = watchers[0]['unsubscribe_token']
     subject, html, text = build_backfill_digest(name, shown, unsub)
@@ -288,6 +294,7 @@ def backfill_for_email(email, days=LOOKBACK_DAYS, dry_run=False, bcc=None,
         result['error'] = 'send_failed'
         return result
 
+    db.record_sent_alert(email, 'email')
     result['sent'] = True
     now = datetime.now(timezone.utc).isoformat()
     shown_keys = {_drop_key(d) for _m, d in shown}

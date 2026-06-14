@@ -200,6 +200,14 @@ CREATE TABLE IF NOT EXISTS page_scans (
     scanned_at TEXT NOT NULL,
     instock_text TEXT DEFAULT ''        -- everything observed purchasable this scan
 );
+
+CREATE TABLE IF NOT EXISTS sent_alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipient TEXT NOT NULL,
+    channel   TEXT NOT NULL DEFAULT 'email',
+    ts        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sent_alerts_recip_ts ON sent_alerts(recipient, ts);
 """
 
 
@@ -1063,3 +1071,21 @@ def mark_dealer_candidate_notified(domain):
     with get_db() as db:
         db.execute("UPDATE dealer_candidates SET notified=? WHERE domain=?",
                    (now, domain))
+
+
+# ── Per-recipient send cap (daily_cap.py) ───────────────────────────────────
+
+def record_sent_alert(recipient, channel='email', ts=None):
+    from datetime import datetime, timezone
+    ts = ts or datetime.now(timezone.utc).isoformat()
+    with get_db() as db:
+        db.execute("INSERT INTO sent_alerts (recipient, channel, ts) VALUES (?,?,?)",
+                   (recipient.lower(), channel, ts))
+
+
+def count_sent_alerts(recipient, since_iso):
+    with get_db() as db:
+        row = db.execute(
+            "SELECT COUNT(*) AS n FROM sent_alerts WHERE recipient=? AND ts>=?",
+            (recipient.lower(), since_iso)).fetchone()
+        return row['n']

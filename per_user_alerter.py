@@ -43,6 +43,7 @@ from makers import expand_maker
 import linkpick
 import nkd
 import sharp
+import daily_cap
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
 SHARP_ENABLED = os.environ.get("DW_SHARP_ENABLED", "0") == "1"
@@ -284,11 +285,15 @@ def episode_sweep(now):
         # 2. engaged: no reminders; keep-or-delete once, 20 min after the click
         if ep['engaged_at']:
             if not ep['keep_delete_sent_at'] and ep['engaged_at'] <= kd_cutoff:
-                subject, html, txt = build_keep_delete_email(watcher, ep)
-                if send_email(subject, html, txt, to_addr=watcher['email']):
-                    db.mark_keep_delete_sent(ep['id'], now_iso)
-                    log.info(f"[{watcher['id']}] keep-or-delete sent for "
-                             f"'{ep['matches']}' on {ep['domain']}")
+                if not daily_cap.under_daily_cap(watcher['email']):
+                    log.info(f"[{watcher['id']}] CAP: skipping keep-or-delete to {watcher['email']}")
+                else:
+                    subject, html, txt = build_keep_delete_email(watcher, ep)
+                    if send_email(subject, html, txt, to_addr=watcher['email']):
+                        db.record_sent_alert(watcher['email'], 'email')
+                        db.mark_keep_delete_sent(ep['id'], now_iso)
+                        log.info(f"[{watcher['id']}] keep-or-delete sent for "
+                                 f"'{ep['matches']}' on {ep['domain']}")
             continue
 
         # 3/4. unengaged + still in stock on a fresh scan: remind hourly,
@@ -299,13 +304,17 @@ def episode_sweep(now):
                 teardown_watch(watcher, now)
                 db.close_episode(ep['id'], now_iso)
                 continue
-            subject, html, txt = build_reminder_email(watcher, ep)
-            if send_email(subject, html, txt, to_addr=watcher['email']):
-                db.bump_episode_email(ep['id'], now_iso)
-                db.update_watcher(watcher['id'],
-                                  strikes=(watcher.get('strikes') or 0) + 1)
-                log.info(f"[{watcher['id']}] reminder #{ep['emails_sent']} sent "
-                         f"for '{ep['matches']}' on {ep['domain']}")
+            if not daily_cap.under_daily_cap(watcher['email']):
+                log.info(f"[{watcher['id']}] CAP: skipping reminder to {watcher['email']}")
+            else:
+                subject, html, txt = build_reminder_email(watcher, ep)
+                if send_email(subject, html, txt, to_addr=watcher['email']):
+                    db.record_sent_alert(watcher['email'], 'email')
+                    db.bump_episode_email(ep['id'], now_iso)
+                    db.update_watcher(watcher['id'],
+                                      strikes=(watcher.get('strikes') or 0) + 1)
+                    log.info(f"[{watcher['id']}] reminder #{ep['emails_sent']} sent "
+                             f"for '{ep['matches']}' on {ep['domain']}")
 
 
 def load_recent_drops():
@@ -921,6 +930,10 @@ def run():
                     log.error(f"Teardown failed for {watcher.get('id')}: {e}")
                 continue
 
+            if not daily_cap.under_daily_cap(email):
+                log.info(f"[{watcher.get('id')}] CAP: skipping alert to {email} — 24h cap reached")
+                continue
+
             try:
                 subject, html, txt = build_alert_email(watcher, matches, drop)
 
@@ -932,6 +945,7 @@ def run():
                 continue
 
             if result:
+                db.record_sent_alert(email, 'email')
                 # Audit row + open the episode for THIS watcher's match only
                 db.mark_cooldown(ck, recipient=email)
                 db.open_episode(ck, watcher['id'],
@@ -964,6 +978,7 @@ def run():
                         if not phone.startswith('+'):
                             phone = '+1' + re.sub(r'\D', '', phone)
                         if _send_twilio_sms(phone, body):
+                            db.record_sent_alert(email, 'sms')
                             log.info(f"SMS sent to {phone} for {email}")
                         else:
                             log.error(f"SMS failed to {phone} for {email}")
