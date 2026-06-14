@@ -10,7 +10,11 @@ DAILY_CAP = 6
 
 def under_daily_cap(recipient):
     since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-    n = db.count_sent_alerts(recipient, since)
+    try:
+        n = db.count_sent_alerts(recipient, since)
+    except Exception as e:
+        log.error(f"daily_cap check failed for {recipient}, failing OPEN (allowing send): {e}")
+        return True
     if n >= DAILY_CAP:
         log.warning(f"CAP_TRIPPED recipient={recipient} count={n} window=24h")
         return False

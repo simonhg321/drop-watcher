@@ -26,3 +26,11 @@ def test_old_sends_fall_out_of_window():
     for _ in range(6):
         db.record_sent_alert(r, "email", ts=old)
     assert daily_cap.under_daily_cap(r) is True     # all outside 24h
+
+
+def test_fails_open_on_db_error(monkeypatch):
+    db, daily_cap = _fresh_db()
+    def boom(*a, **k):
+        raise RuntimeError("db locked")
+    monkeypatch.setattr(daily_cap.db, "count_sent_alerts", boom)
+    assert daily_cap.under_daily_cap("user@example.com") is True   # allow send on error
