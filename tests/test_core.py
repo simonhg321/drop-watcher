@@ -2915,3 +2915,62 @@ class TestMakerPrompt:
                 "SELECT maker FROM watchers WHERE email=? ORDER BY rowid DESC LIMIT 1",
                 ('a@b.com',)).fetchone()
         assert row is not None and row['maker'] == 'Obscure Custom Knifeworks'
+
+
+class TestEditMaker:
+    def _setup(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib, paths; importlib.reload(paths)
+        import db; importlib.reload(db)
+        import watcher_signup; importlib.reload(watcher_signup)
+        db.add_watcher({
+            'id': 'w1',
+            'email': 'a@b.com',
+            'url': 'https://x.com',
+            'keywords': 'k',
+            'maker': '',
+            'unsubscribe_token': 'tok',
+            'active': 1,
+            'created': '2026-06-12T00:00:00+00:00',
+        })
+        return db, watcher_signup.app.test_client()
+
+    def test_set_maker_canonicalized(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1?token=tok', json={'maker': 'crk'})
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data.get('ok') is True
+        assert data.get('maker') == 'Chris Reeve Knives'
+        assert db.get_watcher_by_id('w1')['maker'] == 'Chris Reeve Knives'
+
+    def test_set_maker_unknown_literal_stored(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1?token=tok', json={'maker': 'Obscure Blades Co'})
+        assert r.status_code == 200
+        assert r.get_json().get('maker') == 'Obscure Blades Co'
+        assert db.get_watcher_by_id('w1')['maker'] == 'Obscure Blades Co'
+
+    def test_wrong_token_rejected(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1?token=WRONG', json={'maker': 'crk'})
+        assert r.status_code in (403, 404)
+        assert db.get_watcher_by_id('w1')['maker'] == ''  # unchanged
+
+    def test_missing_token_rejected(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1', json={'maker': 'crk'})
+        assert r.status_code in (403, 404)
+
+    def test_nonexistent_watch_returns_error(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/NOPE?token=tok', json={'maker': 'crk'})
+        assert r.status_code in (403, 404)
+
+    def test_maker_truncated_at_100_chars(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        long_maker = 'X' * 200
+        r = c.post('/api/watch-maker/w1?token=tok', json={'maker': long_maker})
+        assert r.status_code == 200
+        stored = db.get_watcher_by_id('w1')['maker']
+        assert len(stored) <= 100

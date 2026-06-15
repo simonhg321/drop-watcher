@@ -741,6 +741,27 @@ def stop_watching(watch_id):
     log.info(f"Watcher removed: {watch_id}")
     return jsonify({'status': 'removed'})
 
+
+@app.route('/api/watch-maker/<watch_id>', methods=['POST'])
+@limiter.limit("10 per minute")
+def set_watch_maker(watch_id):
+    token = request.args.get('token') or request.headers.get('X-Token')
+    if not token:
+        return jsonify({'error': 'unauthorized'}), 403
+    target = db.get_watcher_by_id(watch_id)
+    if not target:
+        return jsonify({'error': 'not found'}), 404
+    import hmac as _hmac
+    if not _hmac.compare_digest(target.get('unsubscribe_token', ''), token):
+        return jsonify({'error': 'unauthorized'}), 403
+    raw = str((request.get_json(silent=True) or {}).get('maker') or '').strip()[:100]
+    r = maker_resolve.resolve(raw)
+    maker = r['canonical'] or raw
+    db.update_watcher(watch_id, maker=maker)
+    log.info(f"Maker updated: {watch_id} -> {maker!r}")
+    return jsonify({'ok': True, 'maker': maker})
+
+
 @app.route('/api/my-watch/<token>', methods=['GET'])
 @limiter.limit("10 per minute")
 def my_watch(token):
