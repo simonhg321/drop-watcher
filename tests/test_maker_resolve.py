@@ -36,6 +36,21 @@ def test_model_shared_by_two_makers_is_ambiguous():
     assert r["suggestion"] is None
 
 
+def test_none_and_blankish_inputs_are_unknown_and_never_raise():
+    for bad in (None, "   ", "---", "!!!"):
+        r = maker_resolve.resolve(bad)
+        assert r == {"canonical": None, "suggestion": None, "kind": "unknown"}
+
+def test_exact_match_is_case_insensitive():
+    r = maker_resolve.resolve("CHRIS REEVE KNIVES")
+    assert r["canonical"] == "Chris Reeve Knives"
+    assert r["kind"] == "exact"
+
+def test_missing_makers_file_returns_unknown_not_raise():
+    r = maker_resolve.resolve("crk", makers_file="/nonexistent/makers.yaml")
+    assert r["kind"] == "unknown"
+
+
 def test_misspelled_maker_suggests_correction():
     r = maker_resolve.resolve("hindrer")
     assert r["kind"] == "typo"

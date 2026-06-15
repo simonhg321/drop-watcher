@@ -5,6 +5,7 @@ Single brain for the signup form and the backfill script. Reads makers.yaml via
 config_load. Pure and dependency-light (stdlib difflib only). Never raises."""
 import difflib
 import re
+from functools import lru_cache
 
 import paths
 from config_load import load_yaml
@@ -13,14 +14,20 @@ _PUNCT = re.compile(r"[^a-z0-9 ]+")
 
 
 def _norm(s):
-    return _PUNCT.sub("", (s or "").strip().lower()).strip()
+    return _PUNCT.sub("", (s or "").strip().lower())
 
 
+# NOTE: deliberately separate from makers._maker_index — that maps alias -> all
+# match terms (for expansion); this maps alias -> the canonical display name (for
+# resolution). Same YAML, different shape; not worth sharing code.
+@lru_cache(maxsize=8)
 def _indexes(makers_file):
-    """Build (alias_to_name, model_to_names, all_keys) from makers.yaml.
-    alias_to_name: norm(alias|name) -> canonical Name (exact identity).
-    model_to_names: norm(model) -> set(canonical Names) (suggestion identity).
-    """
+    """Build (alias_to_name, model_to_names, all_keys) from makers.yaml. Cached per
+    path (cron jobs are fresh processes; the signup server reads a stable file).
+    alias_to_name: norm(alias|name) -> canonical display Name (verbatim).
+    model_to_names: norm(model) -> set(canonical Names).
+    Alias collisions resolve first-wins by YAML order (e.g. 'mick strider' maps to
+    whichever maker is listed first) — deterministic, and a YAML data concern."""
     data = load_yaml(makers_file) or {}
     alias_to_name, model_to_names = {}, {}
     for m in data.get("makers", []) or []:
