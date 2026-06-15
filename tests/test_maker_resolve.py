@@ -18,3 +18,15 @@ def test_alias_resolves_to_canonical():
 def test_blank_is_unknown():
     r = maker_resolve.resolve("")
     assert r == {"canonical": None, "suggestion": None, "kind": "unknown"}
+
+
+def test_model_typed_as_maker_suggests_maker():
+    r = maker_resolve.resolve("halftrack")   # Hinderer notable_model
+    assert r["kind"] == "model"
+    assert r["suggestion"] == "Hinderer Knives"
+    assert r["canonical"] is None
+
+
+def test_model_shared_by_two_makers_is_ambiguous():
+    r = maker_resolve.resolve("steel flame")
+    assert r["kind"] in ("ambiguous", "alias", "exact")

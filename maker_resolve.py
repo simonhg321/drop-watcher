@@ -65,4 +65,9 @@ def resolve(text, makers_file=None):
         name = alias_to_name[k]
         kind = "exact" if k == _norm(name) else "alias"
         return {"canonical": name, "suggestion": None, "kind": kind}
+    if k in model_to_names:
+        names = sorted(model_to_names[k])
+        if len(names) == 1:
+            return {"canonical": None, "suggestion": names[0], "kind": "model"}
+        return {"canonical": None, "suggestion": None, "kind": "ambiguous"}
     return {"canonical": None, "suggestion": None, "kind": "unknown"}
