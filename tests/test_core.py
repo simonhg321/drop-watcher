@@ -1854,8 +1854,8 @@ class TestWatchEndpointGlobal:
         ws._fetch_page_text = lambda u: 'chris reeve sebenza knives in stock'
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer', return_value={'is_dealer': True, 'confidence': 0.95, 'category': 'knife dealer', 'brands': 'Chris Reeve'}):
-            r = c.post('/api/watch', json={'url': 'https://newknives-xyz.com/crk', 'keywords': 'damascus', 'email': 'g@h.com'})
-        assert r.status_code in (200, 201)
+            r = c.post('/api/watch', json={'url': 'https://newknives-xyz.com/crk', 'keywords': 'damascus', 'email': 'g@h.com', 'maker_confirmed': True})
+        assert r.status_code == 201          # watch actually created (201), not the 200 prompt
         import db
         assert db.get_dealer_candidate('newknives-xyz.com') is not None
 
@@ -1892,8 +1892,9 @@ class TestWatchEndpointGlobal:
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer') as mock_cls:
             r = c.post('/api/watch', json={'url': 'https://nopage-xyz.com/x',
-                                           'keywords': 'damascus', 'email': 'nf@h.com'})
-        assert r.status_code in (200, 201)
+                                           'keywords': 'damascus', 'email': 'nf@h.com',
+                                           'maker_confirmed': True})
+        assert r.status_code == 201          # watch actually created (201), not the 200 prompt
         mock_cls.assert_not_called()
         import db
         assert db.get_dealer_candidate('nopage-xyz.com') is None
@@ -2882,3 +2883,20 @@ class TestMakerPrompt:
             'keywords': 'pocket knife', 'email': 'a@b.com', 'maker_confirmed': True})
         assert r.status_code in (200, 201)
         assert r.get_json().get('confirm') is not True
+
+    def test_url_watch_custom_unknown_maker_falls_through_without_prompt(self, tmp_path, monkeypatch):
+        # Long-tail maker not in makers.yaml: a provided unknown maker must NOT prompt
+        # (we accept free text) and the watch is created with the literal maker stored.
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'grail', 'maker': 'Obscure Custom Knifeworks',
+            'email': 'a@b.com'})
+        assert r.status_code in (200, 201)
+        assert r.get_json().get('confirm') is not True   # accepted, no prompt
+        # robust to URL normalization: confirm the watch exists with the literal maker
+        with ws.db.get_db() as conn:
+            row = conn.execute(
+                "SELECT maker FROM watchers WHERE email=? ORDER BY rowid DESC LIMIT 1",
+                ('a@b.com',)).fetchone()
+        assert row is not None and row['maker'] == 'Obscure Custom Knifeworks'
