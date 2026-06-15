@@ -30,7 +30,7 @@ import db
 # Episode model (spec 2026-06-12): an open episode replaces the old 6h timed
 # cooldown. It closes when a scan observes the item not purchasable.
 STRIKE_LIMIT          = 12   # consecutive unengaged emails before watch teardown
-REMINDER_INTERVAL_H   = 1    # still-in-stock nudge cadence while unclicked
+REMINDER_INTERVAL_H   = 24   # still-in-stock nudge cadence while unclicked
 KEEP_DELETE_DELAY_MIN = 20   # keep-or-delete email this long after a click
 EPISODE_STALE_H       = 24   # close-valve for never-rescanned sources (feeds)
 DROPS_WINDOW_MINUTES = 15  # Only look at drops from last N minutes (aligns with cron)
