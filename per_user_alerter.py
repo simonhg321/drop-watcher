@@ -508,9 +508,6 @@ def matches_for_watcher_drop(watcher, drop):
     two can never diverge on what counts as a match. Encapsulates the
     global-vs-URL-scoped branch and user-drop scoping.
     """
-    if _matcher_mode() == 'fts5':
-        recs = record_match.query(watcher, source_url=drop.get('url'))
-        return _record_hits_to_matches(watcher, recs if isinstance(recs, list) else [])
     w_url = (watcher.get('url') or '').lower()
     kws   = watcher.get('keywords', '')
     maker = watcher.get('maker', '')
@@ -556,6 +553,13 @@ def matches_for_watcher_drop(watcher, drop):
             return []
     elif not w_domain or w_domain != domain_from_url(drop_url):
         return []
+    # URL-scoped leaf: the scoping guards above (monitor-domain, global skip,
+    # user-drop exact-URL, domain match) have all run for BOTH matchers. Only the
+    # final keyword decision differs by matcher. FTS5 queries the source-scoped
+    # in-stock product index; blob matches against the drop's searchable text.
+    if _matcher_mode() == 'fts5':
+        recs = record_match.query(watcher, source_url=drop_url)
+        return _record_hits_to_matches(watcher, recs if isinstance(recs, list) else [])
     # Corp #21 (A+B): a maker-carrying URL-scoped watch requires maker+keyword in the
     # SAME product line. Maker-less watches (62/65 of the population) keep firing on
     # keyword alone against the page text.
