@@ -70,4 +70,9 @@ def resolve(text, makers_file=None):
         if len(names) == 1:
             return {"canonical": None, "suggestion": names[0], "kind": "model"}
         return {"canonical": None, "suggestion": None, "kind": "ambiguous"}
+    if len(k) >= 4:
+        close = difflib.get_close_matches(k, all_keys, n=1, cutoff=0.84)
+        if close:
+            return {"canonical": None, "suggestion": alias_to_name[close[0]],
+                    "kind": "typo"}
     return {"canonical": None, "suggestion": None, "kind": "unknown"}

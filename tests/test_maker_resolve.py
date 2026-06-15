@@ -30,3 +30,15 @@ def test_model_typed_as_maker_suggests_maker():
 def test_model_shared_by_two_makers_is_ambiguous():
     r = maker_resolve.resolve("steel flame")
     assert r["kind"] in ("ambiguous", "alias", "exact")
+
+
+def test_misspelled_maker_suggests_correction():
+    r = maker_resolve.resolve("hindrer")
+    assert r["kind"] == "typo"
+    assert r["suggestion"] == "Hinderer Knives"
+
+
+def test_short_garbage_does_not_fuzzy_match():
+    r = maker_resolve.resolve("xq")
+    assert r["kind"] == "unknown"
+    assert r["suggestion"] is None
