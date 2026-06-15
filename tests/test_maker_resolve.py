@@ -28,8 +28,12 @@ def test_model_typed_as_maker_suggests_maker():
 
 
 def test_model_shared_by_two_makers_is_ambiguous():
-    r = maker_resolve.resolve("steel flame")
-    assert r["kind"] in ("ambiguous", "alias", "exact")
+    # "damascus" is a notable_model for several makers (CRK, Strider, Arno Bernard)
+    # and is NOT an alias, so it genuinely reaches the ambiguous branch.
+    r = maker_resolve.resolve("damascus")
+    assert r["kind"] == "ambiguous"
+    assert r["canonical"] is None
+    assert r["suggestion"] is None
 
 
 def test_misspelled_maker_suggests_correction():
