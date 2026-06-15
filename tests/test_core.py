@@ -691,6 +691,21 @@ class TestBackfill:
         mock_send.assert_not_called()
         assert res['sent'] is False
 
+    def test_rescanned_source_opens_one_episode_not_many(self, tmp_env):
+        # A source rescanned N times = N drop rows for the SAME url. A matching
+        # backfill must open ONE episode (one match_key), not one per rescan — the
+        # artknives.com dup bug where 10 rescans spawned 10 identical episodes.
+        import db, backfill_alerter
+        wid = self._seed_global_watcher(db)
+        for _ in range(3):
+            self._seed_drop(db, url='https://artknives.com/art-knives/chris-reeve-knives/')
+        with patch('backfill_alerter.send_email', return_value=True) as mock_send:
+            res = backfill_alerter.backfill_for_email('fan@example.com')
+        assert res['sent'] is True
+        assert mock_send.call_count == 1
+        mine = [e for e in db.get_open_episodes() if e['watcher_id'] == wid]
+        assert len(mine) == 1, f"expected 1 episode, got {len(mine)} (duplicate-episode bug)"
+
     def test_send_failure_does_not_mark(self, tmp_env):
         import db, backfill_alerter
         wid = self._seed_global_watcher(db)

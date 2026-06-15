@@ -639,7 +639,20 @@ def mark_cooldown(cooldown_key, recipient=''):
 
 def open_episode(match_key, watcher_id, domain, drop_url, matches, recipient, now_iso,
                  matched_lines='[]'):
+    """Open an episode for this match_key, or return the existing open one.
+
+    Idempotent per match_key: an open (closed_at IS NULL) episode IS the cooldown, so
+    there must be at most one per (watcher, domain, matches). Without this, a source
+    rescanned N times — N drop rows for the same domain — opens N identical episodes
+    when matched in one batch (the backfill / artknives.com dup bug), since the
+    open-episode check ran before any of them committed. Returns the (possibly
+    pre-existing) episode id."""
     with get_db() as db:
+        existing = db.execute(
+            "SELECT id FROM alert_episodes WHERE match_key=? AND closed_at IS NULL",
+            (match_key,)).fetchone()
+        if existing:
+            return existing['id']
         cur = db.execute("""
             INSERT INTO alert_episodes
                 (match_key, watcher_id, domain, drop_url, matches, recipient,
