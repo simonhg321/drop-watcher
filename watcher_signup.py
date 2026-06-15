@@ -487,6 +487,27 @@ def watch():
     if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
         return jsonify({'error': 'Invalid phone number format.'}), 400
 
+    # ── Maker soft-prompt (URL watches only; global already requires maker) ──
+    # Hard prompt, soft skip: nudge the user to a canonical maker so FTS5
+    # brand-gating applies, but let them create a maker-less page watch by
+    # re-submitting with maker_confirmed.
+    if not is_global and not data.get('maker_confirmed'):
+        probe = maker_resolve.resolve(maker) if maker else maker_resolve.resolve(keywords)
+        if not maker and probe['kind'] in ('exact', 'alias'):
+            maker = probe['canonical']            # keyword itself names a maker — adopt
+        elif probe['kind'] in ('model', 'typo') or (not maker):
+            return jsonify({
+                'confirm': True,
+                'kind': probe['kind'],
+                'suggestion': probe.get('suggestion'),
+                'message': ("Did you mean " + probe['suggestion'] + "?"
+                            if probe.get('suggestion')
+                            else "Add the maker you're hunting for sharper alerts, "
+                                 "or watch the whole page."),
+            }), 200
+        elif maker and probe['kind'] in ('exact', 'alias'):
+            maker = probe['canonical']            # normalize to canonical spelling
+
     # Deduplicate: same email + url combo (global watches: + maker)
     existing = db.find_watcher_by_email_url(email, url, maker=maker)
     if existing:

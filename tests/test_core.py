@@ -199,6 +199,7 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com',
             'keywords': 'hinderer, damascus',
             'email': 'new@example.com',
+            'maker_confirmed': True,
         })
         assert resp.status_code == 201
         data = resp.get_json()
@@ -246,6 +247,7 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com',
             'keywords': 'hinderer',
             'email': 'dup@example.com',
+            'maker_confirmed': True,
         }
         resp1 = client.post('/api/watch', json=payload)
         assert resp1.status_code == 201
@@ -264,6 +266,7 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com',
             'keywords': 'hinderer',
             'email': 'multi@example.com',
+            'maker_confirmed': True,
         })
         assert resp1.status_code == 201
         id1 = resp1.get_json()['id']
@@ -283,6 +286,7 @@ class TestSignupAPI:
             'url': 'https://www.steelflame.com',
             'keywords': 'killbox',
             'email': 'multi@example.com',
+            'maker_confirmed': True,
         })
         assert resp2.status_code == 201
 
@@ -299,9 +303,11 @@ class TestSignupAPI:
         # Create two watches
         client.post('/api/watch', json={
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'verify@example.com',
+            'maker_confirmed': True,
         })
         client.post('/api/watch', json={
             'url': 'https://www.steelflame.com', 'keywords': 'killbox', 'email': 'verify@example.com',
+            'maker_confirmed': True,
         })
 
         # Get verify token from first watch
@@ -330,6 +336,7 @@ class TestSignupAPI:
         # Create and manually activate
         client.post('/api/watch', json={
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'unsub@example.com',
+            'maker_confirmed': True,
         })
 
         import db
@@ -351,6 +358,7 @@ class TestSignupAPI:
         """DELETE /api/my-watch/<id> removes only that watch."""
         resp = client.post('/api/watch', json={
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'stop@example.com',
+            'maker_confirmed': True,
         })
         wid = resp.get_json()['id']
 
@@ -377,6 +385,7 @@ class TestSignupAPI:
         mixed = 'https://www.knifejoy.com/collections/Chris-Reeve'
         resp = client.post('/api/watch', json={
             'url': mixed, 'keywords': 'sebenza', 'email': 'case@example.com',
+            'maker_confirmed': True,
         })
         wid = resp.get_json()['id']
         import db
@@ -1865,9 +1874,11 @@ class TestWatchEndpointGlobal:
                           return_value={'is_dealer': True, 'confidence': 0.95,
                                         'category': 'knife dealer', 'brands': 'CRK'}):
             r1 = c.post('/api/watch', json={'url': 'https://capshop-one.com/a',
-                                            'keywords': 'damascus', 'email': 'cap@h.com'})
+                                            'keywords': 'damascus', 'email': 'cap@h.com',
+                                            'maker_confirmed': True})
             r2 = c.post('/api/watch', json={'url': 'https://capshop-two.com/b',
-                                            'keywords': 'damascus', 'email': 'cap@h.com'})
+                                            'keywords': 'damascus', 'email': 'cap@h.com',
+                                            'maker_confirmed': True})
         assert r1.status_code in (200, 201)
         assert r2.status_code == 429
 
@@ -1900,7 +1911,8 @@ class TestWatchEndpointGlobal:
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer', MagicMock()) as mock_cls:
             r = c.post('/api/watch', json={'url': 'https://knownshop.com/x',
-                                           'keywords': 'damascus', 'email': 'kn@h.com'})
+                                           'keywords': 'damascus', 'email': 'kn@h.com',
+                                           'maker_confirmed': True})
         assert r.status_code in (200, 201)
         mock_cls.assert_not_called()
         import db
@@ -2815,6 +2827,7 @@ class TestFilterUnpurchasableUserPage:
                 "Stub – Grandpa Finish $ 795.00 Read more Zipper $ 120.00 Read more Menu")
         result = self._result(['Stub – Grandpa Finish — AVAILABLE FOR PURCHASE — $795.00'])
         filter_unpurchasable_user(result, page)
+        assert result['alert_worthy'] is False
 
 
 class TestMakersEndpoint:
@@ -2844,29 +2857,28 @@ class TestMakerPrompt:
         ws, db = self._client(tmp_path, monkeypatch)
         r = ws.app.test_client().post('/api/watch', json={
             'url': 'https://knifejoy.com/collections/all',
-            'keywords': 'halftrack', 'email': 'a@b.c'})
+            'keywords': 'halftrack', 'email': 'a@b.com'})
         assert r.status_code == 200
         body = r.get_json()
         assert body.get('confirm') is True
         assert body.get('suggestion') == 'Hinderer Knives'   # inferred from keyword
         # watch NOT created yet
-        assert ws.db.find_watcher_by_email_url('a@b.c',
+        assert ws.db.find_watcher_by_email_url('a@b.com',
                  'knifejoy.com/collections/all', maker='') is None
 
     def test_url_watch_with_confirm_creates(self, tmp_path, monkeypatch):
         ws, db = self._client(tmp_path, monkeypatch)
         r = ws.app.test_client().post('/api/watch', json={
             'url': 'https://knifejoy.com/collections/all',
-            'keywords': 'halftrack', 'email': 'a@b.c',
+            'keywords': 'halftrack', 'email': 'a@b.com',
             'maker': 'Hinderer Knives', 'maker_confirmed': True})
-        assert r.status_code == 200
+        assert r.status_code in (200, 201)
         assert r.get_json().get('confirm') is not True   # real creation path
 
     def test_url_watch_skip_creates_makerless(self, tmp_path, monkeypatch):
         ws, db = self._client(tmp_path, monkeypatch)
         r = ws.app.test_client().post('/api/watch', json={
             'url': 'https://knifejoy.com/collections/all',
-            'keywords': 'pocket knife', 'email': 'a@b.c', 'maker_confirmed': True})
-        assert r.status_code == 200
+            'keywords': 'pocket knife', 'email': 'a@b.com', 'maker_confirmed': True})
+        assert r.status_code in (200, 201)
         assert r.get_json().get('confirm') is not True
-        assert result['alert_worthy'] is False
