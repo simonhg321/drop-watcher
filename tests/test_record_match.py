@@ -49,3 +49,14 @@ def test_makerless_generic_keyword_does_not_bleed_store_wide():
     watcher = {"url": SRC, "keywords": "compact", "maker": ""}
     hits = rm.query(watcher, source_url=SRC)
     assert {h["url"] for h in hits} == {"sg"}
+
+
+def test_query_matches_when_watcher_url_differs_by_scheme_www_slash():
+    db, ri, rm = _fresh()
+    # index under the canonical scan-time spelling...
+    ri.index_scan("https://www.MonkeyEdge.com/collections/all/", CATALOG)
+    # ...watcher carries a differently-spelled but equivalent URL.
+    watcher = {"url": "http://monkeyedge.com/collections/all", "keywords": "umnumzaan",
+               "maker": ""}
+    hits = rm.query(watcher)
+    assert {h["url"] for h in hits} == {"umz"}

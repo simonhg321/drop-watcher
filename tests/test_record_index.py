@@ -41,6 +41,21 @@ def test_index_scan_rebuilds_per_source():
     ri.index_scan(src, [{"title": "B", "vendor": "", "tags": [], "url": "b",
                          "price": "1", "available": True}])
     with db.get_db() as conn:
+        # source_url is stored normalized (parity with the blob matcher), so
+        # query the column by the normalized key, not the raw src.
+        from urls import normalize_watch_url
         titles = {r["title"] for r in conn.execute(
-            "SELECT title FROM product_records WHERE source_url=?", (src,)).fetchall()}
+            "SELECT title FROM product_records WHERE source_url=?",
+            (normalize_watch_url(src),)).fetchall()}
     assert titles == {"B"}  # old scan replaced, not accumulated
+
+
+def test_search_matches_across_url_scheme_www_slash_case_skew():
+    db, ri = _fresh()
+    # indexed under one URL spelling...
+    ri.index_scan("https://www.Shop.com/collections/all/", [
+        {"title": "Large Sebenza 31", "vendor": "Chris Reeve", "tags": [],
+         "url": "p1", "price": "0", "available": True}])
+    # ...queried under a differently-spelled but equivalent URL must still hit
+    rows = ri.search_source("http://shop.com/collections/all", '{title tags} : ("sebenza")')
+    assert len(rows) == 1 and rows[0]["title"] == "Large Sebenza 31"
