@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import db
+from urls import domain_from_url
 
 DATA_DIR = Path(os.environ.get("DW_DATA_DIR", "/var/lib/drop-watcher"))
 SECRET_FILE = DATA_DIR / "sharp.secret"
@@ -118,7 +119,7 @@ def is_probable_scanner(user_agent: str, link_age_s: float | None) -> bool:
 
 
 def record_click(data: dict, user_agent: str = "", method: str = "GET") -> None:
-    dest_domain = (data["d"].split("//", 1)[-1].split("/", 1)[0]).lower().removeprefix("www.")
+    dest_domain = domain_from_url(data["d"])
     link_age_s = time.time() - int(data["t"])
     scanner = is_probable_scanner(user_agent, link_age_s) or method != "GET"
     with db.get_db() as conn:

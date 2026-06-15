@@ -24,5 +24,9 @@ def normalize_watch_url(url):
 
 
 def domain_from_url(url):
-    """Bare domain: normalize then take the first path segment."""
-    return _SCHEME_WWW.sub('', (url or '').strip().lower()).split('/')[0]
+    """Bare domain: normalize then take the host, dropping any path, query, or
+    fragment. A domain never contains '/', '?' or '#' — splitting on only '/'
+    leaks a query string into the host for path-less URLs (e.g. a UTM-appended
+    homepage link https://shop.com?utm_source=x), breaking domain equality."""
+    host = _SCHEME_WWW.sub('', (url or '').strip().lower()).split('/')[0]
+    return re.split(r'[?#]', host, 1)[0]

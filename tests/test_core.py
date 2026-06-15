@@ -401,6 +401,10 @@ class TestAlertMatching:
         assert domain_from_url('https://www.knifejoy.com/collections/hinderer') == 'knifejoy.com'
         assert domain_from_url('https://knifejoy.com') == 'knifejoy.com'
         assert domain_from_url('http://www.steelflame.com/shop') == 'steelflame.com'
+        # query string / fragment on a bare-domain URL must not leak into the domain
+        # (UTM-appended outbound links: https://mcneesknives.com?utm_source=dropwatcher)
+        assert domain_from_url('https://mcneesknives.com?utm_source=dropwatcher&utm_medium=alert') == 'mcneesknives.com'
+        assert domain_from_url('https://shop.com#frag') == 'shop.com'
 
     def test_keywords_match_basic(self):
         """keywords_match finds matching keywords in text."""
@@ -2475,16 +2479,16 @@ class TestEpisodeSweep:
             pua.episode_sweep(datetime(2026, 6, 12, 21, 0, tzinfo=timezone.utc))
         assert db.get_open_episode('ck1') is None
 
-    def test_stays_open_while_in_stock_and_reminds_after_1h(self, env):
+    def test_stays_open_while_in_stock_and_reminds_after_24h(self, env):
         db, pua = env
         self._open(db)
         db.record_page_scan('https://shop.com/p/1', 'shop.com',
                             'Stub Grandpa Finish', '2026-06-12T20:30:00+00:00')
         with patch.object(pua, 'send_email', return_value=True) as se:
             pua.episode_sweep(datetime(2026, 6, 12, 20, 45, tzinfo=timezone.utc))
-            assert se.call_count == 0          # <1h: no reminder yet
-            pua.episode_sweep(datetime(2026, 6, 12, 21, 5, tzinfo=timezone.utc))
-            assert se.call_count == 1          # ≥1h + still in stock: reminder
+            assert se.call_count == 0          # <REMINDER_INTERVAL_H: no reminder yet
+            pua.episode_sweep(datetime(2026, 6, 13, 21, 0, tzinfo=timezone.utc))
+            assert se.call_count == 1          # ≥24h + still in stock: one reminder
         ep = db.get_open_episode('ck1')
         assert ep['emails_sent'] == 2
         assert db.get_watcher_by_id('w001')['strikes'] == 1
@@ -2536,7 +2540,7 @@ class TestEpisodeSweep:
         db.record_page_scan('https://shop.com/p/1', 'shop.com',
                             'Stub Grandpa Finish', '2026-06-12T20:30:00+00:00')
         with patch.object(pua, 'send_email', return_value=True) as se:
-            pua.episode_sweep(datetime(2026, 6, 12, 22, 0, tzinfo=timezone.utc))
+            pua.episode_sweep(datetime(2026, 6, 13, 22, 0, tzinfo=timezone.utc))
         assert se.call_count == 0                       # no removal email
         assert db.get_watcher_by_id('w001')['active']   # watch KEPT active
         assert (db.get_watcher_by_id('w001')['strikes'] or 0) == 0  # ladder reset
@@ -2563,6 +2567,35 @@ class TestClickEngagement:
 
         sharp.record_click({'w': 'w001', 'd': 'https://shop.com/p/1?utm=x',
                             's': 'alert', 't': 1760000000}, user_agent='UA')
+
+        ep = db.get_open_episode('ck1')
+        assert ep['engaged_at'] is not None
+        assert db.get_watcher_by_id('w001')['strikes'] == 0
+
+    def test_record_click_stamps_episode_for_bare_domain_utm_link(self, tmp_path, monkeypatch):
+        # A homepage/root dealer link gets a UTM suffix with NO path
+        # (https://mcneesknives.com?utm_source=dropwatcher). The dest domain must
+        # still resolve to the bare host so engagement matches the open episode —
+        # otherwise the keep-or-delete escape from the reminder ladder never fires.
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib
+        import paths
+        importlib.reload(paths)
+        import db
+        importlib.reload(db)
+        import sharp
+        importlib.reload(sharp)
+
+        db.add_watcher({'id': 'w001', 'email': 'a@b.c', 'url': 'https://mcneesknives.com',
+                        'keywords': 'mcnees', 'unsubscribe_token': 'tok1', 'active': 1,
+                        'created': '2026-06-12T00:00:00+00:00'})
+        db.update_watcher('w001', strikes=5)
+        db.open_episode('ck1', 'w001', 'mcneesknives.com', 'https://mcneesknives.com',
+                        'mcnees', '', '2026-06-12T20:00:00+00:00')
+
+        sharp.record_click({'w': 'w001',
+                            'd': 'https://mcneesknives.com?utm_source=dropwatcher&utm_medium=alert',
+                            's': 'McNees Knives', 't': 1760000000}, user_agent='UA')
 
         ep = db.get_open_episode('ck1')
         assert ep['engaged_at'] is not None

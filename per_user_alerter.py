@@ -153,7 +153,7 @@ def build_reminder_email(watcher, ep):
         f"Hey {watcher.get('name') or 'there'},\n\n"
         f"Still in stock (reminder #{nth}): {ep.get('matches','')}\n"
         f"  {link}\n\n"
-        f"We'll keep nudging hourly while it's in stock, until you click through.\n"
+        f"We'll keep nudging daily while it's in stock, until you click through.\n"
         f"Keep this watch alive: https://instockornot.club/api/ack/{token}\n"
         f"Remove this watch: https://instockornot.club/api/watch-remove/{watcher['id']}/{token}\n"
         f"Dashboard: https://instockornot.club/my-alerts.html?token={token}\n"
@@ -161,7 +161,7 @@ def build_reminder_email(watcher, ep):
     html = (
         f"<p>Still <strong>in stock</strong> (reminder #{nth}): {ep.get('matches','')}</p>"
         f"<p><a href='{link}'>{link}</a></p>"
-        f"<p style='color:#888;font-size:12px'>We'll keep nudging hourly while it's in stock, "
+        f"<p style='color:#888;font-size:12px'>We'll keep nudging daily while it's in stock, "
         f"until you click through.</p>"
         f"<p><a href='https://instockornot.club/api/ack/{token}'>Keep this watch alive</a> · "
         f"<a href='https://instockornot.club/api/watch-remove/{watcher['id']}/{token}'>Remove this watch</a> · "
@@ -243,7 +243,7 @@ def episode_sweep(now):
     """Per-episode state machine, run every alerter cycle:
       1. close episodes whose item is observed not-purchasable (or stale-unscanned)
       2. keep-or-delete email 20 min after an outbound click
-      3. hourly still-in-stock reminders while unclicked
+      3. daily still-in-stock reminders while unclicked (REMINDER_INTERVAL_H)
       4. teardown at STRIKE_LIMIT consecutive unengaged emails
     All timestamps are UTC isoformat strings — string comparison is safe."""
     now_iso = now.isoformat()
@@ -297,7 +297,7 @@ def episode_sweep(now):
                                  f"'{ep['matches']}' on {ep['domain']}")
             continue
 
-        # 3/4. unengaged + still in stock on a fresh scan: remind hourly,
+        # 3/4. unengaged + still in stock on a fresh scan: remind daily,
         # teardown instead of the email past STRIKE_LIMIT
         last_email = ep['last_email_at'] or ep['opened_at']
         if fresh and last_email <= remind_cutoff and scan['scanned_at'] > last_email:
