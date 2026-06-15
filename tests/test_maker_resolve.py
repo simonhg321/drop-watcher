@@ -51,6 +51,21 @@ def test_missing_makers_file_returns_unknown_not_raise():
     assert r["kind"] == "unknown"
 
 
+def test_first_maker_in_adopts_first_alias_in_list():
+    r = maker_resolve.first_maker_in("damascus, crk, magnacut")
+    assert r["canonical"] == "Chris Reeve Knives"
+    assert r["kind"] == "alias"
+
+def test_first_maker_in_falls_back_to_model_suggestion():
+    r = maker_resolve.first_maker_in("halftrack, magnacut")  # model, no alias hit
+    assert r["kind"] == "model"
+    assert r["suggestion"] == "Hinderer Knives"
+
+def test_first_maker_in_unknown_when_no_token_resolves():
+    r = maker_resolve.first_maker_in("magnacut, titanium")
+    assert r["kind"] == "unknown"
+
+
 def test_misspelled_maker_suggests_correction():
     r = maker_resolve.resolve("hindrer")
     assert r["kind"] == "typo"

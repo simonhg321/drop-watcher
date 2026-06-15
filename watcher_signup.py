@@ -492,7 +492,9 @@ def watch():
     # brand-gating applies, but let them create a maker-less page watch by
     # re-submitting with maker_confirmed.
     if not is_global and not data.get('maker_confirmed'):
-        probe = maker_resolve.resolve(maker) if maker else maker_resolve.resolve(keywords)
+        # No maker typed: scan the keyword list (a maker named as one of several
+        # keywords still counts). Maker typed: resolve that field directly.
+        probe = maker_resolve.resolve(maker) if maker else maker_resolve.first_maker_in(keywords)
         if not maker and probe['kind'] in ('exact', 'alias'):
             maker = probe['canonical']            # keyword itself names a maker — adopt
         elif probe['kind'] in ('model', 'typo') or (not maker):
@@ -507,6 +509,8 @@ def watch():
             }), 200
         elif maker and probe['kind'] in ('exact', 'alias'):
             maker = probe['canonical']            # normalize to canonical spelling
+        # else: maker typed but ambiguous/unknown → accept the literal as-typed
+        #       (long-tail custom makers we don't catalogue) and fall through.
 
     # Deduplicate: same email + url combo (global watches: + maker)
     existing = db.find_watcher_by_email_url(email, url, maker=maker)
@@ -653,12 +657,11 @@ def keyword_quality():
 @app.route('/api/makers', methods=['GET'])
 def api_makers():
     """Read-only maker names for the signup autocomplete. Single-source from
-    makers.yaml so the list updates when the YAML grows."""
+    makers.yaml so the list updates when the YAML grows. Reuses maker_resolve's
+    cached index so we don't re-parse the YAML on every autocomplete request."""
     try:
-        data = load_yaml(paths.MAKERS_YAML) or {}
-        names = sorted({str(m.get('name')).strip()
-                        for m in (data.get('makers') or [])
-                        if isinstance(m, dict) and m.get('name')})
+        alias_to_name, _models, _keys = maker_resolve._indexes(paths.MAKERS_YAML)
+        names = sorted(set(alias_to_name.values()))
     except Exception as e:
         log.warning(f"/api/makers load failed: {e}")
         names = []

@@ -83,3 +83,22 @@ def resolve(text, makers_file=None):
             return {"canonical": None, "suggestion": alias_to_name[close[0]],
                     "kind": "typo"}
     return {"canonical": None, "suggestion": None, "kind": "unknown"}
+
+
+def first_maker_in(keywords, makers_file=None):
+    """Resolve a comma/newline-separated keyword list. The first token that names a
+    maker (exact/alias) wins as canonical; otherwise the first model suggestion is
+    returned; otherwise unknown. Same return shape as resolve() so callers branch
+    identically. Shared by the signup prompt and the backfill so a maker named as
+    one keyword among several is captured the same way in both."""
+    fallback = {"canonical": None, "suggestion": None, "kind": "unknown"}
+    for tok in re.split(r"[,\n]+", keywords or ""):
+        tok = tok.strip()
+        if not tok:
+            continue
+        r = resolve(tok, makers_file)
+        if r["kind"] in ("exact", "alias"):
+            return r
+        if r["kind"] == "model" and fallback["kind"] == "unknown":
+            fallback = r
+    return fallback

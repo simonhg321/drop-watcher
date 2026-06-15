@@ -2884,6 +2884,21 @@ class TestMakerPrompt:
         assert r.status_code in (200, 201)
         assert r.get_json().get('confirm') is not True
 
+    def test_url_watch_adopts_maker_named_among_keywords(self, tmp_path, monkeypatch):
+        # A recognized maker alias appearing as one of several keywords is adopted
+        # silently (no prompt), so multi-keyword cool-lists still capture the maker.
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'damascus, crk, magnacut', 'email': 'a@b.com'})
+        assert r.status_code in (200, 201)
+        assert r.get_json().get('confirm') is not True   # adopted, no prompt
+        with ws.db.get_db() as conn:
+            row = conn.execute(
+                "SELECT maker FROM watchers WHERE email=? ORDER BY rowid DESC LIMIT 1",
+                ('a@b.com',)).fetchone()
+        assert row is not None and row['maker'] == 'Chris Reeve Knives'
+
     def test_url_watch_custom_unknown_maker_falls_through_without_prompt(self, tmp_path, monkeypatch):
         # Long-tail maker not in makers.yaml: a provided unknown maker must NOT prompt
         # (we accept free text) and the watch is created with the literal maker stored.
