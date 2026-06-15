@@ -2815,4 +2815,58 @@ class TestFilterUnpurchasableUserPage:
                 "Stub – Grandpa Finish $ 795.00 Read more Zipper $ 120.00 Read more Menu")
         result = self._result(['Stub – Grandpa Finish — AVAILABLE FOR PURCHASE — $795.00'])
         filter_unpurchasable_user(result, page)
+
+
+class TestMakersEndpoint:
+    def test_api_makers_returns_names(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib, paths; importlib.reload(paths)
+        import db; importlib.reload(db)
+        import watcher_signup; importlib.reload(watcher_signup)
+        client = watcher_signup.app.test_client()
+        r = client.get('/api/makers')
+        assert r.status_code == 200
+        names = r.get_json()['makers']
+        assert any('Chris Reeve' in n for n in names)
+
+
+class TestMakerPrompt:
+    def _client(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib, paths; importlib.reload(paths)
+        import db; importlib.reload(db)
+        import watcher_signup; importlib.reload(watcher_signup)
+        # Skip the new-shop AI gate: pretend the domain is already curated.
+        monkeypatch.setattr(watcher_signup, '_curated_domains', lambda: {'knifejoy.com'})
+        return watcher_signup, db
+
+    def test_url_watch_without_maker_prompts(self, tmp_path, monkeypatch):
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'halftrack', 'email': 'a@b.c'})
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body.get('confirm') is True
+        assert body.get('suggestion') == 'Hinderer Knives'   # inferred from keyword
+        # watch NOT created yet
+        assert ws.db.find_watcher_by_email_url('a@b.c',
+                 'knifejoy.com/collections/all', maker='') is None
+
+    def test_url_watch_with_confirm_creates(self, tmp_path, monkeypatch):
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'halftrack', 'email': 'a@b.c',
+            'maker': 'Hinderer Knives', 'maker_confirmed': True})
+        assert r.status_code == 200
+        assert r.get_json().get('confirm') is not True   # real creation path
+
+    def test_url_watch_skip_creates_makerless(self, tmp_path, monkeypatch):
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'pocket knife', 'email': 'a@b.c', 'maker_confirmed': True})
+        assert r.status_code == 200
+        assert r.get_json().get('confirm') is not True
         assert result['alert_worthy'] is False

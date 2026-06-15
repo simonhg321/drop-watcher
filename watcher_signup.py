@@ -40,6 +40,7 @@ from alerter import log_sent_email
 from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
+import maker_resolve
 
 try:
     from ai_interpreter import classify_dealer, assess_keyword_quality
@@ -626,6 +627,21 @@ def keyword_quality():
     maker = (data.get('maker') or '').strip()
     result = assess_keyword_quality(keywords, maker=maker)
     return jsonify(result), 200
+
+
+@app.route('/api/makers', methods=['GET'])
+def api_makers():
+    """Read-only maker names for the signup autocomplete. Single-source from
+    makers.yaml so the list updates when the YAML grows."""
+    try:
+        data = load_yaml(paths.MAKERS_YAML) or {}
+        names = sorted({str(m.get('name')).strip()
+                        for m in (data.get('makers') or [])
+                        if isinstance(m, dict) and m.get('name')})
+    except Exception as e:
+        log.warning(f"/api/makers load failed: {e}")
+        names = []
+    return jsonify({'makers': names})
 
 
 @app.route('/api/resend-link', methods=['POST'])
