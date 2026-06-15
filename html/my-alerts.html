@@ -207,7 +207,18 @@ if (!token) {
           <div class="field"><div class="label">Watching</div><div class="value">${ (w.url && w.url.trim()) ? `<a href="${safeHref(w.url)}" target="_blank" rel="noopener" style="color:var(--ember);text-decoration:none;border-bottom:1px dotted var(--ember)">${esc(w.url)}</a>` : `<span style="color:var(--ember);font-weight:bold;letter-spacing:0.05em">⚡ ALL SHOPS${ w.maker ? ' — ' + esc(w.maker) : '' }</span>` }</div></div>
           <div class="field"><div class="label">Keywords</div><div class="value">${esc(w.keywords_raw || '')}</div></div>
         </div>
-        <button class="stop-btn" data-id="${esc(w.id || '')}" style="margin:0">STOP</button>
+        <div class="field" style="margin-top:10px">
+          <div class="label">Maker</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="maker-input" data-id="${esc(w.id || '')}" type="text"
+              value="${esc(w.maker || '')}" placeholder="e.g. Chris Reeve Knives"
+              style="font-size:13px;padding:4px 8px;border:1px solid var(--ash);border-radius:4px;background:var(--charcoal,#1e1e1e);color:var(--light,#ccc);width:220px">
+            <button class="maker-save-btn" data-id="${esc(w.id || '')}"
+              style="font-size:12px;padding:4px 10px;border:1px solid var(--ember);border-radius:4px;background:transparent;color:var(--ember);cursor:pointer">Save</button>
+            <span class="maker-status" data-id="${esc(w.id || '')}" style="font-size:12px;color:var(--ash)"></span>
+          </div>
+        </div>
+        <button class="stop-btn" data-id="${esc(w.id || '')}" style="margin:10px 0 0 0">STOP</button>
       </div>`).join('');
 
     document.getElementById('watcherCard').innerHTML = `
@@ -228,6 +239,38 @@ if (!token) {
             else alert('Error: ' + JSON.stringify(d));
           })
           .catch(e => alert('Could not remove watch — ' + e + '. Try again.'));
+      };
+    });
+
+    document.querySelectorAll('.maker-save-btn[data-id]').forEach(btn => {
+      btn.onclick = () => {
+        const id     = btn.dataset.id;
+        const input  = document.querySelector(`.maker-input[data-id="${id}"]`);
+        const status = document.querySelector(`.maker-status[data-id="${id}"]`);
+        const maker  = (input ? input.value : '').trim();
+        btn.disabled = true;
+        status.textContent = 'Saving…';
+        fetch('/api/watch-maker/' + encodeURIComponent(id)
+              + '?token=' + encodeURIComponent(token),
+              { method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({maker}) })
+          .then(r => r.json())
+          .then(d => {
+            btn.disabled = false;
+            if (d.ok) {
+              if (input) input.value = d.maker || maker;
+              status.style.color = 'var(--ember)';
+              status.textContent = 'Saved' + (d.maker && d.maker !== maker ? ` → ${d.maker}` : '');
+            } else {
+              status.style.color = '#c0392b';
+              status.textContent = 'Error: ' + JSON.stringify(d);
+            }
+          })
+          .catch(e => {
+            btn.disabled = false;
+            status.style.color = '#c0392b';
+            status.textContent = 'Failed — ' + e;
+          });
       };
     });
 

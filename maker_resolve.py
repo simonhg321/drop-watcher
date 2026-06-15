@@ -1,0 +1,104 @@
+# Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
+"""maker_resolve.py — turn free text into a canonical maker or a suggestion.
+
+Single brain for the signup form and the backfill script. Reads makers.yaml via
+config_load. Pure and dependency-light (stdlib difflib only). Never raises."""
+import difflib
+import re
+from functools import lru_cache
+
+import paths
+from config_load import load_yaml
+
+_PUNCT = re.compile(r"[^a-z0-9 ]+")
+
+
+def _norm(s):
+    return _PUNCT.sub("", (s or "").strip().lower())
+
+
+# NOTE: deliberately separate from makers._maker_index — that maps alias -> all
+# match terms (for expansion); this maps alias -> the canonical display name (for
+# resolution). Same YAML, different shape; not worth sharing code.
+@lru_cache(maxsize=8)
+def _indexes(makers_file):
+    """Build (alias_to_name, model_to_names, all_keys) from makers.yaml. Cached per
+    path (cron jobs are fresh processes; the signup server reads a stable file).
+    alias_to_name: norm(alias|name) -> canonical display Name (verbatim).
+    model_to_names: norm(model) -> set(canonical Names).
+    Alias collisions resolve first-wins by YAML order (e.g. 'mick strider' maps to
+    whichever maker is listed first) — deterministic, and a YAML data concern."""
+    data = load_yaml(makers_file) or {}
+    alias_to_name, model_to_names = {}, {}
+    for m in data.get("makers", []) or []:
+        if not isinstance(m, dict):
+            continue
+        name = str(m.get("name") or "").strip()
+        if not name:
+            continue
+        keys = [name] + [str(a) for a in (m.get("aliases") or [])]
+        for k in keys:
+            nk = _norm(k)
+            if nk:
+                alias_to_name.setdefault(nk, name)
+        models = m.get("notable_models") or {}
+        if isinstance(models, dict):
+            flat = [v for grp in models.values() for v in (grp or [])]
+        else:
+            flat = models or []
+        for mod in flat:
+            nmod = _norm(str(mod))
+            if nmod:
+                model_to_names.setdefault(nmod, set()).add(name)
+    return alias_to_name, model_to_names, list(alias_to_name.keys())
+
+
+def resolve(text, makers_file=None):
+    """Return {canonical, suggestion, kind}.
+    kind: exact|alias  -> canonical set (confident);
+          model|typo   -> suggestion set (needs confirm);
+          ambiguous    -> both None (>1 maker);
+          unknown      -> both None (store literal as-typed)."""
+    makers_file = makers_file or paths.MAKERS_YAML
+    raw = (text or "").strip()
+    if not raw:
+        return {"canonical": None, "suggestion": None, "kind": "unknown"}
+    try:
+        alias_to_name, model_to_names, all_keys = _indexes(makers_file)
+    except Exception:
+        return {"canonical": None, "suggestion": None, "kind": "unknown"}
+    k = _norm(raw)
+    if k in alias_to_name:
+        name = alias_to_name[k]
+        kind = "exact" if k == _norm(name) else "alias"
+        return {"canonical": name, "suggestion": None, "kind": kind}
+    if k in model_to_names:
+        names = sorted(model_to_names[k])
+        if len(names) == 1:
+            return {"canonical": None, "suggestion": names[0], "kind": "model"}
+        return {"canonical": None, "suggestion": None, "kind": "ambiguous"}
+    if len(k) >= 4:
+        close = difflib.get_close_matches(k, all_keys, n=1, cutoff=0.84)
+        if close:
+            return {"canonical": None, "suggestion": alias_to_name[close[0]],
+                    "kind": "typo"}
+    return {"canonical": None, "suggestion": None, "kind": "unknown"}
+
+
+def first_maker_in(keywords, makers_file=None):
+    """Resolve a comma/newline-separated keyword list. The first token that names a
+    maker (exact/alias) wins as canonical; otherwise the first model suggestion is
+    returned; otherwise unknown. Same return shape as resolve() so callers branch
+    identically. Shared by the signup prompt and the backfill so a maker named as
+    one keyword among several is captured the same way in both."""
+    fallback = {"canonical": None, "suggestion": None, "kind": "unknown"}
+    for tok in re.split(r"[,\n]+", keywords or ""):
+        tok = tok.strip()
+        if not tok:
+            continue
+        r = resolve(tok, makers_file)
+        if r["kind"] in ("exact", "alias"):
+            return r
+        if r["kind"] == "model" and fallback["kind"] == "unknown":
+            fallback = r
+    return fallback

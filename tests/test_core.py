@@ -199,6 +199,7 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com',
             'keywords': 'hinderer, damascus',
             'email': 'new@example.com',
+            'maker_confirmed': True,
         })
         assert resp.status_code == 201
         data = resp.get_json()
@@ -246,6 +247,7 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com',
             'keywords': 'hinderer',
             'email': 'dup@example.com',
+            'maker_confirmed': True,
         }
         resp1 = client.post('/api/watch', json=payload)
         assert resp1.status_code == 201
@@ -264,6 +266,7 @@ class TestSignupAPI:
             'url': 'https://www.knifejoy.com',
             'keywords': 'hinderer',
             'email': 'multi@example.com',
+            'maker_confirmed': True,
         })
         assert resp1.status_code == 201
         id1 = resp1.get_json()['id']
@@ -283,6 +286,7 @@ class TestSignupAPI:
             'url': 'https://www.steelflame.com',
             'keywords': 'killbox',
             'email': 'multi@example.com',
+            'maker_confirmed': True,
         })
         assert resp2.status_code == 201
 
@@ -299,9 +303,11 @@ class TestSignupAPI:
         # Create two watches
         client.post('/api/watch', json={
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'verify@example.com',
+            'maker_confirmed': True,
         })
         client.post('/api/watch', json={
             'url': 'https://www.steelflame.com', 'keywords': 'killbox', 'email': 'verify@example.com',
+            'maker_confirmed': True,
         })
 
         # Get verify token from first watch
@@ -330,6 +336,7 @@ class TestSignupAPI:
         # Create and manually activate
         client.post('/api/watch', json={
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'unsub@example.com',
+            'maker_confirmed': True,
         })
 
         import db
@@ -351,6 +358,7 @@ class TestSignupAPI:
         """DELETE /api/my-watch/<id> removes only that watch."""
         resp = client.post('/api/watch', json={
             'url': 'https://www.knifejoy.com', 'keywords': 'hinderer', 'email': 'stop@example.com',
+            'maker_confirmed': True,
         })
         wid = resp.get_json()['id']
 
@@ -377,6 +385,7 @@ class TestSignupAPI:
         mixed = 'https://www.knifejoy.com/collections/Chris-Reeve'
         resp = client.post('/api/watch', json={
             'url': mixed, 'keywords': 'sebenza', 'email': 'case@example.com',
+            'maker_confirmed': True,
         })
         wid = resp.get_json()['id']
         import db
@@ -1845,8 +1854,8 @@ class TestWatchEndpointGlobal:
         ws._fetch_page_text = lambda u: 'chris reeve sebenza knives in stock'
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer', return_value={'is_dealer': True, 'confidence': 0.95, 'category': 'knife dealer', 'brands': 'Chris Reeve'}):
-            r = c.post('/api/watch', json={'url': 'https://newknives-xyz.com/crk', 'keywords': 'damascus', 'email': 'g@h.com'})
-        assert r.status_code in (200, 201)
+            r = c.post('/api/watch', json={'url': 'https://newknives-xyz.com/crk', 'keywords': 'damascus', 'email': 'g@h.com', 'maker_confirmed': True})
+        assert r.status_code == 201          # watch actually created (201), not the 200 prompt
         import db
         assert db.get_dealer_candidate('newknives-xyz.com') is not None
 
@@ -1865,9 +1874,11 @@ class TestWatchEndpointGlobal:
                           return_value={'is_dealer': True, 'confidence': 0.95,
                                         'category': 'knife dealer', 'brands': 'CRK'}):
             r1 = c.post('/api/watch', json={'url': 'https://capshop-one.com/a',
-                                            'keywords': 'damascus', 'email': 'cap@h.com'})
+                                            'keywords': 'damascus', 'email': 'cap@h.com',
+                                            'maker_confirmed': True})
             r2 = c.post('/api/watch', json={'url': 'https://capshop-two.com/b',
-                                            'keywords': 'damascus', 'email': 'cap@h.com'})
+                                            'keywords': 'damascus', 'email': 'cap@h.com',
+                                            'maker_confirmed': True})
         assert r1.status_code in (200, 201)
         assert r2.status_code == 429
 
@@ -1881,8 +1892,9 @@ class TestWatchEndpointGlobal:
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer') as mock_cls:
             r = c.post('/api/watch', json={'url': 'https://nopage-xyz.com/x',
-                                           'keywords': 'damascus', 'email': 'nf@h.com'})
-        assert r.status_code in (200, 201)
+                                           'keywords': 'damascus', 'email': 'nf@h.com',
+                                           'maker_confirmed': True})
+        assert r.status_code == 201          # watch actually created (201), not the 200 prompt
         mock_cls.assert_not_called()
         import db
         assert db.get_dealer_candidate('nopage-xyz.com') is None
@@ -1900,7 +1912,8 @@ class TestWatchEndpointGlobal:
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer', MagicMock()) as mock_cls:
             r = c.post('/api/watch', json={'url': 'https://knownshop.com/x',
-                                           'keywords': 'damascus', 'email': 'kn@h.com'})
+                                           'keywords': 'damascus', 'email': 'kn@h.com',
+                                           'maker_confirmed': True})
         assert r.status_code in (200, 201)
         mock_cls.assert_not_called()
         import db
@@ -2816,3 +2829,148 @@ class TestFilterUnpurchasableUserPage:
         result = self._result(['Stub – Grandpa Finish — AVAILABLE FOR PURCHASE — $795.00'])
         filter_unpurchasable_user(result, page)
         assert result['alert_worthy'] is False
+
+
+class TestMakersEndpoint:
+    def test_api_makers_returns_names(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib, paths; importlib.reload(paths)
+        import db; importlib.reload(db)
+        import watcher_signup; importlib.reload(watcher_signup)
+        client = watcher_signup.app.test_client()
+        r = client.get('/api/makers')
+        assert r.status_code == 200
+        names = r.get_json()['makers']
+        assert any('Chris Reeve' in n for n in names)
+
+
+class TestMakerPrompt:
+    def _client(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib, paths; importlib.reload(paths)
+        import db; importlib.reload(db)
+        import watcher_signup; importlib.reload(watcher_signup)
+        # Skip the new-shop AI gate: pretend the domain is already curated.
+        monkeypatch.setattr(watcher_signup, '_curated_domains', lambda: {'knifejoy.com'})
+        return watcher_signup, db
+
+    def test_url_watch_without_maker_prompts(self, tmp_path, monkeypatch):
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'halftrack', 'email': 'a@b.com'})
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body.get('confirm') is True
+        assert body.get('suggestion') == 'Hinderer Knives'   # inferred from keyword
+        # watch NOT created yet
+        assert ws.db.find_watcher_by_email_url('a@b.com',
+                 'knifejoy.com/collections/all', maker='') is None
+
+    def test_url_watch_with_confirm_creates(self, tmp_path, monkeypatch):
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'halftrack', 'email': 'a@b.com',
+            'maker': 'Hinderer Knives', 'maker_confirmed': True})
+        assert r.status_code in (200, 201)
+        assert r.get_json().get('confirm') is not True   # real creation path
+
+    def test_url_watch_skip_creates_makerless(self, tmp_path, monkeypatch):
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'pocket knife', 'email': 'a@b.com', 'maker_confirmed': True})
+        assert r.status_code in (200, 201)
+        assert r.get_json().get('confirm') is not True
+
+    def test_url_watch_adopts_maker_named_among_keywords(self, tmp_path, monkeypatch):
+        # A recognized maker alias appearing as one of several keywords is adopted
+        # silently (no prompt), so multi-keyword cool-lists still capture the maker.
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'damascus, crk, magnacut', 'email': 'a@b.com'})
+        assert r.status_code in (200, 201)
+        assert r.get_json().get('confirm') is not True   # adopted, no prompt
+        with ws.db.get_db() as conn:
+            row = conn.execute(
+                "SELECT maker FROM watchers WHERE email=? ORDER BY rowid DESC LIMIT 1",
+                ('a@b.com',)).fetchone()
+        assert row is not None and row['maker'] == 'Chris Reeve Knives'
+
+    def test_url_watch_custom_unknown_maker_falls_through_without_prompt(self, tmp_path, monkeypatch):
+        # Long-tail maker not in makers.yaml: a provided unknown maker must NOT prompt
+        # (we accept free text) and the watch is created with the literal maker stored.
+        ws, db = self._client(tmp_path, monkeypatch)
+        r = ws.app.test_client().post('/api/watch', json={
+            'url': 'https://knifejoy.com/collections/all',
+            'keywords': 'grail', 'maker': 'Obscure Custom Knifeworks',
+            'email': 'a@b.com'})
+        assert r.status_code in (200, 201)
+        assert r.get_json().get('confirm') is not True   # accepted, no prompt
+        # robust to URL normalization: confirm the watch exists with the literal maker
+        with ws.db.get_db() as conn:
+            row = conn.execute(
+                "SELECT maker FROM watchers WHERE email=? ORDER BY rowid DESC LIMIT 1",
+                ('a@b.com',)).fetchone()
+        assert row is not None and row['maker'] == 'Obscure Custom Knifeworks'
+
+
+class TestEditMaker:
+    def _setup(self, tmp_path, monkeypatch):
+        monkeypatch.setenv('DW_DATA_DIR', str(tmp_path))
+        import importlib, paths; importlib.reload(paths)
+        import db; importlib.reload(db)
+        import watcher_signup; importlib.reload(watcher_signup)
+        db.add_watcher({
+            'id': 'w1',
+            'email': 'a@b.com',
+            'url': 'https://x.com',
+            'keywords': 'k',
+            'maker': '',
+            'unsubscribe_token': 'tok',
+            'active': 1,
+            'created': '2026-06-12T00:00:00+00:00',
+        })
+        return db, watcher_signup.app.test_client()
+
+    def test_set_maker_canonicalized(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1?token=tok', json={'maker': 'crk'})
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data.get('ok') is True
+        assert data.get('maker') == 'Chris Reeve Knives'
+        assert db.get_watcher_by_id('w1')['maker'] == 'Chris Reeve Knives'
+
+    def test_set_maker_unknown_literal_stored(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1?token=tok', json={'maker': 'Obscure Blades Co'})
+        assert r.status_code == 200
+        assert r.get_json().get('maker') == 'Obscure Blades Co'
+        assert db.get_watcher_by_id('w1')['maker'] == 'Obscure Blades Co'
+
+    def test_wrong_token_rejected(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1?token=WRONG', json={'maker': 'crk'})
+        assert r.status_code in (403, 404)
+        assert db.get_watcher_by_id('w1')['maker'] == ''  # unchanged
+
+    def test_missing_token_rejected(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/w1', json={'maker': 'crk'})
+        assert r.status_code in (403, 404)
+
+    def test_nonexistent_watch_returns_error(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        r = c.post('/api/watch-maker/NOPE?token=tok', json={'maker': 'crk'})
+        assert r.status_code in (403, 404)
+
+    def test_maker_truncated_at_100_chars(self, tmp_path, monkeypatch):
+        db, c = self._setup(tmp_path, monkeypatch)
+        long_maker = 'X' * 200
+        r = c.post('/api/watch-maker/w1?token=tok', json={'maker': long_maker})
+        assert r.status_code == 200
+        stored = db.get_watcher_by_id('w1')['maker']
+        assert len(stored) <= 100

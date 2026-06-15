@@ -40,6 +40,7 @@ from alerter import log_sent_email
 from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
+import maker_resolve
 
 try:
     from ai_interpreter import classify_dealer, assess_keyword_quality
@@ -486,6 +487,31 @@ def watch():
     if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
         return jsonify({'error': 'Invalid phone number format.'}), 400
 
+    # ── Maker soft-prompt (URL watches only; global already requires maker) ──
+    # Hard prompt, soft skip: nudge the user to a canonical maker so FTS5
+    # brand-gating applies, but let them create a maker-less page watch by
+    # re-submitting with maker_confirmed.
+    if not is_global and not data.get('maker_confirmed'):
+        # No maker typed: scan the keyword list (a maker named as one of several
+        # keywords still counts). Maker typed: resolve that field directly.
+        probe = maker_resolve.resolve(maker) if maker else maker_resolve.first_maker_in(keywords)
+        if not maker and probe['kind'] in ('exact', 'alias'):
+            maker = probe['canonical']            # keyword itself names a maker — adopt
+        elif probe['kind'] in ('model', 'typo') or (not maker):
+            return jsonify({
+                'confirm': True,
+                'kind': probe['kind'],
+                'suggestion': probe.get('suggestion'),
+                'message': ("Did you mean " + probe['suggestion'] + "?"
+                            if probe.get('suggestion')
+                            else "Add the maker you're hunting for sharper alerts, "
+                                 "or watch the whole page."),
+            }), 200
+        elif maker and probe['kind'] in ('exact', 'alias'):
+            maker = probe['canonical']            # normalize to canonical spelling
+        # else: maker typed but ambiguous/unknown → accept the literal as-typed
+        #       (long-tail custom makers we don't catalogue) and fall through.
+
     # Deduplicate: same email + url combo (global watches: + maker)
     existing = db.find_watcher_by_email_url(email, url, maker=maker)
     if existing:
@@ -628,6 +654,20 @@ def keyword_quality():
     return jsonify(result), 200
 
 
+@app.route('/api/makers', methods=['GET'])
+def api_makers():
+    """Read-only maker names for the signup autocomplete. Single-source from
+    makers.yaml so the list updates when the YAML grows. Reuses maker_resolve's
+    cached index so we don't re-parse the YAML on every autocomplete request."""
+    try:
+        alias_to_name, _models, _keys = maker_resolve._indexes(paths.MAKERS_YAML)
+        names = sorted(set(alias_to_name.values()))
+    except Exception as e:
+        log.warning(f"/api/makers load failed: {e}")
+        names = []
+    return jsonify({'makers': names})
+
+
 @app.route('/api/resend-link', methods=['POST'])
 @limiter.limit("3 per minute")
 def resend_link():
@@ -700,6 +740,27 @@ def stop_watching(watch_id):
     db.delete_watcher(watch_id)
     log.info(f"Watcher removed: {watch_id}")
     return jsonify({'status': 'removed'})
+
+
+@app.route('/api/watch-maker/<watch_id>', methods=['POST'])
+@limiter.limit("10 per minute")
+def set_watch_maker(watch_id):
+    token = request.args.get('token') or request.headers.get('X-Token')
+    if not token:
+        return jsonify({'error': 'unauthorized'}), 403
+    target = db.get_watcher_by_id(watch_id)
+    if not target:
+        return jsonify({'error': 'not found'}), 404
+    import hmac as _hmac
+    if not _hmac.compare_digest(target.get('unsubscribe_token', ''), token):
+        return jsonify({'error': 'unauthorized'}), 403
+    raw = str((request.get_json(silent=True) or {}).get('maker') or '').strip()[:100]
+    r = maker_resolve.resolve(raw)
+    maker = r['canonical'] or raw
+    db.update_watcher(watch_id, maker=maker)
+    log.info(f"Maker updated: {watch_id} -> {maker!r}")
+    return jsonify({'ok': True, 'maker': maker})
+
 
 @app.route('/api/my-watch/<token>', methods=['GET'])
 @limiter.limit("10 per minute")

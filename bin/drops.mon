@@ -18,7 +18,7 @@ import paths
 from dotenv import load_dotenv
 load_dotenv(paths.ENV_FILE, override=True)
 
-from per_user_alerter import matches_for_watcher_drop, drop_searchable_text
+from per_user_alerter import matches_for_watcher_drop, drop_searchable_text, _matcher_mode
 from alerter import send_email
 
 logging.basicConfig(
@@ -121,6 +121,11 @@ def run():
         _fail(["NO DROPS AT ALL"], 0)
         return 1
 
+    # Canaries route through matches_for_watcher_drop, which IS the DW_MATCHER
+    # dispatch — so with DW_MATCHER=fts5 this run validates the fts5 path
+    # (record_index/record_match); unset/blob keeps the current prod behavior.
+    log.info(f"Matcher mode: {_matcher_mode()} (DW_MATCHER="
+             f"{os.environ.get('DW_MATCHER', '<unset>')})")
     log.info(f"Checking {len(CANARIES)} canaries against {len(drops)} drops (last 24h)")
     failures = []
 

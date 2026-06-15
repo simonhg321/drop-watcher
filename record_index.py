@@ -14,6 +14,7 @@ the rowid-sync complexity of external-content tables and keeps the two invariant
 from datetime import datetime, timezone
 
 import db
+from urls import normalize_watch_url
 
 
 def index_scan(source_url: str, products: list) -> None:
@@ -24,13 +25,17 @@ def index_scan(source_url: str, products: list) -> None:
     """
     now = datetime.now(timezone.utc).isoformat()
     instock = [p for p in (products or []) if p.get("available")]
+    # Normalize the index KEY so it agrees with the alert-time query key
+    # (parity with the blob matcher's URL identity). Per-product `url` is
+    # left untouched — only the source_url index key is normalized.
+    key = normalize_watch_url(source_url)
 
     with db.get_db() as conn:
         # Pull old rowids so we can remove them from the FTS table by rowid.
         old_ids = [
             r["id"]
             for r in conn.execute(
-                "SELECT id FROM product_records WHERE source_url=?", (source_url,)
+                "SELECT id FROM product_records WHERE source_url=?", (key,)
             ).fetchall()
         ]
         # Delete old FTS rows by rowid (standalone FTS5 supports this).
@@ -39,7 +44,7 @@ def index_scan(source_url: str, products: list) -> None:
                 "DELETE FROM product_records_fts WHERE rowid=?", (rid,)
             )
         conn.execute(
-            "DELETE FROM product_records WHERE source_url=?", (source_url,)
+            "DELETE FROM product_records WHERE source_url=?", (key,)
         )
 
         for p in instock:
@@ -53,7 +58,7 @@ def index_scan(source_url: str, products: list) -> None:
                 "  (source_url, title, vendor, tags, url, price, available, scanned_at)"
                 "  VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
                 (
-                    source_url,
+                    key,
                     p.get("title", ""),
                     p.get("vendor", ""),
                     tags,
@@ -66,7 +71,7 @@ def index_scan(source_url: str, products: list) -> None:
             conn.execute(
                 "INSERT INTO product_records_fts (rowid, source_url, title, vendor, tags)"
                 "  VALUES (?, ?, ?, ?, ?)",
-                (new_id, source_url, p.get("title", ""), p.get("vendor", ""), tags),
+                (new_id, key, p.get("title", ""), p.get("vendor", ""), tags),
             )
 
 
@@ -76,11 +81,12 @@ def search_source(source_url: str, fts_query: str) -> list:
     Joins product_records to the FTS table on rowid so we get the full
     structured record back, scoped to this source.
     """
+    key = normalize_watch_url(source_url)
     with db.get_db() as conn:
         rows = conn.execute(
             "SELECT pr.* FROM product_records pr"
             " JOIN product_records_fts f ON f.rowid = pr.id"
             " WHERE f.source_url=? AND product_records_fts MATCH ?",
-            (source_url, fts_query),
+            (key, fts_query),
         ).fetchall()
         return [dict(r) for r in rows]

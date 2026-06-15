@@ -337,7 +337,8 @@
 
     <div class="field">
       <label>Maker / brand <span class="req" id="makerReq">*</span></label>
-      <input type="text" name="maker" id="maker" placeholder="Chris Reeve" autocomplete="off">
+      <input type="text" name="maker" id="maker" placeholder="Chris Reeve" autocomplete="off" list="makerList">
+      <datalist id="makerList"></datalist>
       <div class="hint">Who makes it. Known makers expand automatically — so you don't have to list every spelling.
         &nbsp;<a href="/our-cool-makers.html" style="color:var(--flame);text-decoration:none;border-bottom:1px solid var(--iron);">Browse the makers &amp; shops we cover →</a></div>
       <div class="expand" id="expand"></div>
@@ -529,12 +530,14 @@ document.querySelector('[name="phone"]').addEventListener('input', function() {
 });
 
 // ── Maker alias expansion + where-toggle + live preview ─────────────────────
-// demo-only maker expansion (real version reads makers.yaml aliases server-side)
-const ALIASES = {
-  'chris reeve': ['crk','reeve','sebenza','inkosi','mnandi','umnumzaan'],
-  'hinderer':    ['rhk','rick hinderer','xm-18','xm-24','halftrack'],
-  'spyderco':    ['para 3','paramilitary','manix','delica'],
-};
+// Maker names fetched from /api/makers; aliases are server-side only now.
+let MAKER_NAMES = [];
+fetch('/api/makers').then(r => r.json()).then(d => {
+  MAKER_NAMES = d.makers || [];
+  const dl = document.getElementById('makerList');
+  if (dl) dl.innerHTML = MAKER_NAMES.map(n => '<option value="' + n + '">').join('');
+}).catch(() => {});
+
 const makerEl = document.getElementById('maker');
 const expandEl = document.getElementById('expand');
 const coolEl = document.getElementById('cool');
@@ -542,12 +545,14 @@ const coolEl = document.getElementById('cool');
 function renderExpand() {
   const v = makerEl.value.trim().toLowerCase();
   expandEl.innerHTML = '';
-  const hit = ALIASES[v];
-  if (hit) {
+  // Show a confirmation chip if the typed value matches a known maker name exactly
+  const matched = MAKER_NAMES.find(n => n.toLowerCase() === v);
+  if (matched) {
     const lead = document.createElement('span');
-    lead.className = 'lead'; lead.textContent = 'also matches: ';
+    lead.className = 'lead'; lead.textContent = 'known maker: ';
     expandEl.appendChild(lead);
-    hit.forEach(a => { const c = document.createElement('span'); c.className = 'chip'; c.textContent = a; expandEl.appendChild(c); });
+    const c = document.createElement('span'); c.className = 'chip'; c.textContent = matched;
+    expandEl.appendChild(c);
   }
   updatePreview();
 }
@@ -575,9 +580,13 @@ function updatePreview() {
 
 makerEl.addEventListener('input', function() {
   if (makerEl.value.trim()) document.getElementById('makerError').style.display = 'none';
+  window._makerConfirmed = false;
   renderExpand();
 });
-coolEl.addEventListener('input', updatePreview);
+coolEl.addEventListener('input', function() {
+  window._makerConfirmed = false;
+  updatePreview();
+});
 
 // ── Keyword quality — instant client-side blocklist ──────────────────────
 const GENERIC_KNIFE_TERMS = new Set([
@@ -797,7 +806,8 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
     email: form.querySelector('[name="email"]').value,
     name: form.querySelector('[name="name"]').value,
     phone: form.querySelector('[name="phone"]').value,
-    sms_consent: form.querySelector('[name="sms_consent"]').checked
+    sms_consent: form.querySelector('[name="sms_consent"]').checked,
+    maker_confirmed: !!window._makerConfirmed
   };
 
   try {
@@ -807,6 +817,25 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       body: JSON.stringify(payload)
     });
     const result = await res.json();
+
+    // ── Maker confirmation prompt (URL-mode, no confirmed maker yet) ──
+    if (result && result.confirm) {
+      btn.classList.remove('loading');
+      let useSuggestion = false;
+      if (result.suggestion) {
+        useSuggestion = confirm(result.message + '\n\nOK = use "' + result.suggestion + '".  Cancel = watch the whole page.');
+        if (useSuggestion) document.getElementById('maker').value = result.suggestion;
+      } else {
+        if (!confirm(result.message + '\n\nOK = watch the whole page anyway.  Cancel = let me add a maker.')) {
+          document.getElementById('maker').focus();
+          return;   // user wants to add a maker; abort resubmit
+        }
+      }
+      window._makerConfirmed = true;
+      document.getElementById('watchForm').requestSubmit();
+      return;
+    }
+
     if (res.ok) {
       document.getElementById('watchForm').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
