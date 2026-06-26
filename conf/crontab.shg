@@ -1,43 +1,47 @@
-# ── Drop Watcher env vars (MUST be at top so all jobs inherit) ──
+# ── Drop Watcher env vars (must be at top) ────────────────────────────────────
 DW_CONFIG_DIR=/etc/drop-watcher
 DW_DATA_DIR=/var/lib/drop-watcher
 DW_ENV_FILE=/etc/drop-watcher/.env
 DW_LOG_DIR=/var/log/drop-watcher
+DW_MATCHER=fts5
 DW_NKD_ENABLED=1
+DW_SHARP_ENABLED=1
 DW_LUNAR_PHONE=+13472766172
 
+# ── Every 2 min ───────────────────────────────────────────────────────────────
+*/2 * * * * python3 /home/shg/drop-watcher/generate_alerts.py >> /var/log/drop-watcher/generate_alerts.log 2>&1
+*/2 * * * * python3 /home/shg/drop-watcher/watchdog.py >> /var/log/drop-watcher/watchdog.log 2>&1
 
-0 3 * * 0 /home/shg/backup_drop_watcher.sh >> /home/shg/backups/backup.log 2>&1
-# DISABLED Phase 12.5: 0 */4 * * * /home/shg/auto_blog.sh >> /tmp/auto_blog_ironman.log 2>&1
-0 4 * * * python3 /home/shg/drop-watcher/bin/trim_drops.py >> /var/log/drop-watcher/trim_drops.log 2>&1
-0 7 * * * cd /home/shg/drop-watcher && python3 morning_briefer.py >> /var/log/drop-watcher/morning_briefer.log 2>&1
-# ARCHIVED: 0 * * * * python3 /home/shg/drop-watcher/preflight.py >> /var/log/drop-watcher/preflight.log 2>&1
-0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/data.json --log-format=COMBINED 2>/dev/null
-0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/index.html --log-format=COMBINED 2>/dev/null
-*/10 * * * * python3 /home/shg/drop-watcher/discord_logger.py >> /var/log/drop-watcher/discord.log 2>&1
+# ── Every 8 min ───────────────────────────────────────────────────────────────
+*/8 * * * * python3 /home/shg/drop-watcher/lunar_hunter.py >> /var/log/drop-watcher/lunar_hunter.log 2>&1
+
+# ── Every 10 min ──────────────────────────────────────────────────────────────
+*/10 * * * * python3 /home/shg/drop-watcher/per_user_alerter.py >> /var/log/drop-watcher/per_user_alerter.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_dashboard.py >> /var/log/drop-watcher/generate_dashboard.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_public_stats.py >> /var/log/drop-watcher/generate_public_stats.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_security.py >> /var/log/drop-watcher/generate_security.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_simon_status.py >> /var/log/drop-watcher/generate_simon_status.log 2>&1
 */10 * * * * python3 /home/shg/drop-watcher/generate_traffic.py >> /var/log/drop-watcher/generate_traffic.log 2>&1
-*/10 * * * * python3 /home/shg/drop-watcher/per_user_alerter.py >> /var/log/drop-watcher/per_user_alerter.log 2>&1
-*/8 * * * * python3 /home/shg/drop-watcher/lunar_hunter.py >> /var/log/drop-watcher/lunar_hunter.log 2>&1
-20 6 * * * python3 /home/shg/drop-watcher/dealer_scout.py >> /var/log/drop-watcher/dealer_scout.log 2>&1
-30 7 * * 1 python3 /home/shg/drop-watcher/dealer_scout.py --digest >> /var/log/drop-watcher/dealer_scout.log 2>&1
+
+# ── Every 15 min ──────────────────────────────────────────────────────────────
 */15 * * * * python3 /home/shg/drop-watcher/agents/feed_watcher.py >> /var/log/drop-watcher/feed_watcher.log 2>&1
-*/2 * * * * python3 /home/shg/drop-watcher/generate_alerts.py >> /var/log/drop-watcher/generate_alerts.log 2>&1
-*/2 * * * * python3 /home/shg/drop-watcher/watchdog.py >> /var/log/drop-watcher/watchdog.log 2>&1
+
+# ── Every 30 min ──────────────────────────────────────────────────────────────
 */30 * * * * python3 /home/shg/drop-watcher/bin/cleanup_stale.py >> /var/log/drop-watcher/cleanup_stale.log 2>&1
-# All jobs use DW_ env vars so paths.py resolves to production directories.
-# ── Daily ────────────────────────────────────────────────────────────────────
-# Deployed: 2026-03-19
-# ── Drop Watcher crontab (shg) ────────────────────────────────────────────────
-# ── Every 10 min ─────────────────────────────────────────────────────────────
-# ── Every 15 min ─────────────────────────────────────────────────────────────
-# ── Every 2 min ──────────────────────────────────────────────────────────────
-# ── Every 30 min ─────────────────────────────────────────────────────────────
-# HGR
-# ── Hourly ───────────────────────────────────────────────────────────────────
-# ── Weekly ───────────────────────────────────────────────────────────────────
-0 * * * * python3 /home/shg/drop-watcher/bin/ageout_no_use.py >> /var/log/drop-watcher/ageout_no_use.log 2>&1
 */30 * * * * python3 /home/shg/drop-watcher/bin/drops.mon >> /var/log/drop-watcher/drops_mon.log 2>&1
+
+# ── Hourly ────────────────────────────────────────────────────────────────────
+0 * * * * python3 /home/shg/drop-watcher/bin/ageout_no_use.py >> /var/log/drop-watcher/ageout_no_use.log 2>&1
+0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/data.json --log-format=COMBINED 2>/dev/null
+0 * * * * /usr/bin/goaccess /var/log/apache2/access.log -o /var/www/html/stats/index.html --log-format=COMBINED 2>/dev/null
+
+# ── Daily ─────────────────────────────────────────────────────────────────────
+0 4 * * * python3 /home/shg/drop-watcher/bin/trim_drops.py >> /var/log/drop-watcher/trim_drops.log 2>&1
+0 7 * * * python3 morning_briefer.py >> /var/log/drop-watcher/morning_briefer.log 2>&1
+20 6 * * * python3 /home/shg/drop-watcher/dealer_scout.py >> /var/log/drop-watcher/dealer_scout.log 2>&1
+2 14 * * * python3 /home/shg/drop-watcher/bin/morning_watches.py >> /var/log/drop-watcher/morning_watches.log 2>&1
+0 14 * * * python3 /home/shg/drop-watcher/bin/morning_matches.py >> /var/log/drop-watcher/morning_matches.log 2>&1
+
+# ── Weekly ────────────────────────────────────────────────────────────────────
+0 3 * * 0 /home/shg/backup_drop_watcher.sh >> /home/shg/backups/backup.log 2>&1
+30 7 * * 1 python3 /home/shg/drop-watcher/dealer_scout.py --digest >> /var/log/drop-watcher/dealer_scout.log 2>&1
