@@ -12,42 +12,30 @@ import logging
 import os
 import sys
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from paths import DROPS_JSONL, CODE_DIR
+import db
 from agents.ai_interpreter import generate_morning_briefing
 from alerter import send_email
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('morning_briefer')
 
-DROPS_FILE = DROPS_JSONL
 LOOKBACK_HOURS = 24
 
 def load_overnight_alerts():
-    if not Path(DROPS_FILE).exists():
-        return []
-    # Stored timestamps are UTC ISO; ts[:19] below is naive UTC wall time, so the
-    # cutoff must be naive UTC too — naive LOCAL now skews the window by the offset.
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=LOOKBACK_HOURS)
-    alerts = []
-    with open(DROPS_FILE) as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                alert = json.loads(line)
-                ts = alert.get('timestamp', '')
-                if ts:
-                    alert_time = datetime.fromisoformat(ts[:19])
-                    if alert_time >= cutoff:
-                        alerts.append(alert)
-            except Exception:
-                continue
-    return alerts
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)).isoformat()
+    with db.get_db() as conn:
+        rows = conn.execute(
+            "SELECT source, url, timestamp, priority FROM drops "
+            "WHERE timestamp >= ? ORDER BY timestamp DESC",
+            (cutoff,)
+        ).fetchall()
+    return [
+        {"source": r[0], "url": r[1], "timestamp": r[2], "priority": r[3]}
+        for r in rows
+    ]
 
 def main():
     log.info("Morning briefer starting...")
