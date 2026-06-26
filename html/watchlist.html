@@ -981,5 +981,544 @@ function startOnboarding(watchId) {
   function dismissWhatsNew(){ try{localStorage.setItem('dw_seen_maker_watch','1')}catch(e){}; document.getElementById('whatsNew').style.display='none'; }
   (function(){ try{ if(!localStorage.getItem('dw_seen_maker_watch')){ var m=document.getElementById('whatsNew'); m.style.display='flex'; } }catch(e){} })();
 </script>
+<script id="dw-shops-data">
+const DW_SHOPS = [
+  {
+    "name": "1911 Custom Solutions",
+    "url": "https://www.1911customsolutions.com/",
+    "domain": "1911customsolutions.com"
+  },
+  {
+    "name": "Adept Knives \u2014 Blade Show Coverage",
+    "url": "https://www.adeptknives.com/blogs/adept-knives/blade-show-atlanta-2026-complete-news-new-knife-releases-live-coverage-hub",
+    "domain": "adeptknives.com"
+  },
+  {
+    "name": "African Sporting Creations",
+    "url": "https://www.africansportingcreations.com",
+    "domain": "africansportingcreations.com"
+  },
+  {
+    "name": "Arizona Custom Knives",
+    "url": "https://www.arizonacustomknives.com",
+    "domain": "arizonacustomknives.com"
+  },
+  {
+    "name": "Arizona Custom Knives \u2014 Recently Added",
+    "url": "https://www.arizonacustomknives.com/recently-added/",
+    "domain": "arizonacustomknives.com"
+  },
+  {
+    "name": "Arno Bernard Knives",
+    "url": "https://arnobernard.com",
+    "domain": "arnobernard.com"
+  },
+  {
+    "name": "Bentoboxshop",
+    "url": "https://bentoboxshop.com",
+    "domain": "bentoboxshop.com"
+  },
+  {
+    "name": "Blade Binge",
+    "url": "https://bladebinge.com",
+    "domain": "bladebinge.com"
+  },
+  {
+    "name": "Blade City",
+    "url": "https://blade-city.com",
+    "domain": "blade-city.com"
+  },
+  {
+    "name": "Blade HQ \u2014 Blade Show Drops",
+    "url": "https://www.bladehq.com/cat--Knife-Show-New-Product--599",
+    "domain": "bladehq.com"
+  },
+  {
+    "name": "Blade HQ \u2014 Coming Soon",
+    "url": "https://www.bladehq.com/cat--Coming-Soon--298",
+    "domain": "bladehq.com"
+  },
+  {
+    "name": "Blade HQ \u2014 Exclusives",
+    "url": "https://www.bladehq.com/cat--BladeHQ-Exclusives--199",
+    "domain": "bladehq.com"
+  },
+  {
+    "name": "Blade HQ \u2014 New Arrivals",
+    "url": "https://www.bladehq.com/cat--New-Arrivals--153",
+    "domain": "bladehq.com"
+  },
+  {
+    "name": "Blade Ops",
+    "url": "https://bladeops.com/chris-reeve-knives/",
+    "domain": "bladeops.com"
+  },
+  {
+    "name": "Blaurock Blades",
+    "url": "https://blaurock-blades.com",
+    "domain": "blaurock-blades.com"
+  },
+  {
+    "name": "Castle Gate",
+    "url": "https://www.castlegate.com/",
+    "domain": "castlegate.com"
+  },
+  {
+    "name": "Chaves Knives Direct",
+    "url": "https://chavesknives.com",
+    "domain": "chavesknives.com"
+  },
+  {
+    "name": "Chefknivestogo",
+    "url": "https://chefknivestogo.com",
+    "domain": "chefknivestogo.com"
+  },
+  {
+    "name": "Chris Reeve Knives",
+    "url": "https://www.chrisreeve.com",
+    "domain": "chrisreeve.com"
+  },
+  {
+    "name": "Claytons Range",
+    "url": "https://claytonsrangepa.com/",
+    "domain": "claytonsrangepa.com"
+  },
+  {
+    "name": "Collectorknives",
+    "url": "https://collectorknives.net",
+    "domain": "collectorknives.net"
+  },
+  {
+    "name": "Curtiss Custom Knives",
+    "url": "https://www.curtisscustomknives.com",
+    "domain": "curtisscustomknives.com"
+  },
+  {
+    "name": "Cutting Edge \u2014 Pre-Owned",
+    "url": "https://cuttingedge.com",
+    "domain": "cuttingedge.com"
+  },
+  {
+    "name": "Deepak Chopra Inc",
+    "url": "https://www.deepakc.com/",
+    "domain": "deepakc.com"
+  },
+  {
+    "name": "Demko Knives",
+    "url": "https://demkoknives.com",
+    "domain": "demkoknives.com"
+  },
+  {
+    "name": "DLT Trading",
+    "url": "https://www.dlttrading.com",
+    "domain": "dlttrading.com"
+  },
+  {
+    "name": "DLT Trading \u2014 Blade Show Drops",
+    "url": "https://www.dlttrading.com/15-days-of-bladeshow",
+    "domain": "dlttrading.com"
+  },
+  {
+    "name": "DLT Trading \u2014 CRK",
+    "url": "https://www.dlttrading.com/chris-reeve-knives",
+    "domain": "dlttrading.com"
+  },
+  {
+    "name": "DLT Trading \u2014 Hinderer",
+    "url": "https://www.dlttrading.com/rick-hinderer-knives",
+    "domain": "dlttrading.com"
+  },
+  {
+    "name": "DLT Trading \u2014 New Arrivals",
+    "url": "https://www.dlttrading.com/newest-arrivals",
+    "domain": "dlttrading.com"
+  },
+  {
+    "name": "EDC Lifestyle \u2014 Pre-Owned",
+    "url": "https://www.edclifestyle.com/pre-owned-consignment/",
+    "domain": "edclifestyle.com"
+  },
+  {
+    "name": "Edgeworksonline",
+    "url": "https://edgeworksonline.com",
+    "domain": "edgeworksonline.com"
+  },
+  {
+    "name": "eKnives",
+    "url": "https://www.eknives.com",
+    "domain": "eknives.com"
+  },
+  {
+    "name": "EKnives \u2014 Blade Show",
+    "url": "https://eknives.com/blade-show/",
+    "domain": "eknives.com"
+  },
+  {
+    "name": "EKnives \u2014 New Arrivals",
+    "url": "https://eknives.com/new/",
+    "domain": "eknives.com"
+  },
+  {
+    "name": "eKnives \u2014 Pre-Owned",
+    "url": "https://eknives.com/preowned/",
+    "domain": "eknives.com"
+  },
+  {
+    "name": "Everburn",
+    "url": "https://everburn.store",
+    "domain": "everburn.store"
+  },
+  {
+    "name": "Exclusive Folders",
+    "url": "https://exclusivefolders.com",
+    "domain": "exclusivefolders.com"
+  },
+  {
+    "name": "Flytanium",
+    "url": "https://www.flytanium.com",
+    "domain": "flytanium.com"
+  },
+  {
+    "name": "Fred Eisen Art Knives",
+    "url": "https://www.artknives.com/art-knives/chris-reeve-knives/",
+    "domain": "artknives.com"
+  },
+  {
+    "name": "Grimsmo Knives",
+    "url": "https://grimsmoknives.com",
+    "domain": "grimsmoknives.com"
+  },
+  {
+    "name": "Helacious Blades",
+    "url": "https://www.helacious.com",
+    "domain": "helacious.com"
+  },
+  {
+    "name": "Hog House Knives",
+    "url": "https://hoghouseknives.com",
+    "domain": "hoghouseknives.com"
+  },
+  {
+    "name": "Holt Bladeworks",
+    "url": "https://holtbladeworks.com",
+    "domain": "holtbladeworks.com"
+  },
+  {
+    "name": "Iron Ethos",
+    "url": "https://ironethos.com",
+    "domain": "ironethos.com"
+  },
+  {
+    "name": "JT Knives",
+    "url": "https://www.jtknives.com/Chris-Reeve-Knives_c_12.html",
+    "domain": "jtknives.com"
+  },
+  {
+    "name": "Keanisonknives",
+    "url": "https://keanisonknives.bigcartel.com",
+    "domain": "keanisonknives.bigcartel.com"
+  },
+  {
+    "name": "Kizerknives",
+    "url": "https://kizerknives.com",
+    "domain": "kizerknives.com"
+  },
+  {
+    "name": "Knife Art",
+    "url": "https://www.knifeart.com",
+    "domain": "knifeart.com"
+  },
+  {
+    "name": "Knife Center",
+    "url": "https://www.knifecenter.com",
+    "domain": "knifecenter.com"
+  },
+  {
+    "name": "Knife Market",
+    "url": "https://knife-market.com",
+    "domain": "knife-market.com"
+  },
+  {
+    "name": "Knife Purveyor",
+    "url": "https://www.knifepurveyor.com",
+    "domain": "knifepurveyor.com"
+  },
+  {
+    "name": "KnifeCenter \u2014 Blade Show",
+    "url": "https://www.knifecenter.com/listing/just-in-from-2026-blade-show-texas",
+    "domain": "knifecenter.com"
+  },
+  {
+    "name": "KnifeJoy",
+    "url": "https://www.knifejoy.com",
+    "domain": "knifejoy.com"
+  },
+  {
+    "name": "KnifeNews \u2014 All News",
+    "url": "https://knifenews.com/all-news/",
+    "domain": "knifenews.com"
+  },
+  {
+    "name": "Knifeworks",
+    "url": "https://knifeworks.com/",
+    "domain": "knifeworks.com"
+  },
+  {
+    "name": "Knives Plus",
+    "url": "https://www.knivesplus.com/chris-reeve-knives-crk.html",
+    "domain": "knivesplus.com"
+  },
+  {
+    "name": "Knives Ship Free",
+    "url": "https://www.knivesshipfree.com",
+    "domain": "knivesshipfree.com"
+  },
+  {
+    "name": "Koenig Knives",
+    "url": "https://koenigknives.com",
+    "domain": "koenigknives.com"
+  },
+  {
+    "name": "Kunwu Crew",
+    "url": "https://www.kunwucrew.com",
+    "domain": "kunwucrew.com"
+  },
+  {
+    "name": "Kunwu Knives",
+    "url": "https://kunwuknives.com",
+    "domain": "kunwuknives.com"
+  },
+  {
+    "name": "Lamnia",
+    "url": "https://www.lamnia.com",
+    "domain": "lamnia.com"
+  },
+  {
+    "name": "Little Joes Boots",
+    "url": "https://littlejoesboots.net/",
+    "domain": "littlejoesboots.net"
+  },
+  {
+    "name": "Luv Them Knives \u2014 Pre-Owned",
+    "url": "https://luvthemknives.com/collections/pre-owned-knives",
+    "domain": "luvthemknives.com"
+  },
+  {
+    "name": "Martins Firearms",
+    "url": "https://martinscf.com",
+    "domain": "martinscf.com"
+  },
+  {
+    "name": "Maxace Knife",
+    "url": "https://maxaceknife.com",
+    "domain": "maxaceknife.com"
+  },
+  {
+    "name": "McNees Knives",
+    "url": "https://mcneesknives.com",
+    "domain": "mcneesknives.com"
+  },
+  {
+    "name": "Mick Strider Custom Knives",
+    "url": "https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/",
+    "domain": "mickstridercustomknives.com"
+  },
+  {
+    "name": "Miguron Knives",
+    "url": "https://www.miguronknives.com",
+    "domain": "miguronknives.com"
+  },
+  {
+    "name": "Monkey Edge",
+    "url": "https://www.monkeyedge.com",
+    "domain": "monkeyedge.com"
+  },
+  {
+    "name": "Nashville Tactical Lounge",
+    "url": "https://www.nashvilletacticallounge.com",
+    "domain": "nashvilletacticallounge.com"
+  },
+  {
+    "name": "Ncblade",
+    "url": "https://ncblade.com",
+    "domain": "ncblade.com"
+  },
+  {
+    "name": "Nordic Knives",
+    "url": "https://www.nordicknives.com",
+    "domain": "nordicknives.com"
+  },
+  {
+    "name": "Northwest Knives",
+    "url": "https://www.northwestknives.com",
+    "domain": "northwestknives.com"
+  },
+  {
+    "name": "Nullknives",
+    "url": "https://nullknives.com",
+    "domain": "nullknives.com"
+  },
+  {
+    "name": "Okluma",
+    "url": "https://okluma.com",
+    "domain": "okluma.com"
+  },
+  {
+    "name": "Original Goat",
+    "url": "https://originalgoat.com",
+    "domain": "originalgoat.com"
+  },
+  {
+    "name": "Oz Machine Company",
+    "url": "https://ozmachinecompany.com",
+    "domain": "ozmachinecompany.com"
+  },
+  {
+    "name": "Prometheus Design Werx",
+    "url": "https://prometheusdesignwerx.com/collections/folders",
+    "domain": "prometheusdesignwerx.com"
+  },
+  {
+    "name": "Pure Blades",
+    "url": "https://pureblades.com/chris-reeve/",
+    "domain": "pureblades.com"
+  },
+  {
+    "name": "Pvk",
+    "url": "https://pvk.com",
+    "domain": "pvk.com"
+  },
+  {
+    "name": "Qpblades",
+    "url": "https://qpblades.com",
+    "domain": "qpblades.com"
+  },
+  {
+    "name": "Quietcarry",
+    "url": "https://quietcarry.com",
+    "domain": "quietcarry.com"
+  },
+  {
+    "name": "Revolver Tactical",
+    "url": "https://www.revolvertactical.com/product-category/all-products/chris-reeve-knives/",
+    "domain": "revolvertactical.com"
+  },
+  {
+    "name": "Rickhindererknives",
+    "url": "https://rickhindererknives.com",
+    "domain": "rickhindererknives.com"
+  },
+  {
+    "name": "Rivers Edge Cutlery",
+    "url": "https://riversedgecutlery.com",
+    "domain": "riversedgecutlery.com"
+  },
+  {
+    "name": "Rivers Edge \u2014 Consignment",
+    "url": "https://riversedgecutlery.com/consignment-shop/",
+    "domain": "riversedgecutlery.com"
+  },
+  {
+    "name": "Ski Mania",
+    "url": "https://stores.theeouterlimit.com/knives/",
+    "domain": "stores.theeouterlimit.com"
+  },
+  {
+    "name": "SMKW",
+    "url": "https://www.smkw.com",
+    "domain": "smkw.com"
+  },
+  {
+    "name": "Soonerstateknives",
+    "url": "https://soonerstateknives.com",
+    "domain": "soonerstateknives.com"
+  },
+  {
+    "name": "Southern Edges",
+    "url": "https://southernedges.com",
+    "domain": "southernedges.com"
+  },
+  {
+    "name": "Spyderco",
+    "url": "https://www.spyderco.com",
+    "domain": "spyderco.com"
+  },
+  {
+    "name": "Steel Addiction",
+    "url": "https://www.steeladdiction.com",
+    "domain": "steeladdiction.com"
+  },
+  {
+    "name": "Steel Flame",
+    "url": "https://www.steelflame.com",
+    "domain": "steelflame.com"
+  },
+  {
+    "name": "Stnicksknives",
+    "url": "https://stnicksknives.com",
+    "domain": "stnicksknives.com"
+  },
+  {
+    "name": "Strider Knives",
+    "url": "https://www.striderknives.com",
+    "domain": "striderknives.com"
+  },
+  {
+    "name": "Tactical Elements",
+    "url": "https://www.tacticalelements.com",
+    "domain": "tacticalelements.com"
+  },
+  {
+    "name": "Tactile Knife Co",
+    "url": "https://www.tactileknife.com",
+    "domain": "tactileknife.com"
+  },
+  {
+    "name": "Thunderbird Gear",
+    "url": "https://thunderbirdgear.ca",
+    "domain": "thunderbirdgear.ca"
+  },
+  {
+    "name": "Tools For Gents",
+    "url": "https://toolsforgents.com",
+    "domain": "toolsforgents.com"
+  },
+  {
+    "name": "True North Knives",
+    "url": "https://www.truenorthknives.com/",
+    "domain": "truenorthknives.com"
+  },
+  {
+    "name": "Ubiquiti UVC-G6-180-W Camera (White)",
+    "url": "https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w",
+    "domain": "store.ui.com"
+  },
+  {
+    "name": "Urban EDC Supply",
+    "url": "https://urbanedcsupply.com",
+    "domain": "urbanedcsupply.com"
+  },
+  {
+    "name": "Vero Engineering",
+    "url": "https://veroengineering.com",
+    "domain": "veroengineering.com"
+  },
+  {
+    "name": "Whitemountainknives",
+    "url": "https://whitemountainknives.com",
+    "domain": "hitemountainknives.com"
+  },
+  {
+    "name": "Ye Ole Cutlery",
+    "url": "https://mdggifts.com/Chris-Reeve-Knives_bymfg_420-4-1.html",
+    "domain": "mdggifts.com"
+  },
+  {
+    "name": "Zero Tolerance",
+    "url": "https://www.zt.kaiusa.com/all-products.html",
+    "domain": "zt.kaiusa.com"
+  }
+];
+</script>
 </body>
 </html>
