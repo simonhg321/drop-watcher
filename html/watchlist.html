@@ -311,6 +311,32 @@
     text-align: center;
     display: none;
   }
+
+  /* ── Where to Watch ───────────────────────────────────────────────────── */
+  .wtw { max-width: 640px; margin: 0 auto; padding: 48px 32px 56px; }
+  .wtw-heading { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.06em; color: var(--white); margin-bottom: 4px; }
+  .wtw-sub { font-size: 12px; color: var(--ash); letter-spacing: 0.08em; margin-bottom: 24px; }
+  .wtw-tabs { display: flex; gap: 0; margin-bottom: 20px; border: 1px solid var(--iron); border-radius: 2px; overflow: hidden; }
+  .wtw-tab { flex: 1; padding: 10px; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: none; color: var(--ash); cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .wtw-tab.active { background: var(--iron); color: var(--white); }
+  .wtw-tab:not(:last-child) { border-right: 1px solid var(--iron); }
+  .wtw-panel { display: none; }
+  .wtw-panel.active { display: block; }
+  .wtw-filter { width: 100%; background: var(--steel); border: 1px solid var(--iron); color: var(--white); font-family: 'Share Tech Mono', monospace; font-size: 13px; padding: 10px 12px; margin-bottom: 12px; outline: none; }
+  .wtw-filter:focus { border-color: var(--ash); }
+  .wtw-list { display: flex; flex-direction: column; gap: 2px; max-height: 380px; overflow-y: auto; }
+  .wtw-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--steel); text-decoration: none; color: var(--white); font-size: 13px; }
+  .wtw-item:hover { background: var(--iron); color: var(--flame); }
+  .wtw-domain { font-size: 11px; color: var(--ash); font-family: 'Share Tech Mono', monospace; }
+  .wtw-empty { color: var(--ash); font-size: 12px; padding: 16px 0; }
+  .wtw-url-input { width: 100%; background: var(--steel); border: 1px solid var(--iron); color: var(--white); font-family: 'Share Tech Mono', monospace; font-size: 13px; padding: 10px 12px; outline: none; margin-bottom: 10px; }
+  .wtw-url-input:focus { border-color: var(--ash); }
+  .wtw-result { font-size: 13px; padding: 12px; line-height: 1.5; display: none; }
+  .wtw-result.hit  { background: rgba(46,204,113,0.1); border: 1px solid #2ecc71; color: #2ecc71; }
+  .wtw-result.warn { background: rgba(230,126,34,0.1); border: 1px solid var(--flame); color: var(--flame); }
+  .wtw-result.miss { background: rgba(192,57,43,0.1); border: 1px solid var(--ember); color: var(--silver); }
+  .wtw-result a { color: inherit; }
+  .wtw-err { color: var(--ember); font-size: 12px; display: none; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -482,7 +508,7 @@
 
 <div class="stats-bar">
   <div class="stat">
-    <div class="stat-num">40+</div>
+    <div class="stat-num">107</div>
     <div class="stat-label">Sources monitored</div>
   </div>
   <div class="stat">
@@ -498,6 +524,26 @@
     <div class="stat-label">False criticals</div>
   </div>
 </div>
+
+<section class="wtw" id="where-to-watch">
+  <div class="wtw-heading">Where to Watch</div>
+  <div class="wtw-sub">107 shops in our network — find yours or check a URL</div>
+  <div class="wtw-tabs">
+    <button class="wtw-tab active" data-panel="shops">All Our Shops</button>
+    <button class="wtw-tab" data-panel="url">Check a URL</button>
+  </div>
+
+  <div class="wtw-panel active" id="wtw-shops">
+    <input class="wtw-filter" id="wtwFilter" type="text" placeholder="Filter by name or domain…" autocomplete="off" spellcheck="false">
+    <div class="wtw-list" id="wtwList"></div>
+  </div>
+
+  <div class="wtw-panel" id="wtw-url">
+    <input class="wtw-url-input" id="wtwUrl" type="text" placeholder="https://shop.example.com/…" autocomplete="off" spellcheck="false">
+    <div class="wtw-err" id="wtwErr">Enter a valid URL (include https://)</div>
+    <div class="wtw-result" id="wtwResult"></div>
+  </div>
+</section>
 
 <footer>
   <div class="footer-top">
@@ -1519,6 +1565,96 @@ const DW_SHOPS = [
     "domain": "zt.kaiusa.com"
   }
 ];
+</script>
+<script>
+(function () {
+  var shops = typeof DW_SHOPS !== 'undefined' ? DW_SHOPS : [];
+
+  // ── Tab switching ──────────────────────────────────────────────────────
+  document.querySelectorAll('.wtw-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.wtw-tab').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.wtw-panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('wtw-' + btn.dataset.panel).classList.add('active');
+    });
+  });
+
+  // ── All Our Shops ──────────────────────────────────────────────────────
+  var list = document.getElementById('wtwList');
+
+  function renderShops(items) {
+    if (!items.length) {
+      list.innerHTML = '<div class="wtw-empty">No shops match — try a shorter term.</div>';
+      return;
+    }
+    list.innerHTML = items.map(function (s) {
+      return '<a class="wtw-item" href="' + s.url + '" target="_blank" rel="noopener">' +
+             '<span>' + s.name + '</span>' +
+             '<span class="wtw-domain">' + s.domain + '</span>' +
+             '</a>';
+    }).join('');
+  }
+
+  renderShops(shops);
+
+  document.getElementById('wtwFilter').addEventListener('input', function () {
+    var q = this.value.toLowerCase().trim();
+    renderShops(q ? shops.filter(function (s) {
+      return s.name.toLowerCase().includes(q) || s.domain.toLowerCase().includes(q);
+    }) : shops);
+  });
+
+  // ── Check a URL ────────────────────────────────────────────────────────
+  function extractDomain(raw) {
+    try {
+      var u = new URL(raw.trim());
+      return u.hostname.replace(/^www\./, '');
+    } catch (e) { return null; }
+  }
+
+  function checkUrl(raw) {
+    var result = document.getElementById('wtwResult');
+    var err    = document.getElementById('wtwErr');
+    result.style.display = 'none';
+    err.style.display    = 'none';
+    result.className     = 'wtw-result';
+
+    if (!raw.trim()) return;
+
+    var d = extractDomain(raw);
+    if (!d) {
+      err.style.display = 'block';
+      return;
+    }
+
+    var exact = shops.filter(function (s) { return s.domain === d; });
+    if (exact.length) {
+      result.classList.add('hit');
+      result.innerHTML = '✓ We watch ' + exact.map(function (s) {
+        return '<a href="' + s.url + '" target="_blank" rel="noopener">' + s.name + '</a>';
+      }).join(', ') + ' — your watch covers it.';
+      result.style.display = 'block';
+      return;
+    }
+
+    var partial = shops.filter(function (s) { return s.domain.endsWith(d) || d.endsWith(s.domain); });
+    if (partial.length) {
+      result.classList.add('warn');
+      result.innerHTML = 'We watch ' + partial[0].name + ' on that domain — you\'re covered.';
+      result.style.display = 'block';
+      return;
+    }
+
+    result.classList.add('miss');
+    result.innerHTML = 'Not in our net yet — <a href="#watchForm">add it to your watch above</a> and we\'ll monitor it for you.';
+    result.style.display = 'block';
+  }
+
+  var urlInput = document.getElementById('wtwUrl');
+  urlInput.addEventListener('blur', function () { checkUrl(this.value); });
+  urlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') checkUrl(this.value); });
+})();
 </script>
 </body>
 </html>

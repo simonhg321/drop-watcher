@@ -40,7 +40,7 @@ def main():
     if '<script id="dw-shops-data">' in html:
         html = re.sub(
             r'<script id="dw-shops-data">.*?</script>',
-            block,
+            lambda _: block,
             html,
             flags=re.DOTALL,
         )
