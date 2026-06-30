@@ -99,9 +99,34 @@ SOURCES = [
     {'name': "St Nick's Knives", 'url': 'https://stnicksknives.com/collections/chris-reeve-knives', 'scoped': True},   # Shopify deep-link
     {'name': 'Sooner State',     'url': 'https://soonerstateknives.com/chrisreevefoldingknives.htm', 'scoped': True},  # static HTML → text-scan
 
+    # The 17-dealer SHARP_SOURCE S59 CRK-authorized-dealer audit (config/sources.yaml),
+    # added 2026-06-30 — none of these were ever in the grail fleet. Each verified live
+    # with a real CRK-filtered page where one exists; scoped:False falls back to the
+    # store root + Reeve-context match where no dedicated CRK page was found.
+    {'name': 'Blade Ops',            'url': 'https://bladeops.com/chris-reeve-knives/', 'scoped': True},
+    {'name': 'Knifeworks',           'url': 'https://knifeworks.com/', 'scoped': False},
+    {'name': 'Pure Blades',          'url': 'https://pureblades.com/chris-reeve/', 'scoped': True},
+    {'name': 'JT Knives',            'url': 'https://www.jtknives.com/Chris-Reeve-Knives_c_12.html', 'scoped': True},
+    {'name': 'True North Knives',    'url': 'https://www.truenorthknives.com/vcom/chris-reeve-knives-c-939.html', 'scoped': True},
+    {'name': 'Knives Plus',          'url': 'https://www.knivesplus.com/chris-reeve-knives-crk.html', 'scoped': True},
+    {'name': 'Castle Gate',          'url': 'https://www.castlegate.com/brands/chris-reeve-knives/', 'scoped': True},
+    {'name': 'Deepak Chopra Inc',    'url': 'https://www.deepakc.com/brands/chris-reeve-knives.html', 'scoped': True},
+    {'name': 'Revolver Tactical',    'url': 'https://www.revolvertactical.com/product-category/all-products/chris-reeve-knives/', 'scoped': True},
+    {'name': 'Claytons Range',       'url': 'https://claytonsrangepa.com/', 'scoped': False},
+    {'name': "Martin's Firearms",    'url': 'https://martinscf.com/chris-reeve-knives/', 'scoped': True},
+    {'name': "Little Joe's Boots",   'url': 'https://littlejoesboots.net/', 'scoped': False},
+    {'name': 'Ski Mania',            'url': 'https://stores.theeouterlimit.com/knives/', 'scoped': False},
+    {'name': 'Ye Ole Cutlery',       'url': 'https://mdggifts.com/Chris-Reeve-Knives_bymfg_420-4-1.html', 'scoped': True},
+    {'name': 'Fred Eisen Art Knives', 'url': 'https://www.artknives.com/art-knives/chris-reeve-knives/', 'scoped': True},
+    {'name': '1911 Custom Solutions', 'url': 'https://www.1911customsolutions.com/', 'scoped': False},
+
+    # Knife Art — not in sources.yaml's S59 list but carries deep CRK inventory on a
+    # dedicated static page with per-item "In Stock" markers (verified 2026-06-30).
+    {'name': 'Knife Art',            'url': 'https://www.knifeart.com/chrisreeve.html', 'scoped': True},
+
     # Secondary market / pre-owned (added 2026-06-01 from what-we-watch.html → sources.yaml).
     # Whole-store pre-owned pages, NOT CRK-filtered → scoped:False (Reeve context required).
-    {'name': 'Recon 1 — Pre-Owned',     'url': 'https://recon1.com/collections/pre-owned', 'scoped': False},  # 404 since 2026-03-28 per sources.yaml; kept for parity, logs unreachable
+    {'name': 'Recon 1 — CRK',           'url': 'https://recon1.com/collections/chris-reeve-knives', 'scoped': True},  # old /collections/pre-owned slug 404s (site re-platformed); this one verified live 2026-06-30
     {'name': 'eKnives — Pre-Owned',     'url': 'https://eknives.com/preowned/', 'scoped': False},
     {'name': 'Knife Purveyor',          'url': 'https://www.knifepurveyor.com', 'scoped': False},
     {'name': 'Luv Them Knives',         'url': 'https://luvthemknives.com/collections/pre-owned-knives', 'scoped': False},
@@ -109,6 +134,12 @@ SOURCES = [
     {'name': 'EDC Lifestyle — Pre-Owned', 'url': 'https://www.edclifestyle.com/pre-owned-consignment/', 'scoped': False},
     {'name': 'Knife Market',            'url': 'https://knife-market.com', 'scoped': False},
     {'name': 'Cutting Edge — Pre-Owned', 'url': 'https://cuttingedge.com', 'scoped': False},
+
+    # Consignment/flip marketplaces, added 2026-06-30 — confirmed carrying CRK secondary
+    # stock at audit time (inventory turns daily, so scoped:False + Reeve context is the
+    # right safety net rather than a fixed CRK collection URL).
+    {'name': 'Arizona Custom Knives — Recently Added', 'url': 'https://www.arizonacustomknives.com/recently-added/', 'scoped': False},
+    {'name': 'Urban EDC',               'url': 'https://urbanedc.com/collections/in-stock-knives', 'scoped': False},  # rebranded from urbanedcsupply.com, old domain 301s here
 ]
 # Reddit buy/sell/trade subs — a grail often hits the secondary market before dealers.
 # Reddit blocks search + r/knifeswap from this host, but these plain feeds work (verified).
@@ -117,7 +148,8 @@ SOURCES = [
 # keep the strict lunar+Reeve rule.
 REDDIT_SUBS = ['crk', 'knife_swap', 'EDCexchange', 'bladesinstock']
 
-BLIND_SPOTS = ['Blade HQ', 'KnifeCenter', 'GP Knives', 'Reddit search/r-knifeswap (403)']
+BLIND_SPOTS = ['Blade HQ', 'KnifeCenter', 'GP Knives', 'Reddit search/r-knifeswap (403)',
+               "Helacious Blades (AWS WAF challenges our UA specifically, verified 2026-06-30)"]
 
 logging.basicConfig(
     level=logging.INFO,
