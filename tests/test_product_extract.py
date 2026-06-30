@@ -57,6 +57,18 @@ def test_from_structured_data_parses_jsonld():
     assert by_title["Sold Out Knife"]["available"] is False
 
 
+def test_from_structured_data_limited_availability_counts_as_in_stock():
+    # schema.org/LimitedAvailability is a purchasable-now status used for limited-run
+    # drops — must not be treated as sold out (was missed: ends in "availability",
+    # not "available").
+    html = '''<html><head><script type="application/ld+json">
+    {"@type":"Product","name":"Limited Drop Knife","url":"/products/limited",
+     "offers":{"price":"300.00","availability":"https://schema.org/LimitedAvailability"}}
+    </script></head></html>'''
+    items = product_extract.from_structured_data(html, "https://x.com")
+    assert items[0]["available"] is True
+
+
 def test_from_structured_data_empty_when_none():
     assert product_extract.from_structured_data("<html><body>no schema</body></html>", "https://x.com") == []
 

@@ -48,10 +48,20 @@ def _product_record(title, url, available, price='', vendor='', tags=None, confi
     }
 
 
+_IN_STOCK_AVAILABILITY = ('instock', 'limitedavailability', 'instoreonly', 'onlineonly')
+
+
 def _availability_in_stock(value):
-    """schema.org availability → bool. InStock / available → True; everything else False."""
+    """schema.org availability → bool. InStock and other purchasable-now statuses
+    (LimitedAvailability, InStoreOnly, OnlineOnly) → True; everything else (OutOfStock,
+    SoldOut, PreOrder, BackOrder, Discontinued, Reserved...) → False.
+
+    Was just `'instock' in v or v.endswith('available')` — that endswith check was
+    meant to catch bare "InStock"/"available" values but silently missed
+    LimitedAvailability (ends in "...availability", not "...available"), so limited-run
+    drops marked that way in JSON-LD were wrongly treated as sold out."""
     v = str(value or '').lower()
-    return ('instock' in v) or v.endswith('available')
+    return any(status in v for status in _IN_STOCK_AVAILABILITY)
 
 
 def _iter_jsonld_products(obj):

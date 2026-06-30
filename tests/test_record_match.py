@@ -32,6 +32,21 @@ def test_maker_watch_suppresses_cross_brand_false_positive():
     assert urls == {"smf"}
 
 
+def test_maker_watch_matches_when_vendor_blank():
+    # Tier-3 card extraction often can't infer vendor at all. A maker watch must
+    # still fire on the maker's own dedicated site when vendor is blank — there's
+    # no signal to disprove the maker, so don't penalize the match (Corp: real
+    # divergence found on mickstridercustomknives.com, vendor always "").
+    db, ri, rm = _fresh()
+    ri.index_scan(SRC, [
+        {"title": "SMF DGG Ti/Ti-B", "vendor": "", "tags": [], "url": "smf-dgg",
+         "price": "875", "available": True},
+    ])
+    watcher = {"url": SRC, "keywords": "SMF", "maker": "Strider"}
+    hits = rm.query(watcher, source_url=SRC)
+    assert {h["url"] for h in hits} == {"smf-dgg"}
+
+
 def test_makerless_watch_matches_title_token():
     db, ri, rm = _fresh(); ri.index_scan(SRC, CATALOG)
     watcher = {"url": SRC, "keywords": "umnumzaan", "maker": ""}
