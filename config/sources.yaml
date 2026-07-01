@@ -167,6 +167,12 @@ websites:
     poll_interval: 20
     enabled: true
 
+  - name: AGC Firearms
+    url: https://agcfirearms.com/product-groups/knives
+    poll_interval: 20
+    enabled: true
+    notes: Magento distributor-fed catalog (RSR/Lipsey's/Bill Hicks dropship); Pro-Tech on page 1, verified 2026-07-01
+
   - name: Blade Binge
     url: https://bladebinge.com
     poll_interval: 20
@@ -660,6 +666,24 @@ websites:
   # auto-added 2026-06-11 by dealer_scout — knife/EDC retailer (conf 0.95; brands: Shindo, Kyohei Shindo)
   - name: Chefknivestogo
     url: https://chefknivestogo.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-17 by dealer_scout — knife maker store (conf 0.92; brands: Keanison Knives)
+  - name: Keanisonknives
+    url: https://keanisonknives.bigcartel.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-23 by dealer_scout — knife maker store (conf 0.92; brands: Blaurock Blades)
+  - name: Blaurock Blades
+    url: https://blaurock-blades.com
+    poll_interval: 20
+    enabled: true
+
+  # auto-added 2026-06-24 by dealer_scout — knife maker store (conf 0.85; brands: QP Blades)
+  - name: Qpblades
+    url: https://qpblades.com
     poll_interval: 20
     enabled: true
 

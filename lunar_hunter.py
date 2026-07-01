@@ -124,6 +124,11 @@ SOURCES = [
     # dedicated static page with per-item "In Stock" markers (verified 2026-06-30).
     {'name': 'Knife Art',            'url': 'https://www.knifeart.com/chrisreeve.html', 'scoped': True},
 
+    # AGC Firearms — general gun-store dropship catalog, requested by Simon 2026-07-01.
+    # No CRK on page 1 at add time (Pro-Tech Knives currently) — unscoped watch in case
+    # their distributor feed rotates in Chris Reeve stock later.
+    {'name': 'AGC Firearms',         'url': 'https://agcfirearms.com/product-groups/knives', 'scoped': False},
+
     # Secondary market / pre-owned (added 2026-06-01 from what-we-watch.html → sources.yaml).
     # Whole-store pre-owned pages, NOT CRK-filtered → scoped:False (Reeve context required).
     {'name': 'Recon 1 — CRK',           'url': 'https://recon1.com/collections/chris-reeve-knives', 'scoped': True},  # old /collections/pre-owned slug 404s (site re-platformed); this one verified live 2026-06-30
