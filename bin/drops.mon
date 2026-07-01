@@ -45,9 +45,9 @@ CANARIES = [
         "expect_url": "urbanedcsupply.com",
     },
     {
-        "name": "Ursus @ EKnives",
-        "watcher": {"url": "", "keywords": "Ursus", "maker": "Shirogorov"},
-        "expect_url": "eknives.com",
+        "name": "Shirogorov @ Nordic Knives",
+        "watcher": {"url": "", "keywords": "Shirogorov", "maker": "Shirogorov"},
+        "expect_url": "nordicknives.com",
     },
     {
         "name": "SMF @ Southern Edges",
@@ -55,9 +55,9 @@ CANARIES = [
         "expect_url": "southernedges.com",
     },
     {
-        "name": "Mnandi @ eKnives Pre-Owned",
-        "watcher": {"url": "", "keywords": "Mnandi", "maker": "Chris Reeve"},
-        "expect_url": "eknives.com",
+        "name": "Inkosi @ Thunderbird Gear",
+        "watcher": {"url": "", "keywords": "Inkosi", "maker": "Chris Reeve"},
+        "expect_url": "thunderbirdgear.ca",
     },
     {
         "name": "Sebenza @ KnifeJoy",

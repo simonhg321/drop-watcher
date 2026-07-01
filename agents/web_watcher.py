@@ -287,7 +287,12 @@ def scan_one_url(url, source_name=None, hints=None):
         return None
 
     try:
-        if products:
+        _no_fts5 = {
+            domain_from_url(s.get('url', ''))
+            for s in (load_yaml(SOURCES_FILE).get('websites', []) or [])
+            if isinstance(s, dict) and not s.get('user_alerts', True)
+        }
+        if products and domain_from_url(url) not in _no_fts5:
             record_index.index_scan(url, products)
     except Exception as e:
         log.warning(f"record_index.index_scan failed for {url}: {e}")
@@ -454,6 +459,17 @@ def run():
     log.info(f"Loaded {len(makers_list)} makers for AI analysis")
     log.info(f"Loaded {len(sources.get('websites', []))} websites")
 
+    # Domains with user_alerts:false are monitor-only (e.g. chrisreeve.com —
+    # maker doesn't sell direct from stock). Never index them in FTS5 or users
+    # would get alerts linking to a 6-year lead-time page.
+    no_fts5_domains = {
+        domain_from_url(s.get('url', ''))
+        for s in sources.get('websites', []) or []
+        if isinstance(s, dict) and not s.get('user_alerts', True)
+        and domain_from_url(s.get('url', ''))
+    }
+    log.info(f"FTS5 indexing excluded for {len(no_fts5_domains)} monitor-only domains: {no_fts5_domains}")
+
     page_cache    = {}
     failure_count = {}
 
@@ -494,7 +510,7 @@ def run():
                 continue
 
             try:
-                if products:
+                if products and domain_from_url(url) not in no_fts5_domains:
                     record_index.index_scan(url, products)
             except Exception as e:
                 log.warning(f"record_index.index_scan failed for {url}: {e}")
@@ -627,7 +643,7 @@ def run():
                 continue
 
             try:
-                if products:
+                if products and domain_from_url(uurl) not in no_fts5_domains:
                     record_index.index_scan(uurl, products)
             except Exception as e:
                 log.warning(f"record_index.index_scan failed for {uurl}: {e}")
