@@ -45,8 +45,11 @@ CANARIES = [
         "expect_url": "urbanedcsupply.com",
     },
     {
-        "name": "Shirogorov @ Nordic Knives",
-        "watcher": {"url": "", "keywords": "Shirogorov", "maker": "Shirogorov"},
+        # Was "Shirogorov @ Nordic Knives" — NeOn R1 sold ~2026-07-01, canary
+        # went stale. Sebenza is the only term present in every Nordic scan
+        # over the trailing 14 days (Shirogorov/Hinderer/Microtech all gap).
+        "name": "Sebenza @ Nordic Knives",
+        "watcher": {"url": "", "keywords": "Sebenza", "maker": "Chris Reeve"},
         "expect_url": "nordicknives.com",
     },
     {
