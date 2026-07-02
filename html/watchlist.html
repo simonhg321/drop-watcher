@@ -647,12 +647,41 @@ const GENERIC_KNIFE_TERMS = new Set([
   'damascus','dlc','exclusive','rare','regular',
 ]);
 
+// Storefront UI vocabulary — users sometimes type the *condition* they want
+// ("In stock add to cart") instead of the product. Keywords match against
+// listing text, where button text never appears, so such a watch can never
+// fire (Simon's Strider watch sat silent for 17 days, found 2026-07-02).
+const STOREFRONT_PHRASES = [
+  'add to cart', 'add to bag', 'in stock', 'back in stock', 'out of stock',
+  'buy now', 'buy it now', 'read more', 'sold out', 'notify me', 'pre-order',
+  'preorder', 'available now', 'check out', 'checkout', 'on sale', 'restock',
+  'restocked', 'for sale', 'shop now', 'order now', 'purchase',
+];
+
+function unmatchableKeywords(userKws) {
+  return userKws.filter(kw =>
+    STOREFRONT_PHRASES.some(p => kw.includes(p)) ||
+    kw.split(/\s+/).filter(Boolean).length >= 5);
+}
+
 function checkKeywordQuality() {
   const raw = coolEl.value.trim();
   const warnEl = document.getElementById('keywordWarning');
   if (!raw) { warnEl.style.display = 'none'; return; }
 
-  const userKws = raw.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+  // Split on commas/newlines — exactly how the matcher splits them.
+  const userKws = raw.split(/[,\n]+/).map(k => k.trim().toLowerCase()).filter(Boolean);
+
+  const unmatchable = unmatchableKeywords(userKws);
+  if (unmatchable.length > 0) {
+    warnEl.textContent = "⚠ \"" + unmatchable[0] + "\" looks like store button text or a long phrase. " +
+      "Keywords are matched against the product listing itself, where words like \"add to cart\" " +
+      "never appear — so this watch would never fire. Use product or model names instead, " +
+      "separated by commas (e.g. \"SMF, SnG, DGG\").";
+    warnEl.style.display = 'block';
+    return;
+  }
+
   const genericKws = userKws.filter(kw => {
     const tokens = kw.split(/[\s\/\-]+/).filter(Boolean);
     return tokens.length > 0 && tokens.every(t => GENERIC_KNIFE_TERMS.has(t));
