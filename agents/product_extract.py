@@ -87,6 +87,38 @@ _BAD_HREF = ('/cart', '/search', '/account', '/login', '/policies', '/pages/')
 _URL_LIKE_RE = re.compile(r'^https?://', re.I)
 _HAS_ALPHA_RE = re.compile(r'[a-zA-Z]{2}')
 _SOLD_OUT_RE = re.compile(r'sold[\s-]?out|out[\s-]?of[\s-]?stock|notify me|unavailable', re.I)
+# WooCommerce swaps the add-to-cart button for a bare "Read more" link on
+# catalog items that can't be bought directly, and stamps the card container
+# with an `outofstock` class. Neither trips _SOLD_OUT_RE, so Read-more items
+# were extracted available=True (mickstridercustomknives SMF DGG sat in
+# page_scans.instock_text as purchasable for 12 days, found 2026-07-02).
+_READMORE_RE = re.compile(r'^\s*read\s+more\s*$', re.I)
+
+
+def _el_classes(el):
+    try:
+        return el.get('class') or []
+    except Exception:
+        return []
+
+
+def _readmore_hrefs(soup, base_url):
+    """Absolute hrefs whose purchase button reads exactly 'Read more'."""
+    out = set()
+    for a in soup.find_all('a', href=True):
+        if _READMORE_RE.match(a.get_text(' ', strip=True) or ''):
+            out.add(urljoin(base_url or '', a['href']))
+    return out
+
+
+def _card_marked_outofstock(el):
+    """True if el or any ancestor carries WooCommerce's `outofstock` class."""
+    node = el
+    while node is not None:
+        if 'outofstock' in _el_classes(node):
+            return True
+        node = getattr(node, 'parent', None)
+    return False
 
 
 def from_structured_data(html, base_url):
@@ -242,9 +274,13 @@ def _from_hints(soup, base_url, hints):
             continue
         if not title:
             continue
+        unpurchasable = (_SOLD_OUT_RE.search(block_text)
+                         or _card_marked_outofstock(card)
+                         or any(_READMORE_RE.match(a2.get_text(' ', strip=True) or '')
+                                for a2 in card.find_all('a', href=True)))
         out.append(_product_record(
             title=title, url=abs_href,
-            available=not _SOLD_OUT_RE.search(block_text), price=price,
+            available=not unpurchasable, price=price,
             confidence='high'))
     return out
 
@@ -265,6 +301,7 @@ def from_product_cards(html, base_url, hints=None):
 
     # keyed by abs_href so we can upgrade a bad title when a better anchor appears
     best: dict = {}
+    readmore = _readmore_hrefs(soup, base_url)
     for a in soup.find_all('a', href=True):
         href = (a.get('href') or '').strip()
         href_l = href.lower()
@@ -301,9 +338,12 @@ def from_product_cards(html, base_url, hints=None):
         title = _normalize_title(title)
         if not title or len(title) < 4:
             continue
+        unpurchasable = (_SOLD_OUT_RE.search(scope_text)
+                         or abs_href in readmore
+                         or _card_marked_outofstock(a))
         best[abs_href] = _product_record(
             title=title, url=abs_href,
-            available=not _SOLD_OUT_RE.search(scope_text),
+            available=not unpurchasable,
             price=own_price or _price_from(scope_text),
             confidence='low')
     return list(best.values())

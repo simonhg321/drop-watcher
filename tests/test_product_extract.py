@@ -152,6 +152,57 @@ def test_from_product_cards_with_hints():
     assert by_title["Widget B"]["price"] == "20.00"
 
 
+# WooCommerce marks unpurchasable catalog items with an `outofstock` card class
+# and a "Read more" button instead of add-to-cart (mickstridercustomknives.com,
+# false positive 2026-07-02: SMF DGG recorded purchasable in page_scans for 12 days).
+WOO_READMORE_HTML = """
+<html><body>
+<ul class="products">
+  <li class="product type-product post-41570 outofstock purchasable product-type-simple">
+    <a href="/product/smf-dgg-ti-ti-b-3/" class="woocommerce-LoopProduct-link">
+      <h2 class="woocommerce-loop-product__title">SMF DGG Ti/Ti-B</h2>
+      <span class="price">$ 875.00</span></a>
+    <a href="/product/smf-dgg-ti-ti-b-3/" class="button product_type_simple">Read more</a>
+  </li>
+  <li class="product type-product post-9999 instock purchasable product-type-simple">
+    <a href="/product/msc-zipper/" class="woocommerce-LoopProduct-link">
+      <h2 class="woocommerce-loop-product__title">Zipper</h2>
+      <span class="price">$ 120.00</span></a>
+    <a href="/?add-to-cart=9999" class="button add_to_cart_button">Add to cart</a>
+  </li>
+</ul>
+</body></html>
+"""
+
+
+def test_from_product_cards_woo_outofstock_class_not_available():
+    items = product_extract.from_product_cards(
+        WOO_READMORE_HTML, "https://mickstridercustomknives.com")
+    by_title = {i["title"].split(" $")[0]: i for i in items}
+    assert by_title["SMF DGG Ti/Ti-B"]["available"] is False
+    assert by_title["Zipper"]["available"] is True
+
+
+def test_from_product_cards_readmore_button_not_available():
+    # Same card but WITHOUT the outofstock class — the "Read more" purchase
+    # button alone must mark it unpurchasable.
+    html = WOO_READMORE_HTML.replace(" outofstock", "")
+    items = product_extract.from_product_cards(
+        html, "https://mickstridercustomknives.com")
+    by_title = {i["title"].split(" $")[0]: i for i in items}
+    assert by_title["SMF DGG Ti/Ti-B"]["available"] is False
+    assert by_title["Zipper"]["available"] is True
+
+
+def test_from_hints_woo_outofstock_class_not_available():
+    hints = {"card": "li.product", "title": "h2", "price": "span.price"}
+    items = product_extract.from_product_cards(
+        WOO_READMORE_HTML, "https://mickstridercustomknives.com", hints=hints)
+    by_title = {i["title"]: i for i in items}
+    assert by_title["SMF DGG Ti/Ti-B"]["available"] is False
+    assert by_title["Zipper"]["available"] is True
+
+
 def test_from_product_cards_empty_when_no_products():
     assert product_extract.from_product_cards(
         "<html><body><a href='/about'>About</a></body></html>", "https://x.com") == []
