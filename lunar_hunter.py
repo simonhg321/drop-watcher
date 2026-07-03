@@ -77,12 +77,156 @@ GRAILS = [
         'signals': ['cross hatch', 'crosshatch', 'cross-hatch'],
         'ebay_query': 'chris reeve cross hatch',
     },
+
+    # ── The CRK grail gamut (S70) ─────────────────────────────────────────────
+    # The S+A tiers of Simon's CRK_grail_gamut.csv (lives in ~, not this repo),
+    # hand-curated into entries: bare model names only where the word is safe on
+    # a knife page (no bare "sebenza"/"mnandi"/"umnumzaan" — those name current
+    # production). ORDER MATTERS: the scan loop stops at the first grail a
+    # product matches, so specific variants sit above generic catch-alls
+    # (sebenza_25 before damascus, original before regular, prototype/d2 last).
+    # `est_market` is display-only context in the alert — never a gate: an
+    # overpriced listing still alerts, Simon judges the ask.
+    # NO ebay_query on any of these — Sky owns the eBay work; scan_ebay skips
+    # grails without a query. Excluded rows: Yarborough (Simon: respect, don't
+    # chase), all B/C tiers, Umnumzaan first-gen (sellers don't label gens).
+    {
+        'key': 'original_sebenza', 'display': 'Original Sebenza', 'emoji': '🏛️',
+        'subtitle': 'CHRIS REEVE · PRE-REGULAR FLAT HANDLE 1991–96',
+        'exact': ['original sebenza'],
+        'signals': ['original sebenza', 'pre-regular sebenza', 'flat handle sebenza'],
+        'est_market': '$2,500–6,000+',
+    },
+    {
+        'key': 'sebenza_25', 'display': 'Sebenza 25', 'emoji': '🎯',
+        'subtitle': 'CHRIS REEVE · THE 2012–16 WINDOW',
+        'exact': [],
+        'signals': ['sebenza 25', '25 sebenza', 'large sebenza 25', 'small sebenza 25'],
+        'est_market': '$900–3,000+ (Damascus/inlay top the band)',
+    },
+    {
+        'key': 'regular_sebenza', 'display': 'Regular Sebenza', 'emoji': '📐',
+        'subtitle': 'CHRIS REEVE · SLANTED LINES, BG-42 ERA',
+        'exact': [],
+        'signals': ['regular sebenza', 'sebenza regular', 'bg-42', 'bg42',
+                    'ats-34', 'ats 34'],
+        'est_market': '$1,000–2,500 (BG-42 premium)',
+    },
+    {
+        'key': 'anniversary_21', 'display': 'Sebenza 21st Anniversary', 'emoji': '🎖️',
+        'subtitle': 'CHRIS REEVE · 2009 NUMBERED RUN',
+        'exact': [],
+        'signals': ['21st anniversary'],
+        'est_market': '$1,200–2,200',
+    },
+    {
+        'key': 'unique_graphic', 'display': 'Unique Graphic', 'emoji': '🎨',
+        'subtitle': 'CHRIS REEVE · UG / CGG / ANNUAL GRAPHICS',
+        'exact': ['unique graphic'],
+        'signals': ['unique graphic', 'cgg', 'computer generated graphic'],
+        # Current-production catalog UGs (the Night Sky 31 run — 212 matches at
+        # KnifeJoy alone on the first live check) are NOT the grail one-of-ones.
+        'veto': ['sebenza 31', 'night sky'],
+        'est_market': '$900–5,000+ (one-of-ones top the band)',
+    },
+    {
+        'key': 'ti_lock', 'display': 'Ti-Lock', 'emoji': '🔩',
+        'subtitle': 'CHRIS REEVE · HAWK COLLAB 2010–17',
+        'exact': [],
+        'signals': ['ti-lock', 'ti lock', 'tilock'],
+        'est_market': '$1,200–2,500 (protos $3,000–8,000+)',
+    },
+    {
+        'key': 'mammoth', 'display': 'Mammoth Inlay', 'emoji': '🦣',
+        'subtitle': 'CHRIS REEVE · MAMMOTH IVORY / BARK INLAY',
+        'exact': [],
+        'signals': ['mammoth', 'ivory'],
+        'est_market': '$1,000–2,200 (check WA ivory rules)',
+    },
+    {
+        'key': 'jereboam', 'display': 'Jereboam', 'emoji': '🗿',
+        'subtitle': 'CHRIS REEVE · SA-ERA ONE-PIECE MK I/II',
+        # CRK spells it Jereboam (the wine bottle is jeroboam) → safe as exact.
+        'exact': ['jereboam'],
+        'signals': ['jereboam'],
+        'est_market': '$1,000–2,500 (SA serials; ignore fantasy asks)',
+    },
+    {
+        'key': 'shadow_op', 'display': 'Shadow One-Piece', 'emoji': '🌑',
+        'subtitle': 'CHRIS REEVE · SA-ERA SPEARPOINT',
+        'exact': [],
+        'signals': ['shadow'],
+        'est_market': '$1,000–2,200 (SA serials only)',
+    },
+    {
+        'key': 'project', 'display': 'Project I/II', 'emoji': '🚀',
+        'subtitle': 'CHRIS REEVE · THE ONE-PIECE ICON',
+        'exact': [],
+        'signals': ['project'],
+        'est_market': '$700–1,500 (early serials carry the premium)',
+    },
+    {
+        'key': 'mk_series', 'display': 'MK-Series One-Piece', 'emoji': '⚙️',
+        'subtitle': 'CHRIS REEVE · MK IV / V / VI',
+        'exact': [],
+        'signals': ['mk iv', 'mk v', 'mk vi', 'mk 4', 'mk 5', 'mk 6',
+                    'mark iv', 'mark v', 'mark vi'],
+        'est_market': '$600–2,000 (MK IV tops the band)',
+    },
+    {
+        'key': 'aviator', 'display': 'Aviator', 'emoji': '✈️',
+        'subtitle': 'CHRIS REEVE · ONE-PIECE SAWBACK',
+        'exact': [],
+        'signals': ['aviator'],
+        'est_market': '$500–1,200 (5in run of 50: $2,000–4,000+, unicorn)',
+    },
+    {
+        'key': 'sable', 'display': 'Sable IV', 'emoji': '🦌',
+        'subtitle': 'CHRIS REEVE · RECURVE ONE-PIECE',
+        'exact': [],
+        'signals': ['sable'],
+        'est_market': '$600–1,300',
+    },
+    {
+        'key': 'impofu', 'display': 'Impofu', 'emoji': '🔪',
+        'subtitle': 'CHRIS REEVE · SHORT-RUN SKINNER ~2019–21',
+        'exact': ['impofu'],
+        'signals': ['impofu'],
+        'est_market': '$400–800 (sleeper)',
+    },
+    # Catch-alls last — anything more specific above wins the match first.
+    {
+        'key': 'damascus', 'display': 'Damascus CRK', 'emoji': '🌊',
+        'subtitle': 'CHRIS REEVE · DEVIN THOMAS / CHAD NICHOLS',
+        'exact': [],
+        'signals': ['damascus'],
+        # Damascus 31s/Inkosis are current catalog stock (125 matches at
+        # KnifeJoy on the first live check) — the grail band is the 21/Regular
+        # Devin Thomas era. The CSV tiers 31s as the C control group.
+        'veto': ['sebenza 31', 'inkosi'],
+        'est_market': '$900–3,500 (Regular + Damascus tops the band)',
+    },
+    {
+        'key': 'd2_run', 'display': 'D2 One-Piece Run', 'emoji': '🧱',
+        'subtitle': 'CHRIS REEVE · LIMITED D2 (A2 WAS STANDARD)',
+        'exact': [],
+        'signals': ['d2'],
+        'est_market': 'A2 price +30–50%',
+    },
+    {
+        'key': 'prototype', 'display': 'CRK Prototype', 'emoji': '🧪',
+        'subtitle': 'CHRIS REEVE · SHOP-MARKED / ONE-OFF',
+        'exact': [],
+        'signals': ['prototype', 'pre-production', 'one of one', 'one-off'],
+        'est_market': 'market-maker — demand documentation',
+    },
 ]
 # Pre-compile the word-boundary patterns once — matching runs per product
 # (up to ~750/dealer × 14 dealers every 8 min), so recompiling per call was waste.
 _REEVE_CONTEXT_RE = [re.compile(r'\b' + re.escape(c) + r'\b') for c in REEVE_CONTEXT]
 for _g in GRAILS:
     _g['_signal_re'] = [re.compile(r'\b' + re.escape(s) + r'\b') for s in _g['signals']]
+    _g['_veto_re'] = [re.compile(r'\b' + re.escape(v) + r'\b') for v in _g.get('veto', [])]
 
 # ── The dealer fleet ──────────────────────────────────────────────────────────
 # scoped:True  → page is already filtered to Chris Reeve, so any lunar signal fires.
@@ -190,8 +334,13 @@ def _grail_match(grail, text, scoped):
     An exact phrase always wins. Otherwise a bare signal only counts on a
     CRK-SCOPED page (scoped=True). On an UNSCOPED page (a whole-store pre-owned
     catalog, Reddit, eBay) we also require Chris Reeve context in the SAME blob.
-    Reeve terms match on word boundaries so 'crk' does NOT match 'CRKT'."""
+    Reeve terms match on word boundaries so 'crk' does NOT match 'CRKT'.
+    A veto term kills the match outright — even an exact hit — so grails whose
+    name collides with a current-production run (S70: 'unique graphic' vs the
+    catalog Night Sky 31s) don't flood the alerts."""
     t = (text or '').lower()
+    if any(p.search(t) for p in grail.get('_veto_re', [])):
+        return False
     if any(e in t for e in grail['exact']):
         return True
     if not any(p.search(t) for p in grail['_signal_re']):
@@ -329,6 +478,9 @@ def scan_ebay():
 
     finds = []
     for g in GRAILS:
+        # Gamut entries (S70) carry no ebay_query — Sky owns the eBay work.
+        if not g.get('ebay_query'):
+            continue
         summaries = _ebay_search(token, g['ebay_query'])
         g_finds = _ebay_finds_from_summaries(summaries, g)
         log.info(f"eBay [{g['key']}] — {len(summaries)} result(s), {len(g_finds)} match(es)")
@@ -439,9 +591,13 @@ def build_find_email(finds, grail=None):
         </div>"""
     n = len(finds)
     disp = grail['display']
+    market = ''
+    if grail.get('est_market'):
+        market = (f'<p style="color:#9fb4e8;font-size:11px;letter-spacing:0.1em;">'
+                  f'EST. MARKET: {html_mod.escape(grail["est_market"])}</p>')
     inner = (f'<p style="color:#dfe6f2;font-size:14px;">Simon — the hunt hit. '
              f'<b style="color:#fff;">{n} {html_mod.escape(disp)} listing'
-             f'{"s" if n != 1 else ""}</b> surfaced. Move fast.</p>{rows}'
+             f'{"s" if n != 1 else ""}</b> surfaced. Move fast.</p>{market}{rows}'
              f'<p style="color:#46557a;font-size:11px;margin-top:18px;">'
              f'Blind spots (bot-blocked, check by hand): {", ".join(BLIND_SPOTS)}.</p>')
     subj = (f"{grail['emoji']} {disp.upper()} FOUND — {n} listing"
@@ -449,7 +605,9 @@ def build_find_email(finds, grail=None):
     txt_lines = [f"- [{('IN STOCK' if f['in_stock'] else 'SOLD OUT' if f['in_stock'] is False else 'LISTED')}] "
                  f"{f['source']}: {f['title']}{(' — $'+str(f['price'])) if f['price'] else ''}\n  {f['url']}"
                  for f in finds]
-    txt = (f"{disp.upper()} — {grail['subtitle']} — FOUND\n\n" + "\n".join(txt_lines) +
+    txt = (f"{disp.upper()} — {grail['subtitle']} — FOUND\n"
+           + (f"est. market: {grail['est_market']}\n" if grail.get('est_market') else '')
+           + "\n" + "\n".join(txt_lines) +
            f"\n\nBlind spots (check by hand): {', '.join(BLIND_SPOTS)}\n"
            "instockornot.club bespoke grail hunt")
     return subj, _shell(inner, grail), txt
@@ -479,8 +637,8 @@ def build_armed_email():
              f'<div style="color:#7f93c4;font-size:10px;letter-spacing:0.2em;margin-bottom:8px;">'
              f'FLEET UNDER WATCH</div><ul style="margin:0;padding-left:18px">{fleet}</ul></div>'
              f'<p style="color:#dfe6f2;font-size:13px;">Deep-link dealers report the exact '
-             f'item + live stock. The instant a Lunar Landing appears — in stock or sold out — '
-             f'you get a hit.</p>'
+             f'item + live stock. The instant a Lunar Landing shows up <b style="color:#fff;">'
+             f'in stock</b> you get a hit.</p>'
              f'<p style="color:#46557a;font-size:11px;margin-top:14px;">Known blind spots '
              f'(bot-blocked, not auto-scanned): {", ".join(blind)}.</p>')
     fleet_names = [s['name'] for s in SOURCES] + (['eBay'] if _ebay_active() else [])
@@ -510,6 +668,15 @@ def send_find_sms(finds, grail=None):
         log.info(f"SMS sent to {HUNTER_PHONE}")
     else:
         log.error(f"SMS failed to {HUNTER_PHONE}")
+
+
+def _alertable(items):
+    """Which fresh (find, seen_key) pairs are worth an alert: confirmed in-stock
+    and LISTED/unknown (Reddit posts, text-scan pages — in_stock=None) both go
+    out; only a confirmed SOLD OUT is dropped. Secondary market is where the
+    SA-era grails actually surface, and those finds never carry dealer stock
+    state ("more is better than less" — Simon 2026-07-03)."""
+    return [(f, key) for f, key in items if f['in_stock'] is not False]
 
 
 def run():
@@ -549,6 +716,10 @@ def run():
 
     for gkey, items in by_grail.items():
         grail = next(g for g in GRAILS if g['key'] == gkey)
+        items = _alertable(items)
+        if not items:
+            log.info(f"{grail['display']} — fresh find(s) but all confirmed sold out, skipping alert")
+            continue
         finds_g = [f for f, _ in items]
         subj, html, txt = build_find_email(finds_g, grail)
         if send_email(subj, html, txt, to_addr=HUNTER_EMAIL):
