@@ -40,9 +40,13 @@ CANARIES = [
         "expect_url": "grimsmoknives.com",
     },
     {
-        "name": "Inyoni @ Urban EDC",
-        "watcher": {"url": "", "keywords": "Inyoni", "maker": "Chris Reeve"},
-        "expect_url": "urbanedcsupply.com",
+        # Was "Hinderer @ DLT Trading" — Hinderer rotated off DLT's
+        # newest-arrivals 2026-07-03 (the 1-in-15 gap day), canary went stale.
+        # True North lists Hinderer in-stock in drops nearly every day of the
+        # trailing week; keeps the non-CRK maker mix.
+        "name": "Hinderer @ True North Knives",
+        "watcher": {"url": "", "keywords": "Hinderer", "maker": "Hinderer"},
+        "expect_url": "truenorthknives.com",
     },
     {
         # Was "Shirogorov @ Nordic Knives" — NeOn R1 sold ~2026-07-01, canary
