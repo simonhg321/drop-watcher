@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """drops.mon — canary monitor for the matching pipeline.
 
-Six known-good keyword+maker combos that SHOULD match recent drops.
+Four known-good keyword+maker combos that SHOULD match recent drops.
 Runs every 30 min via cron; exits 0 if all fire, exits 1 on failure.
 On failure: logs, emails simonhg@gmail.com + simon@instockornot.club,
 and writes /tmp/drops_mon_fail so other tools (watchdog, Claude) can check.
@@ -10,7 +10,7 @@ import json
 import sys
 import os
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import db
@@ -31,42 +31,42 @@ FAIL_FLAG = '/tmp/drops_mon_fail'
 ALERT_EMAILS = ['simonhg@gmail.com', 'simon@instockornot.club']
 EMAIL_EVERY_HOURS = 6   # summary cadence while failing — not per 30-min run
 
+# Rebuilt 2026-07-04 (S70). Old 6-canary set kept going stale: a canary here
+# only stays green if its site produces a drop row (i.e. inventory CHANGE)
+# with the keyword every 24h — listing the item isn't enough, since unchanged
+# pages suppress alerts and write no drop row (Grimsmo false-red, 2026-07-04).
+# These 4 were picked from 14 days of drop history: sites that drop daily,
+# keywords verified present on EVERY drop-day in the window. Covers 3 fetch
+# paths: plain HTML (True North), paginated walker (DLT, JT), Shopify
+# products.json (KnifeJoy). Goal is proving Haiku extraction + matching work,
+# not tracking any particular knife.
 CANARIES = [
     {
-        # Was "Norseman @ EDC Lifestyle" — consignment item sold ~2026-06-08,
-        # canary went stale. Maker's own site always lists its flagship.
-        "name": "Norseman @ Grimsmo Knives",
-        "watcher": {"url": "", "keywords": "Norseman", "maker": "Grimsmo"},
-        "expect_url": "grimsmoknives.com",
+        # Microtech is the only maker on newest-arrivals all 15/15 drop-days
+        # (Hinderer gaps 3 days — that rotation killed the old DLT canary).
+        "name": "Microtech @ DLT Trading",
+        "watcher": {"url": "", "keywords": "Microtech", "maker": "Microtech"},
+        "expect_url": "dlttrading.com/newest-arrivals",
     },
     {
-        # Was "Hinderer @ DLT Trading" — Hinderer rotated off DLT's
-        # newest-arrivals 2026-07-03 (the 1-in-15 gap day), canary went stale.
-        # True North lists Hinderer in-stock in drops nearly every day of the
-        # trailing week; keeps the non-CRK maker mix.
+        # Plain-HTML fetch path; page changes every scan, drops 14/14 days,
+        # Hinderer present on all of them.
         "name": "Hinderer @ True North Knives",
         "watcher": {"url": "", "keywords": "Hinderer", "maker": "Hinderer"},
         "expect_url": "truenorthknives.com",
     },
     {
-        # Was "Shirogorov @ Nordic Knives" — NeOn R1 sold ~2026-07-01, canary
-        # went stale. Sebenza is the only term present in every Nordic scan
-        # over the trailing 14 days (Shirogorov/Hinderer/Microtech all gap).
-        "name": "Sebenza @ Nordic Knives",
+        # Dedicated Chris Reeve dealer page (paginated walker), 13/13 drop-days
+        # but only ~1 drop/day with gaps past 24h (stable page → suppressed),
+        # so this one gets a 48h window. The other three still catch a real
+        # pipeline breakage within 24h.
+        "name": "Sebenza @ JT Knives",
         "watcher": {"url": "", "keywords": "Sebenza", "maker": "Chris Reeve"},
-        "expect_url": "nordicknives.com",
+        "expect_url": "jtknives.com",
+        "hours": 48,
     },
     {
-        "name": "SMF @ Southern Edges",
-        "watcher": {"url": "", "keywords": "SMF", "maker": "Strider"},
-        "expect_url": "southernedges.com",
-    },
-    {
-        "name": "Inkosi @ Thunderbird Gear",
-        "watcher": {"url": "", "keywords": "Inkosi", "maker": "Chris Reeve"},
-        "expect_url": "thunderbirdgear.ca",
-    },
-    {
+        # Shopify products.json path, 14/14 drop-days.
         "name": "Sebenza @ KnifeJoy",
         "watcher": {"url": "", "keywords": "Sebenza", "maker": "Chris Reeve"},
         "expect_url": "knifejoy.com",
@@ -121,10 +121,14 @@ def clear_flag():
         pass
 
 
+DEFAULT_HOURS = 24
+MAX_HOURS = max([c.get("hours", DEFAULT_HOURS) for c in CANARIES] + [DEFAULT_HOURS])
+
+
 def run():
-    drops = db.get_recent_drops(hours=24)
+    drops = db.get_recent_drops(hours=MAX_HOURS)
     if not drops:
-        log.error("NO DROPS in last 24 hours — preflight may not be running")
+        log.error(f"NO DROPS in last {MAX_HOURS} hours — preflight may not be running")
         _fail(["NO DROPS AT ALL"], 0)
         return 1
 
@@ -133,12 +137,16 @@ def run():
     # (record_index/record_match); unset/blob keeps the current prod behavior.
     log.info(f"Matcher mode: {_matcher_mode()} (DW_MATCHER="
              f"{os.environ.get('DW_MATCHER', '<unset>')})")
-    log.info(f"Checking {len(CANARIES)} canaries against {len(drops)} drops (last 24h)")
+    log.info(f"Checking {len(CANARIES)} canaries against {len(drops)} drops (last {MAX_HOURS}h)")
     failures = []
 
     for canary in CANARIES:
+        hours = canary.get("hours", DEFAULT_HOURS)
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
         matched_any = False
         for drop in drops:
+            if (drop.get('timestamp') or '') < cutoff:
+                continue
             drop_url = (drop.get('url') or '').lower()
             if canary["expect_url"] not in drop_url:
                 continue
