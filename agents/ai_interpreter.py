@@ -120,6 +120,7 @@ class KeywordQualityAssessment(BaseModel):
     reason: str = ''
     suggestions: list[str] = Field(default_factory=list)
     generic_keywords: list[str] = Field(default_factory=list)
+    corrected_keywords: list[str] = Field(default_factory=list)
 
     @field_validator('quality')
     @classmethod
@@ -147,7 +148,8 @@ Respond in JSON:
   "quality": "good" | "needs_work" | "bad",
   "reason": "one sentence explaining why",
   "suggestions": ["up to 3 better keyword alternatives"],
-  "generic_keywords": ["which of their keywords are too generic"]
+  "generic_keywords": ["which of their keywords are too generic"],
+  "corrected_keywords": ["the keyword list you would actually watch with — the user's keywords cleaned up: junk/storefront terms removed, phrases split into product names/models. Empty list if their keywords are fine as-is or you can't infer real intent"]
 }}"""
 
 # ── Load environment ──────────────────────────────────────────────────────────

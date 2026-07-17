@@ -245,6 +245,7 @@ def _migrate(conn):
         ('strikes',           'ALTER TABLE watchers ADD COLUMN strikes INTEGER DEFAULT 0'),
         ('flap_paused_at',    'ALTER TABLE watchers ADD COLUMN flap_paused_at TEXT'),
         ('flap_reset_at',     'ALTER TABLE watchers ADD COLUMN flap_reset_at TEXT'),
+        ('keywords_raw',      "ALTER TABLE watchers ADD COLUMN keywords_raw TEXT DEFAULT ''"),
     ):
         if col not in cols:
             conn.execute(ddl)
@@ -371,10 +372,10 @@ def add_watcher(watcher_dict):
         db.execute("""
             INSERT INTO watchers (id, email, url, keywords, name, priority, phone,
                 sms_approved, sms_verify_code, sms_verify_expires, active, verify_token,
-                unsubscribe_token, created, last_alert, alert_count, maker)
+                unsubscribe_token, created, last_alert, alert_count, maker, keywords_raw)
             VALUES (:id, :email, :url, :keywords, :name, :priority, :phone,
                 :sms_approved, :sms_verify_code, :sms_verify_expires, :active, :verify_token,
-                :unsubscribe_token, :created, :last_alert, :alert_count, :maker)
+                :unsubscribe_token, :created, :last_alert, :alert_count, :maker, :keywords_raw)
         """, {
             'id': watcher_dict['id'],
             'email': watcher_dict['email'],
@@ -393,6 +394,7 @@ def add_watcher(watcher_dict):
             'last_alert': watcher_dict.get('last_alert'),
             'alert_count': watcher_dict.get('alert_count', 0),
             'maker': watcher_dict.get('maker', ''),
+            'keywords_raw': watcher_dict.get('keywords_raw', ''),
         })
 
 
@@ -402,7 +404,7 @@ WATCHER_UPDATABLE_FIELDS = {
     'active', 'verify_token',
     'last_alert', 'alert_count', 'consecutive_not_found',
     'last_acked', 'ageout_email_sent', 'strikes',
-    'flap_paused_at', 'flap_reset_at',
+    'flap_paused_at', 'flap_reset_at', 'keywords_raw',
 }
 
 

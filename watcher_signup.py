@@ -41,6 +41,7 @@ from safe_fetch import is_safe_url, fetch_text
 from urls import domain_from_url
 from config_load import load_yaml
 import maker_resolve
+import keyword_sanitizer
 
 try:
     from ai_interpreter import classify_dealer, assess_keyword_quality
@@ -153,6 +154,17 @@ def _keyword_too_generic(keywords_str):
 
 
 # ── Quick keyword check ──────────────────────────────────────────────────────
+
+def correct_keywords_ai(keywords, maker=''):
+    """AI rescue for junk keyword lists (sanity pass, S71). Returns a suggested
+    keyword list or None. Never raises, never blocks signup."""
+    try:
+        result = assess_keyword_quality(keywords, maker=maker)
+        return (result or {}).get('corrected_keywords') or None
+    except Exception as e:
+        log.error(f"correct_keywords_ai failed for {keywords[:80]!r}: {e}")
+        return None
+
 
 def quick_keyword_check(url, keywords_str):
     """Fetch a page and check for keyword matches. Returns list of matched keywords."""
@@ -487,6 +499,20 @@ def watch():
     if phone and not re.match(r'^[\d\s\+\-\(\)]{7,20}$', phone):
         return jsonify({'error': 'Invalid phone number format.'}), 400
 
+    # ── Silent keyword sanity pass (S71): correct and carry on. The original
+    # string is preserved in keywords_raw; the confirmation email renders the
+    # corrected list, so the correction is silent but never hidden. ───────────
+    keywords_raw = keywords
+    _san = keyword_sanitizer.sanitize(keywords, maker=maker)
+    keywords, maker = _san['keywords'], _san['maker']
+    if _san['notes'] == 'all_dropped' or _keyword_too_generic(keywords):
+        _ai_kws = correct_keywords_ai(keywords_raw, maker)
+        _fixed = keyword_sanitizer.apply_ai_correction(_san, _ai_kws) if _ai_kws else None
+        if _fixed:
+            keywords = _fixed
+    if keywords != keywords_raw:
+        log.info(f"keywords sanitized for {email}: {keywords_raw!r} -> {keywords!r}")
+
     # ── Maker soft-prompt (URL watches only; global already requires maker) ──
     # Hard prompt, soft skip: nudge the user to a canonical maker so FTS5
     # brand-gating applies, but let them create a maker-less page watch by
@@ -517,6 +543,8 @@ def watch():
     if existing:
         log.info(f"Duplicate watcher for {email} / {url} — updating keywords")
         db.update_watcher(existing['id'], keywords=keywords, priority=priority, maker=maker)
+        if not (existing.get('keywords_raw') or '').strip():
+            db.update_watcher(existing['id'], keywords_raw=keywords_raw)
         if not existing.get('active'):
             vt = existing.get('verify_token') or str(uuid.uuid4())
             db.update_watcher(existing['id'], verify_token=vt)
@@ -550,6 +578,7 @@ def watch():
         'unsubscribe_token': shared_token,
         'url':               url,
         'keywords':          keywords,
+        'keywords_raw':      keywords_raw,
         'maker':             maker,
         'email':             email,
         'name':              name,
