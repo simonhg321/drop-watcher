@@ -62,7 +62,10 @@ def load_no_user_alert_domains(path=None):
     user_alerts: false. We keep polling them for intel (e.g. chrisreeve.com — a
     drop there signals a release wave hitting dealers) but the maker doesn't ship
     direct, so a user alert deep-linking there is a dead end. Tolerant of a
-    missing/broken file: suppression must never take down the alerter."""
+    missing/broken file — suppression must never take down the alerter (and
+    failing loud at import risks a supervisor crash-loop) — but a load failure
+    falls back to the FAILSAFE set rather than an empty one, so the critical
+    suppression survives a broken sources.yaml (Corp directive 181, #4)."""
     try:
         with open(path or paths.SOURCES_YAML) as f:
             sources = yaml.safe_load(f) or {}
@@ -72,9 +75,13 @@ def load_no_user_alert_domains(path=None):
                 and not s.get('user_alerts', True)
                 and domain_from_url(s.get('url', ''))}
     except Exception as e:
-        log.warning(f"could not load no-user-alert domains: {e}")
-        return set()
+        log.error(f"could not load no-user-alert domains, using failsafe set: {e}")
+        return set(FAILSAFE_NO_USER_ALERT_DOMAINS)
 
+
+# Last-resort suppression when sources.yaml won't load: the one domain where a
+# user alert is always a dead end (~6-year lead time, sells via dealers only).
+FAILSAFE_NO_USER_ALERT_DOMAINS = {'chrisreeve.com'}
 
 NO_USER_ALERT_DOMAINS = load_no_user_alert_domains()
 

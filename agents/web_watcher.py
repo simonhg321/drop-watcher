@@ -201,8 +201,19 @@ def mark_content_seen(source, summary, _unused=None):
     return _unused  # kept for API compat
 
 def item_key(source, item):
-    raw = f"{source}:{item[:80].lower()}"
+    # Full text, not a prefix — long consignment titles sharing an 80-char prefix
+    # used to collide and suppress one item's alert (Corp directive 181, #2).
+    # Key change invalidates prior seen-keys once; episode cooldowns downstream
+    # absorb the one-cycle duplicate burst.
+    raw = f"{source}:{item.lower()}"
     return hashlib.md5(raw.encode()).hexdigest()
+
+def prune_stale_cache(cache, live_keys):
+    """Evict cache entries for URLs we no longer watch (removed user watches,
+    edited sources). Keeps long-lived dicts bounded (Corp directive 181, #1)."""
+    for k in [k for k in cache if k not in live_keys]:
+        del cache[k]
+
 
 def filter_new_items(source, notable_items, _unused=None):
     new_items = []
@@ -615,6 +626,9 @@ def run():
             last_user_reload = time.time()
             if user_sites:
                 log.info(f"Tracking {len(user_sites)} user-submitted URL(s)")
+            live = {s['url'] for s in websites} | set(user_sites)
+            for d in (page_cache, failure_count, stale_watch_count):
+                prune_stale_cache(d, live)
 
         for uurl, usite in user_sites.items():
             uname = usite['name'] + ' (user)'

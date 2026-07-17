@@ -34,10 +34,12 @@ class TestLoadNoUserAlertDomains:
         )
         assert load_no_user_alert_domains(str(yml)) == {'chrisreeve.com'}
 
-    def test_missing_file_returns_empty(self, tmp_path):
-        # Loader must never take down the alerter over a config problem
-        from per_user_alerter import load_no_user_alert_domains
-        assert load_no_user_alert_domains(str(tmp_path / 'nope.yaml')) == set()
+    def test_missing_file_returns_failsafe(self, tmp_path):
+        # Loader must never take down the alerter over a config problem, but a
+        # load failure returns the FAILSAFE set, not empty — a broken sources.yaml
+        # must not silently disable the critical suppression (Corp directive 181).
+        from per_user_alerter import load_no_user_alert_domains, FAILSAFE_NO_USER_ALERT_DOMAINS
+        assert load_no_user_alert_domains(str(tmp_path / 'nope.yaml')) == FAILSAFE_NO_USER_ALERT_DOMAINS
 
     def test_production_config_suppresses_chrisreeve(self):
         # The actual sources.yaml must carry the flag — CRK does not ship direct
