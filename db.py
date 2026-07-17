@@ -243,6 +243,8 @@ def _migrate(conn):
         ('ageout_email_sent', 'ALTER TABLE watchers ADD COLUMN ageout_email_sent TEXT'),
         ('maker',             'ALTER TABLE watchers ADD COLUMN maker TEXT'),
         ('strikes',           'ALTER TABLE watchers ADD COLUMN strikes INTEGER DEFAULT 0'),
+        ('flap_paused_at',    'ALTER TABLE watchers ADD COLUMN flap_paused_at TEXT'),
+        ('flap_reset_at',     'ALTER TABLE watchers ADD COLUMN flap_reset_at TEXT'),
     ):
         if col not in cols:
             conn.execute(ddl)
@@ -255,6 +257,10 @@ def _migrate(conn):
     click_cols = {r['name'] for r in conn.execute("PRAGMA table_info(outbound_clicks)").fetchall()}
     if 'scanner' not in click_cols:
         conn.execute("ALTER TABLE outbound_clicks ADD COLUMN scanner INTEGER DEFAULT 0")
+
+    sa_cols = {r['name'] for r in conn.execute("PRAGMA table_info(sent_alerts)").fetchall()}
+    if 'watcher_id' not in sa_cols:
+        conn.execute("ALTER TABLE sent_alerts ADD COLUMN watcher_id TEXT DEFAULT ''")
 
     ep_cols = {r['name'] for r in conn.execute("PRAGMA table_info(alert_episodes)").fetchall()}
     if 'matched_lines' not in ep_cols:
@@ -396,6 +402,7 @@ WATCHER_UPDATABLE_FIELDS = {
     'active', 'verify_token',
     'last_alert', 'alert_count', 'consecutive_not_found',
     'last_acked', 'ageout_email_sent', 'strikes',
+    'flap_paused_at', 'flap_reset_at',
 }
 
 
@@ -1104,12 +1111,30 @@ def mark_dealer_candidate_notified(domain):
 
 # ── Per-recipient send cap (daily_cap.py) ───────────────────────────────────
 
-def record_sent_alert(recipient, channel='email', ts=None):
+def record_sent_alert(recipient, channel='email', ts=None, watcher_id=''):
     from datetime import datetime, timezone
     ts = ts or datetime.now(timezone.utc).isoformat()
     with get_db() as db:
-        db.execute("INSERT INTO sent_alerts (recipient, channel, ts) VALUES (?,?,?)",
-                   (recipient.lower(), channel, ts))
+        db.execute("INSERT INTO sent_alerts (recipient, channel, ts, watcher_id) VALUES (?,?,?,?)",
+                   (recipient.lower(), channel, ts, watcher_id or ''))
+
+
+def count_watch_emails(watcher_id, since_iso):
+    with get_db() as db:
+        row = db.execute(
+            "SELECT COUNT(*) AS n FROM sent_alerts WHERE watcher_id=? AND ts>=?",
+            (watcher_id, since_iso)).fetchone()
+        return row['n']
+
+
+def count_watch_clicks(watcher_id, since_iso):
+    """Human outbound clicks only — scanner prefetches don't count as engagement."""
+    with get_db() as db:
+        row = db.execute(
+            "SELECT COUNT(*) AS n FROM outbound_clicks"
+            " WHERE watcher_id=? AND clicked_at>=? AND scanner=0",
+            (watcher_id, since_iso)).fetchone()
+        return row['n']
 
 
 def count_sent_alerts(recipient, since_iso):

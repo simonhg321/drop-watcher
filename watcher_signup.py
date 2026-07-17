@@ -989,6 +989,42 @@ def watch_remove(watch_id, token):
             </body></html>""", 200
 
 
+@app.route('/api/reactivate/<watch_id>/<token>', methods=['GET', 'POST'])
+@limiter.limit("20 per minute")
+def reactivate_watch(watch_id, token):
+    """Resume a flap-paused watch from the pause email. Token-authed like
+    unsubscribe. GET shows a confirm form; the reactivation happens on POST
+    only — email scanners prefetch GETs and must not silently unpause a watch.
+    Reactivation restarts the flap counter at zero (flap_reset_at = now)."""
+    target = db.get_watcher_by_id(watch_id)
+    if not target or not hmac.compare_digest(target.get('unsubscribe_token', '') or '', token):
+        return jsonify({'error': 'Not found'}), 404
+
+    if request.method == 'GET':
+        return f"""
+            <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                <h1 style="color:#27ae60">DROP WATCHER</h1>
+                <p style="font-size:18px;margin-top:24px">Resume your watch for
+                   <strong>{html_mod.escape(target.get('keywords', ''))}</strong>?</p>
+                <form method="POST" style="margin-top:24px">
+                    <button type="submit" style="background:#27ae60;color:#fff;border:none;padding:12px 32px;font-family:inherit;font-size:16px;cursor:pointer">Yes, resume it</button>
+                </form>
+                <p style="margin-top:24px"><a href="https://instockornot.club" style="color:#e67e22">Never mind</a></p>
+            </body></html>""", 200
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    db.update_watcher(watch_id, active=True, strikes=0,
+                      flap_paused_at=None, flap_reset_at=now_iso)
+    log.info(f"Watch reactivated via email link: {watch_id} ({target.get('email')}) — "
+             f"flap counter restarted")
+    return f"""
+            <html><body style="background:#0a0a0a;color:#f0f0f0;font-family:'Courier New',monospace;padding:48px;text-align:center">
+                <h1 style="color:#27ae60">DROP WATCHER</h1>
+                <p style="font-size:18px;margin-top:24px">✓ Watch resumed. We're hunting again.</p>
+                <p style="margin-top:32px"><a href="https://instockornot.club" style="color:#e67e22">instockornot.club</a></p>
+            </body></html>""", 200
+
+
 @app.route('/api/ack/<token>', methods=['GET'])
 @limiter.limit("20 per minute")
 def ack_watch(token):

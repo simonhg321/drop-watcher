@@ -44,6 +44,7 @@ import linkpick
 import nkd
 import sharp
 import daily_cap
+import flap_guard
 import record_match
 
 NKD_ENABLED = os.environ.get("DW_NKD_ENABLED", "0") == "1"
@@ -225,6 +226,41 @@ def build_teardown_email(watcher, remaining):
     return subject, html, txt
 
 
+def build_flap_pause_email(watcher):
+    token = watcher.get('unsubscribe_token', '')
+    what = watcher.get('keywords', '')
+    resume_url = f"https://instockornot.club/api/reactivate/{watcher['id']}/{token}"
+    subject = f"[DROP WATCHER] Paused your watch for {what}"
+    txt = (
+        f"Hey {watcher.get('name') or 'there'},\n\n"
+        f"We've sent you more than {flap_guard.FLAP_MAX_EMAILS} alerts for \"{what}\" in the "
+        f"last {flap_guard.FLAP_WINDOW_DAYS:g} days and haven't seen a click, so we paused "
+        f"this watch to keep your inbox sane.\n\n"
+        f"Still hunting? Resume it here: {resume_url}\n"
+        f"Dashboard: https://instockornot.club/my-alerts.html?token={token}\n"
+    )
+    html = (
+        f"<p>We've sent you more than {flap_guard.FLAP_MAX_EMAILS} alerts for "
+        f"<strong>{what}</strong> in the last {flap_guard.FLAP_WINDOW_DAYS:g} days and "
+        f"haven't seen a click, so we paused this watch to keep your inbox sane.</p>"
+        f"<p><a href='{resume_url}' style='color:#27ae60'>Still hunting? Resume this watch</a></p>"
+        f"<p><a href='https://instockornot.club/my-alerts.html?token={token}'>Dashboard</a></p>"
+    )
+    return subject, html, txt
+
+
+def pause_watch_for_flapping(watcher, now):
+    """Flap guard tripped: pause the watch (recoverable — the email carries a
+    reactivate link) and tell the user once. The pause email is recorded without
+    a watcher_id so it can't feed the flap counter after a reactivation."""
+    db.update_watcher(watcher['id'], active=False, flap_paused_at=now.isoformat())
+    subject, html, txt = build_flap_pause_email(watcher)
+    if send_email(subject, html, txt, to_addr=watcher['email']):
+        db.record_sent_alert(watcher['email'], 'email')
+    log.info(f"[{watcher['id']}] FLAP PAUSE — watch paused for {watcher['email']} "
+             f"({watcher.get('keywords','')}), reactivate link sent")
+
+
 def teardown_watch(watcher, now):
     """STRIKE_LIMIT unengaged reminders: quiet the reminder ladder and reset strikes,
     but KEEP the watch active.
@@ -291,7 +327,8 @@ def episode_sweep(now):
                 else:
                     subject, html, txt = build_keep_delete_email(watcher, ep)
                     if send_email(subject, html, txt, to_addr=watcher['email']):
-                        db.record_sent_alert(watcher['email'], 'email')
+                        db.record_sent_alert(watcher['email'], 'email',
+                                             watcher_id=watcher['id'])
                         db.mark_keep_delete_sent(ep['id'], now_iso)
                         log.info(f"[{watcher['id']}] keep-or-delete sent for "
                                  f"'{ep['matches']}' on {ep['domain']}")
@@ -310,12 +347,16 @@ def episode_sweep(now):
             else:
                 subject, html, txt = build_reminder_email(watcher, ep)
                 if send_email(subject, html, txt, to_addr=watcher['email']):
-                    db.record_sent_alert(watcher['email'], 'email')
+                    db.record_sent_alert(watcher['email'], 'email',
+                                         watcher_id=watcher['id'])
                     db.bump_episode_email(ep['id'], now_iso)
                     db.update_watcher(watcher['id'],
                                       strikes=(watcher.get('strikes') or 0) + 1)
                     log.info(f"[{watcher['id']}] reminder #{ep['emails_sent']} sent "
                              f"for '{ep['matches']}' on {ep['domain']}")
+                    if flap_guard.should_pause(watcher, now):
+                        pause_watch_for_flapping(watcher, now)
+                        db.close_episode(ep['id'], now_iso)
 
 
 def load_recent_drops():
@@ -981,7 +1022,7 @@ def run():
                 continue
 
             if result:
-                db.record_sent_alert(email, 'email')
+                db.record_sent_alert(email, 'email', watcher_id=watcher['id'])
                 # Audit row + open the episode for THIS watcher's match only
                 db.mark_cooldown(ck, recipient=email)
                 db.open_episode(ck, watcher['id'],
@@ -996,6 +1037,10 @@ def run():
                     alert_count=watcher.get('alert_count', 0) + 1,
                     strikes=(watcher.get('strikes') or 0) + 1)
                 log.info(f"Alert sent to {email} for {drop.get('source', '')}")
+
+                if flap_guard.should_pause(watcher, now):
+                    pause_watch_for_flapping(watcher, now)
+                    continue   # no SMS fan-out for a watch we just paused
 
                 # SMS fan-out — only sms_approved watchers, only high/critical priority.
                 # Per-URL-per-keyword cooldown above already prevents spam.
@@ -1014,7 +1059,7 @@ def run():
                         if not phone.startswith('+'):
                             phone = '+1' + re.sub(r'\D', '', phone)
                         if _send_twilio_sms(phone, body):
-                            db.record_sent_alert(email, 'sms')
+                            db.record_sent_alert(email, 'sms', watcher_id=watcher['id'])
                             log.info(f"SMS sent to {phone} for {email}")
                         else:
                             log.error(f"SMS failed to {phone} for {email}")
