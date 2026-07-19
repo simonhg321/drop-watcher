@@ -195,7 +195,7 @@ def render():
 {sections}
   <footer>
     <span>INSTOCKORNOT.CLUB · WE WATCH KNIVES · YOU CAN WATCH ANYTHING</span>
-    <span class="hgr">HGR</span>
+    <span class="hgr">SHG</span>
   </footer>
 </body>
 </html>
