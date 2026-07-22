@@ -95,7 +95,14 @@ def check_gunicorn():
         return False, str(e)
 
 
+# Touch this file to deliberately keep web_watcher down (watchdog won't heal it);
+# rm it to resume normal self-healing.
+WEB_WATCHER_PAUSE = os.path.join(os.path.dirname(STATE_FILE), 'web_watcher.pause')
+
+
 def check_web_watcher():
+    if os.path.exists(WEB_WATCHER_PAUSE):
+        return True, f"paused by operator ({WEB_WATCHER_PAUSE})"
     try:
         result = subprocess.run(
             ['/usr/bin/sudo', '/usr/bin/supervisorctl', 'status', 'web_watcher'],
