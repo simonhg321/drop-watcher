@@ -1859,8 +1859,46 @@ class TestWatchEndpointGlobal:
         # the knife-gate, not DNS. (SSRF is covered in TestSignupSSRF.)
         with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
              patch.object(ws, 'classify_dealer', return_value={'is_dealer': False, 'confidence': 0.9, 'category': 'apparel'}):
-            r = c.post('/api/watch', json={'url': 'https://sneakers-xyz.com/x', 'keywords': 'jordan', 'email': 'g@h.com'})
-        assert r.status_code == 400 and 'knives' in r.get_json()['error'].lower()
+            r = c.post('/api/watch', json={'url': 'https://sneakers-xyz.com/x', 'keywords': 'jordan', 'email': 'g@h.com', 'maker_confirmed': True})
+        # Simon 2026-10-22: not a hard reject any more — ask "are you sure?" and let them decide.
+        j = r.get_json()
+        assert r.status_code == 200 and j.get('confirm') and j.get('kind') == 'scope'
+        assert 'sure' in j['message'].lower()
+        import db
+        assert db.get_watchers_by_email('g@h.com') == []   # nothing stored until they confirm
+
+    @patch('watcher_signup.send_verification_email', return_value=True)
+    @patch('watcher_signup.send_confirmation_email', return_value=True)
+    def test_new_domain_not_knives_creates_after_scope_confirm(self, _c, _e, client):
+        c, ws = client
+        ws._fetch_page_text = lambda u: 'shoes and socks'
+        with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+             patch.object(ws, 'classify_dealer', return_value={'is_dealer': False, 'confidence': 0.9, 'category': 'apparel'}):
+            r = c.post('/api/watch', json={'url': 'https://sneakers-xyz.com/x', 'keywords': 'jordan', 'email': 'g@h.com',
+                                           'maker_confirmed': True, 'scope_confirmed': True})
+        assert r.status_code == 201
+        import db
+        assert len(db.get_watchers_by_email('g@h.com')) == 1
+
+    def test_general_retailer_heuristic(self, client):
+        c, ws = client
+        assert ws.looks_like_general_retailer('www.target.com')
+        assert ws.looks_like_general_retailer('bestbuy.com')
+        assert ws.looks_like_general_retailer('www.amazon.co.uk')
+        assert not ws.looks_like_general_retailer('www.dlttrading.com')
+        assert not ws.looks_like_general_retailer('targetknives.com')
+
+    def test_check_url_warns_on_general_retailer(self, client):
+        c, ws = client
+        class R:
+            status_code = 200
+            text = '<html><body>' + 'Pokemon booster box in stock at Target. ' * 20 + '</body></html>'
+        import safe_fetch
+        with patch.object(safe_fetch, 'safe_get', return_value=R()):
+            r = c.post('/api/check-url', json={'url': 'https://www.target.com/p/pokemon-booster/-/A-123'})
+        j = r.get_json()
+        assert j['ok'] is True
+        assert 'sure' in j.get('warning', '').lower()
 
     @patch('watcher_signup.send_verification_email', return_value=True)
     @patch('watcher_signup.send_confirmation_email', return_value=True)

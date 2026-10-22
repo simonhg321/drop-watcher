@@ -397,7 +397,7 @@
         <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
         <div class="urlnote">New to us? We do a quick <b>AI knife-check</b>. If it's knives, your watch goes
         live right away — and the shop is queued for Simon's <b>weekly review</b> to join the shared net for everyone.
-        <br>Not knives? We'll tell you — Drop Watcher is knives-only for now.</div>
+        <br>Not knives or gear? We'll ask if you're sure — then it's your call.</div>
       </div>
     </div>
 
@@ -882,7 +882,8 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
     name: form.querySelector('[name="name"]').value,
     phone: form.querySelector('[name="phone"]').value,
     sms_consent: form.querySelector('[name="sms_consent"]').checked,
-    maker_confirmed: !!window._makerConfirmed
+    maker_confirmed: !!window._makerConfirmed,
+    scope_confirmed: !!window._scopeConfirmed
   };
 
   try {
@@ -892,6 +893,18 @@ document.getElementById('watchForm').addEventListener('submit', async function(e
       body: JSON.stringify(payload)
     });
     const result = await res.json();
+
+    // ── Scope prompt: page doesn't look like a knife/gear shop — are you sure? ──
+    if (result && result.confirm && result.kind === 'scope') {
+      btn.classList.remove('loading');
+      if (!confirm(result.message + '\n\nOK = watch it anyway.  Cancel = pick a different page.')) {
+        document.getElementById('urlInput').focus();
+        return;
+      }
+      window._scopeConfirmed = true;
+      document.getElementById('watchForm').requestSubmit();
+      return;
+    }
 
     // ── Maker confirmation prompt (URL-mode, no confirmed maker yet) ──
     if (result && result.confirm) {

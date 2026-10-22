@@ -70,7 +70,27 @@ log = logging.getLogger(__name__)
 
 # ── New-shop knife-gate helpers ───────────────────────────────────────────────
 
-DEALER_REJECT_CONFIDENCE = 0.6  # only reject "not a knife shop" when the AI is at least this sure
+DEALER_REJECT_CONFIDENCE = 0.6  # legacy threshold — kept for the review-queue note; no hard reject since 2026-10-22
+
+# Simon 2026-10-22: Drop Watcher is for knives/EDC. We don't refuse other pages any more,
+# we ASK. Big general retailers get the question on URL blur (no AI needed) and the
+# AI classifier's "not a knife shop" verdict turns into an are-you-sure prompt at submit.
+GENERAL_RETAILERS = {
+    'target.com', 'walmart.com', 'bestbuy.com', 'samsclub.com', 'costco.com', 'amazon.com',
+    'ebay.com', 'academy.com', 'kohls.com', 'macys.com', 'homedepot.com', 'lowes.com',
+    'gamestop.com', 'pokemoncenter.com', 'ticketmaster.com', 'nike.com', 'adidas.com',
+}
+SCOPE_QUESTION = ("Drop Watcher was built for knives and EDC gear. That page doesn't look like a "
+                  "knife or gear shop. Are you sure that's what you want to watch?")
+
+
+def looks_like_general_retailer(domain):
+    """target.com / www.target.com / amazon.co.uk → True; targetknives.com → False."""
+    parts = (domain or '').lower().split('.')
+    names = {r.split('.')[0] for r in GENERAL_RETAILERS}
+    if len(parts) >= 2 and parts[-2] in names:
+        return True
+    return len(parts) >= 3 and parts[-3] in names and parts[-2] in ('co', 'com')
 
 
 def _fetch_page_text(url):
@@ -452,12 +472,12 @@ def watch():
             if verdict:
                 is_dealer = bool(verdict.get('is_dealer'))
                 conf = float(verdict.get('confidence') or 0)
-                # Only hard-reject when the classifier is CONFIDENT it's not a knife
-                # shop. Otherwise fail open (create the watch) and still queue the shop
-                # for weekly review so Simon can judge — don't lose an uncertain user.
-                if (not is_dealer) and conf >= DEALER_REJECT_CONFIDENCE:
-                    return jsonify({'error': 'Drop Watcher is knives-only for now — '
-                                             'more coming soon.'}), 400
+                # Not a knife shop? Ask, don't refuse (Simon 2026-10-22). The client
+                # resubmits with scope_confirmed once the user says yes; the shop is
+                # still queued for weekly review below either way.
+                if (not is_dealer) and not data.get('scope_confirmed'):
+                    return jsonify({'confirm': True, 'kind': 'scope',
+                                    'message': SCOPE_QUESTION}), 200
                 brands = verdict.get('brands')
                 if isinstance(brands, (list, tuple)):
                     brands = ', '.join(str(b) for b in brands)
@@ -1277,6 +1297,9 @@ def check_url():
     warning = None
     if parsed.path in ('', '/'):
         warning = "Heads up — this looks like a homepage. A direct product or search page gets better results."
+    if looks_like_general_retailer(parsed.hostname):
+        warning = ("Heads up — that's a big general retailer, not a knife or gear shop. "
+                   "Drop Watcher works best on maker and dealer pages. Sure that's what you want to watch?")
 
     msg = "We can read this page. You're good to go."
     if known_status == 'active-source':

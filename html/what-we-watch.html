@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <title>What We Watch — Knife Dealers, Makers, Sneakers, GPUs and More | Drop Watcher</title>
-  <meta name="description" content="Drop Watcher monitors 100+ sources around the clock — knife dealers, custom makers, Reddit feeds, and more. We watch knives. You can watch anything: sneakers, GPUs, limited releases.">
+  <title>How It Works — Drop Watcher | instockornot.club</title>
+  <meta name="description" content="Give Drop Watcher a page and a keyword. It checks the page for you and sends an email or a text the moment the keyword shows up. Built for knives and EDC gear.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://instockornot.club/what-we-watch.html">
-  <meta property="og:title" content="What We Watch — Drop Watcher">
-  <meta property="og:description" content="100+ sources monitored around the clock. We watch knives — you can watch anything: sneakers, GPUs, limited releases.">
+  <meta property="og:title" content="How It Works — Drop Watcher">
+  <meta property="og:description" content="One page. One keyword. One alert. Built for knives and EDC gear.">
   <meta property="og:image" content="https://instockornot.club/og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="What We Watch — Drop Watcher">
-  <meta name="twitter:description" content="100+ sources monitored around the clock. We watch knives — you can watch anything: sneakers, GPUs, limited releases.">
+  <meta name="twitter:title" content="How It Works — Drop Watcher">
+  <meta name="twitter:description" content="One page. One keyword. One alert. Built for knives and EDC gear.">
   <link rel="canonical" href="https://instockornot.club/what-we-watch.html">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <style>
@@ -86,599 +86,89 @@
     /* Footer */
     footer { margin-top: 3rem; color: var(--ash); font-size: 0.65rem; letter-spacing: 0.3em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
     .hgr { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.2rem; }
+    .step { background: var(--steel); padding: 1.2rem 1.4rem; border-left: 2px solid var(--ember); margin-bottom: 1px; }
+    .step-num { font-family: 'Bebas Neue', sans-serif; color: var(--ember); font-size: 1.4rem; letter-spacing: 0.1em; }
+    .step h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.08em; color: var(--white); margin: 0.1rem 0 0.4rem; }
+    .step p { color: var(--silver); font-size: 0.8rem; line-height: 1.6; }
+    .example { background: var(--black); border: 1px solid var(--iron); padding: 1.2rem 1.4rem; margin: 1rem 0 2rem; }
+    .example .row { display: grid; grid-template-columns: 110px 1fr; gap: 0.6rem 1rem; font-size: 0.78rem; line-height: 1.6; }
+    .example .k { color: var(--ash); letter-spacing: 0.15em; font-size: 0.6rem; padding-top: 0.25rem; }
+    .example .v { color: var(--white); word-break: break-all; }
+    .example .v em { color: var(--flame); font-style: normal; }
+    .alert-mock { background: var(--steel); border-left: 2px solid var(--flame); padding: 0.9rem 1.1rem; margin-top: 1rem; font-size: 0.78rem; line-height: 1.6; color: var(--silver); }
+    .alert-mock .subj { color: var(--white); }
+    .alert-mock a { color: var(--flame); text-decoration: none; border-bottom: 1px solid var(--ember); }
+    .plain { color: var(--silver); font-size: 0.82rem; line-height: 1.7; margin-bottom: 1rem; }
+    .plain strong { color: var(--white); font-weight: normal; }
+    .cta { display: inline-block; margin: 1.5rem 0 0; padding: 0.8rem 1.6rem; background: var(--ember); color: #fff; text-decoration: none; font-size: 0.75rem; letter-spacing: 0.2em; }
+    @media (max-width: 520px) { .example .row { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <h1>WHAT WE <span>WATCH</span></h1>
-  <p class="subtitle">Simon's favorite dealers, makers, and feeds — monitored around the clock.</p>
-  <p style="color:var(--flame);font-size:0.8rem;letter-spacing:0.2em;margin-top:-0.5rem">WE WATCH KNIVES. YOU CAN WATCH ANYTHING.</p>
+  <h1>HOW IT <span>WORKS</span></h1>
+  <p class="subtitle">One page. One keyword. One alert.</p>
+  <p style="color:var(--flame);font-size:0.8rem;letter-spacing:0.2em;margin-top:-0.5rem">BUILT FOR KNIVES AND EDC GEAR.</p>
   <div class="flame-line"></div>
 
   <nav class="dw-nav">
     <a href="/" class="logo">DROP <span>WATCHER</span></a>
     <a href="/">Home</a>
-    <a href="/what-we-watch.html" class="active">What We Watch</a>
-    <a href="/watchlist.html">Watch</a>
-    <a href="/alerts.html">Alerts</a>
-    <a href="/stats.html">Stats</a>
+    <a href="/what-we-watch.html" class="active">How It Works</a>
+    <a href="/watchlist.html">Set a Watch</a>
+    <a href="/get-my-link.html">My Watches</a>
   </nav>
 
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">DEALERS & SITES</div>
-      <div class="stat-value">40+</div>
-      <div class="stat-sub">monitored continuously</div>
+  <p class="plain">You give us a page and a word. We go look at that page for you, every 15 minutes or so,
+  and the moment the word shows up we send you an email or a text. That's the whole thing.
+  <strong>We only look at the pages people ask us to.</strong> There is no crawler behind this and no feed
+  to browse. It's a tripwire, not a search engine.</p>
+
+  <h2 class="section-head">THREE STEPS</h2>
+  <div class="step">
+    <div class="step-num">01</div>
+    <h3>Paste the page</h3>
+    <p>The exact page where the thing will appear. A dealer's Chris Reeve collection, a maker's "available" page,
+    one product listing. The closer the page is to the thing, the better it works. A homepage is usually too far away.</p>
+  </div>
+  <div class="step">
+    <div class="step-num">02</div>
+    <h3>Type the word</h3>
+    <p>What you're waiting to see on that page. A model name is best. "In stock" or "add to cart" works too,
+    but it fires for everything on the page, so you'll hear from us a lot.</p>
+  </div>
+  <div class="step">
+    <div class="step-num">03</div>
+    <h3>Tell us where to reach you</h3>
+    <p>Email, or a phone number for a text. We confirm it once, then leave you alone until the word shows up.
+    Every alert has a one-click link to stop.</p>
+  </div>
+
+  <h2 class="section-head" style="margin-top:2.5rem">A REAL EXAMPLE</h2>
+  <p class="section-sub">THE WATCH MOST OF OUR USERS ACTUALLY SET</p>
+  <div class="example">
+    <div class="row">
+      <div class="k">PAGE</div>
+      <div class="v">https://www.dlttrading.com/chris-reeve-knives</div>
+      <div class="k">KEYWORD</div>
+      <div class="v"><em>Inkosi Insingo</em></div>
+      <div class="k">REACH ME</div>
+      <div class="v">you@example.com &nbsp;·&nbsp; or a phone number for a text</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">MAKERS & BRANDS</div>
-      <div class="stat-value">30+</div>
-      <div class="stat-sub">across all tiers</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">RSS FEEDS</div>
-      <div class="stat-value">3</div>
-      <div class="stat-sub">Reddit + social</div>
+    <div class="alert-mock">
+      <div class="subj">[DROP WATCHER] Match found — DLT Trading</div>
+      <div><em style="color:var(--flame);font-style:normal">Inkosi Insingo</em> just showed up on the page you're watching.</div>
+      <div>Large Inkosi Insingo, Glass Blasted — $475 — <a href="#">go straight to it</a></div>
+      <div style="color:var(--ash);font-size:0.65rem;margin-top:0.5rem">Checked 2 minutes ago · Stop this watch</div>
     </div>
   </div>
 
-  <!-- Cool Makers download -->
-  <p style="text-align:center;margin:0.5rem 0 2.5rem;">
-    <a href="/our-cool-makers.html" style="display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.1em;color:var(--flame);text-decoration:none;border:1px solid var(--iron);padding:0.5rem 1.4rem;">📌 OUR COOL MAKERS — GRAB THE LIST →</a>
-    <span style="display:block;color:var(--ash);font-size:0.6rem;letter-spacing:0.15em;margin-top:0.5rem;">EVERY MAKER WE FOLLOW, DOWNLOADABLE AS YOUR OWN BOOKMARKS</span>
-  </p>
+  <h2 class="section-head">WHAT IT WON'T DO</h2>
+  <p class="plain"><strong>It won't buy anything.</strong> It watches and it tells you. You do the rest.<br>
+  <strong>It won't crawl a store.</strong> It reads the one page you gave it and nothing past it.<br>
+  <strong>It won't watch a page that needs a login</strong> or one that only draws itself with JavaScript. We'll tell you when you paste the URL.<br>
+  <strong>It isn't a deal finder for everything.</strong> It was built for knives and EDC gear. Point it at a big-box retailer and we'll ask if you're sure. If you are, it's your call.</p>
 
-  <!-- Tier 1 Makers -->
-  <div class="section-head">TIER 1 — ALWAYS WATCHING</div>
-  <p class="section-sub">THESE MAKERS GET THE FASTEST ALERTS. ANY DROP IS WORTH KNOWING ABOUT.</p>
-  <div class="maker-grid">
-    <div class="maker-card">
-      <div class="maker-name">Hinderer Knives</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> Steel Flame collab, Fatty, Working Finish, Battle Bronze<br><strong>Watch:</strong> XM-18, XM-24, Halftrack, Skinny</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Chris Reeve Knives</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> Damascus, Annual, Unique, Ti-Lock, Yarborough<br><strong>Watch:</strong> Umfaan, Nyala, Sikayo, Inyoni, Pacific</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Steel Flame</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> Everything — clips, beads, jewelry, collabs<br><strong>Watch:</strong> Killbox, Crusader, Darkness, Hannya, Daruma</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Strider Knives</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> Damascus, Steel Flame collab, Custom<br><strong>Watch:</strong> SMF, SNG, PT, AR</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Mick Strider Custom</div>
-      <div class="maker-priority critical">CRITICAL — EVERYTHING</div>
-      <div class="maker-models">Any MSC that appears for sale is extremely rare. Instant alert.</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">McNees Knives</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> MAC2 Skeletonized, Hand Grind<br><strong>Watch:</strong> MAC2, MAC2.5, Dixon</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Starlingear</div>
-      <div class="maker-priority critical">CRITICAL — EVERYTHING</div>
-      <div class="maker-models">Ultra-rare silver and bronze EDC gear by Brad Southard.</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Monkey Edge</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> FRAG patterns, CRK exclusives, Custom runs</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Arno Bernard Knives</div>
-      <div class="maker-priority high">HIGH PRIORITY</div>
-      <div class="maker-models"><strong>Critical:</strong> Damascus, Damasteel<br><strong>Watch:</strong> Turaco, Rinkhals, iMamba, Orca</div>
-    </div>
-  </div>
-
-  <!-- Collabs -->
-  <div class="section-head">COLLABORATIONS — ALWAYS CRITICAL</div>
-  <p class="section-sub">WHEN THESE MAKERS TEAM UP, DROP EVERYTHING.</p>
-  <div class="collab-grid">
-    <div class="collab-card">
-      <div class="collab-name">Hinderer x Steel Flame</div>
-      <div class="collab-sub">XM-18 AND XM-24 COLLABS</div>
-    </div>
-    <div class="collab-card">
-      <div class="collab-name">Wilson Combat x Chris Reeve</div>
-      <div class="collab-sub">WC SEBENZA — ALWAYS CRITICAL</div>
-    </div>
-    <div class="collab-card">
-      <div class="collab-name">Strider x Steel Flame</div>
-      <div class="collab-sub">SMF AND SNG COLLABS</div>
-    </div>
-  </div>
-
-  <!-- Tier 2 Makers -->
-  <div class="section-head">TIER 2 — ON THE RADAR</div>
-  <p class="section-sub">PRODUCTION AND MID-TECH. ALERTED ON SPECIAL RUNS AND LIMITED EDITIONS.</p>
-  <div class="maker-grid">
-    <div class="maker-card">
-      <div class="maker-name">Demko Knives</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Spyderco</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Medford Knife and Tool</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Microtech</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Heretic Knives</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Protech Knives</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Chaves Knives</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Curtiss Custom Knives</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Sharp By Design</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Prometheus Design Werx</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Tactile Knife Co</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Oz Machine Company</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Winterblades</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Rockstead</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Shirogorov</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Todd Begg Knives</div>
-      <div class="maker-priority medium">MEDIUM</div>
-    </div>
-  </div>
-
-  <!-- Tier 3 Makers -->
-  <div class="section-head">TIER 3 — CUSTOM & BOUTIQUE</div>
-  <p class="section-sub">INDEPENDENT MAKERS WE KEEP AN EYE ON.</p>
-  <div class="maker-grid">
-    <div class="maker-card">
-      <div class="maker-name">Sergey Rogovets</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Pena Knives</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Neeve Knives</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Kirby Lambert</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Dmitry Sinkevich</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Todd Rexford</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Scott Cook Custom</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">William Harsey</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Lynch Northwest</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Bryan Winters</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Shark Knife Co</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Skiagusta</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Derning Knives</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-    <div class="maker-card">
-      <div class="maker-name">Frag Knives</div>
-      <div class="maker-priority medium">CUSTOM</div>
-    </div>
-  </div>
-
-  <!-- Dealers -->
-  <div class="section-head">DEALERS & RETAILERS</div>
-  <p class="section-sub">EVERY MAJOR KNIFE DEALER IN THE GAME. POLLED EVERY 10-30 MINUTES.</p>
-  <div class="dealer-grid">
-    <div class="dealer-card">
-      <div class="dealer-name">KnifeJoy</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">DLT Trading</div>
-      <div class="dealer-meta"><span class="dealer-freq">10-20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knife Center</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Monkey Edge</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Tactical Elements</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">eKnives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Nashville Tactical Lounge</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Steel Addiction</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Northwest Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Arizona Custom Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Nordic Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Lamnia</div>
-      <div class="dealer-meta"><span class="dealer-freq">60m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Thunderbird Gear</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knife Art</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knives Ship Free</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">African Sporting Creations</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Southern Edges</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">SMKW</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Exclusive Folders</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Original Goat</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Tools For Gents</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Rivers Edge Cutlery</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Hog House Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Urban EDC Supply</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Blade Binge</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Miguron Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Blade Ops</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knifeworks</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Pure Blades</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">JT Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">True North Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knives Plus</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Castle Gate</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Helacious Blades</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Deepak Chopra Inc</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Revolver Tactical</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Clayton's Range</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Martin's Firearms</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Little Joe's Boots</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Ski Mania</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Ye Ole Cutlery</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Fred Eisen Art Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">1911 Custom Solutions</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-  </div>
-
-  <!-- Pre-owned -->
-  <div class="section-head">SECONDARY MARKET</div>
-  <p class="section-sub">PRE-OWNED AND CONSIGNMENT. WHERE THE GRAILS SURFACE.</p>
-  <div class="dealer-grid">
-    <div class="dealer-card">
-      <div class="dealer-name">Recon 1 — Pre-Owned</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">eKnives — Pre-Owned</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knife Purveyor</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Luv Them Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Rivers Edge — Consignment</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">EDC Lifestyle — Pre-Owned</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Knife Market</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Cutting Edge</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-  </div>
-
-  <!-- Maker Direct -->
-  <div class="section-head">MAKER DIRECT</div>
-  <p class="section-sub">STRAIGHT FROM THE SOURCE. FASTEST ALERTS ON DIRECT DROPS.</p>
-  <div class="dealer-grid">
-    <div class="dealer-card">
-      <div class="dealer-name">Steel Flame</div>
-      <div class="dealer-meta"><span class="dealer-freq">15m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Strider Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">15m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Mick Strider Custom</div>
-      <div class="dealer-meta"><span class="dealer-freq">5m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Chris Reeve Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">McNees Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">15m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Spyderco</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Demko Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Arno Bernard Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">30m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Curtiss Custom Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Tactile Knife Co</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Oz Machine Company</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Prometheus Design Werx</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Kunwu Knives</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Vero Engineering</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Maxace Knife</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Rike Knife</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Flytanium</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-    <div class="dealer-card">
-      <div class="dealer-name">Poikilo Blade</div>
-      <div class="dealer-meta"><span class="dealer-freq">20m</span></div>
-    </div>
-  </div>
-
-  <!-- Feeds -->
-  <div class="section-head">RSS & SOCIAL FEEDS</div>
-  <p class="section-sub">REDDIT AND SOCIAL MEDIA MONITORING.</p>
-  <div class="dealer-grid">
-    <div class="feed-card">
-      <div class="feed-name">r/bladesinstock</div>
-      <div class="feed-status on">ACTIVE — 15m</div>
-    </div>
-    <div class="feed-card">
-      <div class="feed-name">r/knife_swap</div>
-      <div class="feed-status on">ACTIVE — 20m</div>
-    </div>
-    <div class="feed-card">
-      <div class="feed-name">r/EDCexchange</div>
-      <div class="feed-status on">ACTIVE — 20m</div>
-    </div>
-    <div class="feed-card">
-      <div class="feed-name">r/knifeclub</div>
-      <div class="feed-status off">PAUSED — high noise</div>
-    </div>
-    <div class="feed-card">
-      <div class="feed-name">r/EDC</div>
-      <div class="feed-status off">PAUSED — high noise</div>
-    </div>
-  </div>
-
-  <!-- What else -->
-  <div class="section-head" style="color:var(--flame)">NOT INTO KNIVES?</div>
-  <p style="color:var(--silver);font-family:'Crimson Pro',serif;font-style:italic;font-size:1.1rem;margin-bottom:1.5rem">Drop Watcher monitors any URL for any keywords. Give it a page and tell it what to look for.</p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--iron);border:1px solid var(--iron);margin-bottom:2rem">
-    <div style="background:var(--black);padding:1.2rem;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:0.3rem">👟</div>
-      <div style="color:var(--white);font-size:0.8rem;letter-spacing:0.1em">SNEAKER DROPS</div>
-      <div style="color:var(--ash);font-size:0.6rem;margin-top:0.3rem">Nike, Jordan, New Balance</div>
-    </div>
-    <div style="background:var(--black);padding:1.2rem;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:0.3rem">🎮</div>
-      <div style="color:var(--white);font-size:0.8rem;letter-spacing:0.1em">GPU RESTOCKS</div>
-      <div style="color:var(--ash);font-size:0.6rem;margin-top:0.3rem">Best Buy, Newegg, EVGA</div>
-    </div>
-    <div style="background:var(--black);padding:1.2rem;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:0.3rem">🎸</div>
-      <div style="color:var(--white);font-size:0.8rem;letter-spacing:0.1em">LIMITED MERCH</div>
-      <div style="color:var(--ash);font-size:0.6rem;margin-top:0.3rem">Band drops, streetwear, collabs</div>
-    </div>
-    <div style="background:var(--black);padding:1.2rem;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:0.3rem">🎟️</div>
-      <div style="color:var(--white);font-size:0.8rem;letter-spacing:0.1em">TICKET DROPS</div>
-      <div style="color:var(--ash);font-size:0.6rem;margin-top:0.3rem">Concerts, events, presales</div>
-    </div>
-  </div>
-
-  <!-- CTA -->
-  <div class="cta">
-    <a href="/watchlist.html">SET UP YOUR WATCHLIST</a>
-  </div>
+  <a class="cta" href="/watchlist.html">SET A WATCH</a>
 
   <footer>
     <span>instockornot.club</span>
