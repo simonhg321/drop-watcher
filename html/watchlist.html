@@ -540,7 +540,6 @@ document.getElementById('watchForm').addEventListener('submit', async function (
     phone: form.querySelector('[name="phone"]').value,
     sms_consent: form.querySelector('[name="sms_consent"]').checked,
     priority: form.querySelector('[name="phone"]').value.trim() ? 'critical' : 'high',
-    maker_confirmed: true,
     scope_confirmed: !!window._scopeConfirmed
   };
 

@@ -2907,18 +2907,19 @@ class TestMakerPrompt:
         monkeypatch.setattr(watcher_signup, '_curated_domains', lambda: {'knifejoy.com'})
         return watcher_signup, db
 
-    def test_url_watch_without_maker_prompts(self, tmp_path, monkeypatch):
+    def test_url_watch_without_maker_creates_directly(self, tmp_path, monkeypatch):
+        """Maker prompt RETIRED 2026-10-22 (two-path signup has no maker UI): a
+        model-name keyword with no maker and no maker_confirmed flag creates the
+        watch immediately instead of bouncing back a confirm payload."""
         ws, db = self._client(tmp_path, monkeypatch)
         r = ws.app.test_client().post('/api/watch', json={
             'url': 'https://knifejoy.com/collections/all',
             'keywords': 'halftrack', 'email': 'a@b.com'})
-        assert r.status_code == 200
-        body = r.get_json()
-        assert body.get('confirm') is True
-        assert body.get('suggestion') == 'Hinderer Knives'   # inferred from keyword
-        # watch NOT created yet
-        assert ws.db.find_watcher_by_email_url('a@b.com',
-                 'knifejoy.com/collections/all', maker='') is None
+        assert r.status_code == 201, r.get_json()
+        assert r.get_json().get('confirm') is not True
+        with ws.db.get_db() as conn:
+            row = conn.execute("SELECT keywords FROM watchers WHERE email=?", ('a@b.com',)).fetchone()
+        assert row is not None and 'halftrack' in row['keywords']
 
     def test_url_watch_with_confirm_creates(self, tmp_path, monkeypatch):
         ws, db = self._client(tmp_path, monkeypatch)

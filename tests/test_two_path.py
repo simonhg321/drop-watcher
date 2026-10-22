@@ -224,3 +224,41 @@ def test_user_loop_uses_product_stock_result_before_ai():
     src = open(os.path.join(ROOT, 'agents', 'web_watcher.py')).read()
     loop = src[src.index('User-submitted URL watches'):]
     assert loop.index('product_stock_result(') < loop.index('analyze_user_page(')
+
+
+# ── maker prompt retired (Simon 2026-10-22 "fix em") ─────────────────────────
+
+@patch('watcher_signup.send_verification_email', return_value=True)
+@patch('watcher_signup.send_confirmation_email', return_value=True)
+def test_listing_watch_without_maker_is_created_not_prompted(_c, _e, client):
+    """The new page never shows a maker prompt, so the server must not emit one:
+    a maker-less listing keyword with no maker_confirmed flag creates the watch."""
+    c, ws = client
+    ws._fetch_page_html = lambda u: listing_html()
+    ws._fetch_page_text = lambda u: 'chris reeve knives sebenza inkosi'
+    with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+         patch.object(ws, 'classify_dealer', return_value={'is_dealer': True, 'confidence': 0.9, 'category': 'knife dealer'}):
+        r = c.post('/api/watch', json={'url': 'https://www.dlt-example.com/chris-reeve-knives',
+                                       'mode': 'listing', 'keywords': 'crosshatch', 'email': 'nm@h.com'})
+    assert r.status_code == 201, r.get_json()
+    assert not r.get_json().get('confirm')
+
+
+@patch('watcher_signup.send_verification_email', return_value=True)
+@patch('watcher_signup.send_confirmation_email', return_value=True)
+def test_listing_keyword_naming_a_maker_still_adopts_it(_c, _e, client):
+    """Silent maker adoption stays: a keyword that names a maker sets watcher.maker."""
+    c, ws = client
+    import shutil, db, paths, maker_resolve
+    shutil.copy(os.path.join(ROOT, 'config', 'makers.yaml'), os.path.join(paths.CONFIG_DIR, 'makers.yaml'))
+    maker_resolve._indexes.cache_clear()
+    ws._fetch_page_html = lambda u: listing_html()
+    ws._fetch_page_text = lambda u: 'chris reeve knives sebenza inkosi'
+    with patch.object(ws, 'is_safe_url', return_value=(True, '')), \
+         patch.object(ws, 'classify_dealer', return_value={'is_dealer': True, 'confidence': 0.9, 'category': 'knife dealer'}):
+        r = c.post('/api/watch', json={'url': 'https://www.dlt-example.com/chris-reeve-knives',
+                                       'mode': 'listing', 'keywords': 'chris reeve, inkosi', 'email': 'ma@h.com'})
+    maker_resolve._indexes.cache_clear()
+    assert r.status_code == 201, r.get_json()
+    w = db.find_watcher_by_email_url('ma@h.com', 'https://www.dlt-example.com/chris-reeve-knives')
+    assert w is not None and w['maker'] == 'Chris Reeve Knives'

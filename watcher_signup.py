@@ -459,7 +459,7 @@ def watch():
                                          "and we'll watch for it."}), 400
             product_info = pk['product']
             keywords = product_info['title']
-            data['maker_confirmed'] = True        # no maker prompt — the title names it
+
 
         # ── New-shop knife-gate (S54) ─────────────────────────────────────────
         # If the URL points at a domain we don't already curate and haven't already
@@ -563,30 +563,15 @@ def watch():
     if keywords != keywords_raw:
         log.info(f"keywords sanitized for {email}: {keywords_raw!r} -> {keywords!r}")
 
-    # ── Maker soft-prompt (URL watches only; global already requires maker) ──
-    # Hard prompt, soft skip: nudge the user to a canonical maker so FTS5
-    # brand-gating applies, but let them create a maker-less page watch by
-    # re-submitting with maker_confirmed.
-    if not is_global and not data.get('maker_confirmed'):
-        # No maker typed: scan the keyword list (a maker named as one of several
-        # keywords still counts). Maker typed: resolve that field directly.
+    # ── Maker adoption (silent) ──
+    # The maker prompt was RETIRED 2026-10-22 (two-path signup has no maker UI;
+    # it auto-confirmed, so nobody ever saw it). We still canonicalize a maker
+    # named in the field or among the keywords so FTS5 brand-gating applies;
+    # unknown/ambiguous makers are accepted as typed, missing maker is fine.
+    if not is_global:
         probe = maker_resolve.resolve(maker) if maker else maker_resolve.first_maker_in(keywords)
-        if not maker and probe['kind'] in ('exact', 'alias'):
-            maker = probe['canonical']            # keyword itself names a maker — adopt
-        elif probe['kind'] in ('model', 'typo') or (not maker):
-            return jsonify({
-                'confirm': True,
-                'kind': probe['kind'],
-                'suggestion': probe.get('suggestion'),
-                'message': ("Did you mean " + probe['suggestion'] + "?"
-                            if probe.get('suggestion')
-                            else "Add the maker you're hunting for sharper alerts, "
-                                 "or watch the whole page."),
-            }), 200
-        elif maker and probe['kind'] in ('exact', 'alias'):
-            maker = probe['canonical']            # normalize to canonical spelling
-        # else: maker typed but ambiguous/unknown → accept the literal as-typed
-        #       (long-tail custom makers we don't catalogue) and fall through.
+        if probe['kind'] in ('exact', 'alias'):
+            maker = probe['canonical']
 
     # Deduplicate: same email + url combo (global watches: + maker)
     existing = db.find_watcher_by_email_url(email, url, maker=maker)
