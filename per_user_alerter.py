@@ -601,6 +601,16 @@ def matches_for_watcher_drop(watcher, drop):
             return []
     elif not w_domain or w_domain != domain_from_url(drop_url):
         return []
+    # Product-mode watch (two-path signup): "tell me when THIS page's product is in
+    # stock". The decision is the availability flag on the drop's single product, in
+    # either matcher — no keyword/FTS5 semantics, the user never typed a keyword.
+    if (watcher.get('mode') or '') == 'product':
+        if not is_user_drop:
+            return []
+        prods = drop.get('products') or []
+        if any(p.get('available') for p in prods) or drop.get('notable_items'):
+            return [kws or (prods[0].get('title') if prods else 'in stock')]
+        return []
     # URL-scoped leaf: the scoping guards above (monitor-domain, global skip,
     # user-drop exact-URL, domain match) have all run for BOTH matchers. Only the
     # final keyword decision differs by matcher. FTS5 queries the source-scoped

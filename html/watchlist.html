@@ -5,16 +5,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<title>Set a Watch — Free In-Stock Alerts and Restock Notifications | Drop Watcher</title>
-<meta name="description" content="Set up a free in-stock alert in 30 seconds. Paste any URL, add your keywords, and get emailed or texted when your item drops. Sneakers, knives, GPUs, anything.">
+<title>Set a Watch — Drop Watcher | instockornot.club</title>
+<meta name="description" content="Paste the page. We tell you when it is in stock. Email or text. Free, no account. Built for knives and EDC gear.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://instockornot.club/watchlist.html">
-<meta property="og:title" content="Set a Watch — Free In-Stock Alerts | Drop Watcher">
-<meta property="og:description" content="Paste any URL, add your keywords, get alerted when your item drops. Free, no account needed.">
+<meta property="og:title" content="Set a Watch — Drop Watcher">
+<meta property="og:description" content="Paste the page. We tell you when it is in stock. Email or text.">
 <meta property="og:image" content="https://instockornot.club/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Set a Watch — Free In-Stock Alerts | Drop Watcher">
-<meta name="twitter:description" content="Paste any URL, add your keywords, get alerted when your item drops. Free, no account needed.">
+<meta name="twitter:title" content="Set a Watch — Drop Watcher">
+<meta name="twitter:description" content="Paste the page. We tell you when it is in stock. Email or text.">
 <link rel="canonical" href="https://instockornot.club/watchlist.html">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
@@ -337,97 +337,67 @@
   .wtw-result.miss { background: rgba(192,57,43,0.1); border: 1px solid var(--ember); color: var(--silver); }
   .wtw-result a { color: inherit; }
   .wtw-err { color: var(--ember); font-size: 12px; display: none; margin-top: 4px; }
+
+  /* two-path signup (2026-10-22) */
+  .detect { display:none; margin-top:12px; padding:14px 16px; background:var(--steel); border-left:2px solid var(--flame); font-size:13px; line-height:1.6; color:var(--silver); }
+  .detect.on { display:block; }
+  .detect .t { color:var(--white); }
+  .detect .s { color:var(--flame); }
+  .detect .s.live { color:#2ecc71; }
+  .detect .m { color:var(--ash); font-size:11px; margin-top:4px; }
+  #kwField { display:none; }
+  #kwField.on { display:block; }
+  .reach { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:560px) { .reach { grid-template-columns:1fr; } }
+  .or { color:var(--ash); font-size:11px; letter-spacing:.2em; text-align:center; margin:-8px 0 12px; }
 </style>
 </head>
 <body>
 
 <nav class="dw-nav">
   <a href="/" class="logo">DROP <span>WATCHER</span></a>
-  <a href="/what-we-watch.html">What We Watch</a>
-  <a href="/watchlist.html" class="active">Watch</a>
-  <a href="/stats.html">Stats</a>
-  <a href="/get-my-link.html" style="margin-left:auto;background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">GET MY LINK</a>
+  <a href="/what-we-watch.html">How It Works</a>
+  <a href="/watchlist.html" class="active">Set a Watch</a>
+  <a href="/get-my-link.html" style="margin-left:auto;background:var(--ember);color:#fff !important;padding:8px 16px;font-size:11px;letter-spacing:1px;">MY WATCHES</a>
 </nav>
 
 <div class="hero">
   <div class="eyebrow">Set a watch</div>
-  <h1>URL. Keywords.<br><em>Go.</em></h1>
-  <p class="subtitle">Paste the page. Tell it what to look for. You'll get an email when it hits.</p>
+  <h1>One page.<br><em>One alert.</em></h1>
+  <p class="subtitle">Paste the page. We'll tell you when it's in stock. Email or text, your call.</p>
 </div>
 
-<div class="removed-banner" id="removedBanner">
-  Watcher removed. Sign up below to start a new one.
-</div>
+<div class="removed-banner" id="removedBanner">Watch removed. Set a new one below.</div>
+
 <form id="watchForm" style="padding: 0 32px; max-width: 640px; margin: 0 auto; width: 100%;">
   <div class="form-card">
 
     <div class="field">
-      <label>Maker / brand <span class="req" id="makerReq">*</span></label>
-      <input type="text" name="maker" id="maker" placeholder="Chris Reeve" autocomplete="off" list="makerList">
-      <datalist id="makerList"></datalist>
-      <div class="hint">Who makes it. Known makers expand automatically — so you don't have to list every spelling.
-        &nbsp;<a href="/our-cool-makers.html" style="color:var(--flame);text-decoration:none;border-bottom:1px solid var(--iron);">Browse the makers &amp; shops we cover →</a></div>
-      <div class="expand" id="expand"></div>
-      <div class="form-error" id="makerError">Pick a maker — required when watching all our shops.</div>
+      <label>The page <span class="req">*</span></label>
+      <input type="url" name="url" id="urlInput" placeholder="https://www.dlttrading.com/chris-reeve-large-inkosi-…" required autocomplete="off" inputmode="url">
+      <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
+      <div class="detect" id="detect"></div>
+      <div class="hint">The product page itself works best. A collection page works too — we'll ask what you're waiting for.</div>
+    </div>
+
+    <div class="field" id="kwField">
+      <label>What are you waiting to see on this page? <span class="req">*</span></label>
+      <input type="text" name="keywords" id="keywords" placeholder="Large Inkosi Insingo" autocomplete="off">
+      <div class="hint">A model name is best. "In stock" or "add to cart" fires for everything on the page.</div>
     </div>
 
     <div class="field">
-      <label>Cool-list — the grail terms <span class="req">*</span></label>
-      <textarea name="keywords" id="cool" placeholder="damascus, cgg, sebenza 25" required></textarea>
-      <div class="hint">The specific things you're hunting. We alert when your <b>maker</b> drops with <b>any</b> of these.</div>
-      <p id="keywordWarning" style="display:none;margin-top:12px;color:#e6a817;font-size:13px;background:rgba(230,168,23,0.1);padding:10px 14px;border-radius:6px;border-left:3px solid #e6a817"></p>
-    </div>
-
-    <div class="field">
-      <label>Where to watch</label>
-      <div class="seg">
-        <input type="radio" name="where" id="w-all" class="seg-input" checked onchange="toggleUrl()">
-        <label for="w-all" class="seg-label">
-          <div class="t">★ All our shops</div>
-          <div class="d">Every knife shop we track. Best net for a grail.</div>
-        </label>
-        <input type="radio" name="where" id="w-url" class="seg-input" onchange="toggleUrl()">
-        <label for="w-url" class="seg-label">
-          <div class="t">A specific URL</div>
-          <div class="d">You have one shop in mind. We'll add it to the net too.</div>
-        </label>
+      <label>How should we reach you? <span class="req">*</span></label>
+      <div class="reach">
+        <div>
+          <input type="email" name="email" id="email" placeholder="you@example.com" required>
+          <div class="hint">Email. Always needed — it's how you manage the watch.</div>
+        </div>
+        <div>
+          <input type="tel" name="phone" id="phone" placeholder="+1 (555) 123-4567">
+          <div class="hint">Add a number and we text you too. US only. Msg &amp; data rates apply.</div>
+        </div>
       </div>
-      <div id="urlWrap">
-        <input type="text" name="url" id="urlInput" placeholder="https://shop.example.com/collections/chris-reeve">
-        <div class="url-status" id="urlStatus" style="display:none"><span class="dot"></span><span class="msg"></span></div>
-        <div class="urlnote">New to us? We do a quick <b>AI knife-check</b>. If it's knives, your watch goes
-        live right away — and the shop is queued for Simon's <b>weekly review</b> to join the shared net for everyone.
-        <br>Not knives or gear? We'll ask if you're sure — then it's your call.</div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Alert priority</label>
-      <div class="priority-group">
-        <input type="radio" name="priority" id="p-critical" value="critical" class="pill-input">
-        <label for="p-critical" class="pill-label">Critical — email + text immediately</label>
-        <input type="radio" name="priority" id="p-high" value="high" class="pill-input" checked>
-        <label for="p-high" class="pill-label">High — email immediately</label>
-        <input type="radio" name="priority" id="p-medium" value="medium" class="pill-input">
-        <label for="p-medium" class="pill-label">Medium — daily digest</label>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Your email <span class="req">*</span></label>
-      <input type="email" name="email" placeholder="you@example.com" required>
-      <div class="hint">We'll only email you when we detect what you're watching for. No spam.</div>
-    </div>
-
-    <div class="field">
-      <label>Your name <span style="color:var(--ash);">(optional)</span></label>
-      <input type="text" name="name" placeholder="Handle or first name">
-    </div>
-
-    <div class="field">
-      <label>Phone number <span style="color:var(--ash);">(optional — SMS nudge)</span></label>
-      <input type="tel" name="phone" placeholder="+1 (555) 123-4567">
-      <div class="hint">Get a text when a drop hits so you know to check your email. US numbers only. Msg & data rates apply.</div>
     </div>
 
     <div class="field" id="smsConsentField" style="display:none;">
@@ -439,28 +409,14 @@
 
     <div class="submit-row">
       <button type="submit" id="submitBtn">
-        <span class="btn-text">Start Watching</span>
+        <span class="btn-text">Watch it</span>
         <span class="spinner"></span>
       </button>
-      <div class="submit-note">Free forever. No account needed.<br>Unsubscribe any time.</div>
+      <div class="submit-note">Free. No account. Every alert has a one-click stop link.</div>
     </div>
 
   </div>
 </form>
-
-<!-- live "what this means" preview -->
-<div class="preview-card" id="previewCard">
-  <div class="pc-inner">
-    <div class="pc-h">What this watch will do</div>
-    <div class="pc-line" id="pcLine">
-      Fire when a drop mentions <b id="pvMaker">your maker</b> <b>and</b> <b id="pvCool">a cool-list term</b>,
-      across <b id="pvWhere">all our shops</b>.
-    </div>
-    <div class="pc-line" style="margin-top:6px;font-family:'Crimson Pro',serif;color:var(--ash);">
-      e.g. &ldquo;Chris Reeve Damascus Sebenza 25&rdquo; &#10003; &nbsp; &middot; &nbsp; &ldquo;Spyderco Damascus&rdquo; <span class="x">&#10007; (wrong maker)</span>
-    </div>
-  </div>
-</div>
 
 <div class="success" id="successMsg">
   <div class="check" id="successIcon">✓</div>
@@ -469,15 +425,15 @@
   <div class="onboarding-steps" id="onboardingSteps">
     <div class="onboarding-step" id="step1">
       <div class="step-icon" id="step1Icon"><span class="step-spinner"></span></div>
-      <div class="step-text active" id="step1Text">Check your email for the verification link — check spam too, we're new</div>
+      <div class="step-text active" id="step1Text">Check your email for the verification link — check spam too</div>
     </div>
     <div class="onboarding-step" id="step2">
       <div class="step-icon" id="step2Icon" style="color:var(--ash)">2</div>
-      <div class="step-text" id="step2Text">Click the link to activate your alerts</div>
+      <div class="step-text" id="step2Text">Click the link to switch the watch on</div>
     </div>
     <div class="onboarding-step" id="step3">
       <div class="step-icon" id="step3Icon" style="color:var(--ash)">3</div>
-      <div class="step-text" id="step3Text">Bookmark your personal dashboard</div>
+      <div class="step-text" id="step3Text">Walk away. We've got it.</div>
     </div>
   </div>
   <div id="smsVerifyBlock" style="display:none;margin-top:24px;background:var(--steel);border:1px solid var(--ash);padding:20px;text-align:center">
@@ -494,1209 +450,171 @@
   <div id="dashboardLink" style="display:none"></div>
 </div>
 
-<div id="kwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000">
-  <div style="background:#1a1a1a;border:2px solid #e6a817;border-radius:8px;padding:32px;max-width:480px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%);box-shadow:0 0 30px rgba(230,168,23,0.25)">
-    <h3 style="color:#e6a817;margin:0 0 12px;font-size:16px">⚡ Quick tip — your keywords could be sharper</h3>
-    <p id="kwModalReason" style="color:#ccc;font-size:14px;line-height:1.6;margin:0 0 16px"></p>
-    <div id="kwModalSuggestions" style="display:none;background:rgba(230,168,23,0.1);border:1px solid #e6a817;border-radius:4px;padding:12px;margin:0 0 20px;color:#e6a817;font-size:13px"></div>
-    <div style="display:flex;gap:12px;justify-content:flex-end">
-      <button id="kwModalFix" type="button" style="background:none;border:1px solid #e6a817;color:#e6a817;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Fix my keywords</button>
-      <button id="kwModalSkip" type="button" style="background:none;border:1px solid #888;color:#888;padding:10px 20px;cursor:pointer;font-family:monospace;font-size:12px;letter-spacing:1px">Set watch anyway →</button>
-    </div>
-  </div>
-</div>
-
-<div class="stats-bar">
-  <div class="stat">
-    <div class="stat-num">107</div>
-    <div class="stat-label">Sources monitored</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">264</div>
-    <div class="stat-label">Keywords tracked</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">&lt;20m</div>
-    <div class="stat-label">Detection time</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">0</div>
-    <div class="stat-label">False criticals</div>
-  </div>
-</div>
-
-<section class="wtw" id="where-to-watch">
-  <div class="wtw-heading">Where to Watch</div>
-  <div class="wtw-sub">107 shops in our network — find yours or check a URL</div>
-  <div class="wtw-tabs">
-    <button class="wtw-tab active" data-panel="shops">All Our Shops</button>
-    <button class="wtw-tab" data-panel="url">Check a URL</button>
-  </div>
-
-  <div class="wtw-panel active" id="wtw-shops">
-    <input class="wtw-filter" id="wtwFilter" type="text" placeholder="Filter by name or domain…" autocomplete="off" spellcheck="false">
-    <div class="wtw-list" id="wtwList"></div>
-  </div>
-
-  <div class="wtw-panel" id="wtw-url">
-    <input class="wtw-url-input" id="wtwUrl" type="text" placeholder="https://shop.example.com/…" autocomplete="off" spellcheck="false">
-    <div class="wtw-err" id="wtwErr">Enter a valid URL (include https://)</div>
-    <div class="wtw-result" id="wtwResult"></div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-top">
-    <a href="/privacy.html">Privacy</a>
-    <a href="/terms.html">SMS Terms</a>
-    <a href="/hgr.html">The Story</a>
-    <a href="mailto:info@instockornot.club">info@instockornot.club</a>
-  </div>
-  <div class="footer-bottom">
-    <span>instockornot.club — Est. 2026</span>
-    <span class="footer-hgr" title="HGR — Derrick Obatake, Steel Flame">SHG</span>
-  </div>
-</footer>
-
 <script>
-if (new URLSearchParams(window.location.search).get('removed') === '1') {
+// ── state ──────────────────────────────────────────────────────────────────
+let pageKind = null;        // 'product' | 'listing' | 'unknown' | null (not checked yet)
+let urlOk = false;
+let lastCheckedUrl = '';
+
+if (new URLSearchParams(location.search).get('removed')) {
   document.getElementById('removedBanner').style.display = 'block';
 }
 
-// ── Show SMS consent when phone entered ─────────────────────────────────────
-document.querySelector('[name="phone"]').addEventListener('input', function() {
-  const hasPhone = !!this.value.trim();
-  document.getElementById('smsConsentField').style.display = hasPhone ? 'block' : 'none';
-  // Clearing the phone must also clear consent — otherwise a hidden-but-checked
-  // box submits sms_consent:true with phone:''
-  if (!hasPhone) {
-    const c = document.querySelector('[name="sms_consent"]');
-    if (c) c.checked = false;
-  }
-});
-
-// ── Maker alias expansion + where-toggle + live preview ─────────────────────
-// Maker names fetched from /api/makers; aliases are server-side only now.
-let MAKER_NAMES = [];
-fetch('/api/makers').then(r => r.json()).then(d => {
-  MAKER_NAMES = d.makers || [];
-  const dl = document.getElementById('makerList');
-  if (dl) dl.innerHTML = MAKER_NAMES.map(n => '<option value="' + n + '">').join('');
-}).catch(() => {});
-
-const makerEl = document.getElementById('maker');
-const expandEl = document.getElementById('expand');
-const coolEl = document.getElementById('cool');
-
-function renderExpand() {
-  const v = makerEl.value.trim().toLowerCase();
-  expandEl.innerHTML = '';
-  // Show a confirmation chip if the typed value matches a known maker name exactly
-  const matched = MAKER_NAMES.find(n => n.toLowerCase() === v);
-  if (matched) {
-    const lead = document.createElement('span');
-    lead.className = 'lead'; lead.textContent = 'known maker: ';
-    expandEl.appendChild(lead);
-    const c = document.createElement('span'); c.className = 'chip'; c.textContent = matched;
-    expandEl.appendChild(c);
-  }
-  updatePreview();
-}
-
-function urlMode() { return document.getElementById('w-url').checked; }
-
-function toggleUrl() {
-  const um = urlMode();
-  document.getElementById('urlWrap').classList.toggle('show', um);
-  document.getElementById('makerReq').style.visibility = um ? 'hidden' : '';
-  if (!um) {
-    // hide URL-check status when leaving URL mode
-    document.getElementById('urlStatus').style.display = 'none';
-    document.getElementById('makerError').style.display = 'none';
-  }
-  updatePreview();
-}
-
-function updatePreview() {
-  document.getElementById('pvMaker').textContent = makerEl.value.trim() || 'your maker';
-  const cl = coolEl.value.trim();
-  document.getElementById('pvCool').textContent = cl ? '[' + cl + ']' : 'a cool-list term';
-  document.getElementById('pvWhere').textContent = urlMode() ? 'all our shops + your URL' : 'all our shops';
-}
-
-makerEl.addEventListener('input', function() {
-  if (makerEl.value.trim()) document.getElementById('makerError').style.display = 'none';
-  window._makerConfirmed = false;
-  renderExpand();
-});
-coolEl.addEventListener('input', function() {
-  window._makerConfirmed = false;
-  updatePreview();
-});
-
-// ── Keyword quality — instant client-side blocklist ──────────────────────
-const GENERIC_KNIFE_TERMS = new Set([
-  'knife','knives','blade','blades','fixed','folder','folding',
-  'edc','pocket','tactical','hunting','survival','utility','tanto',
-  'drop','point','clip','steel','handle','scales','liner','lock',
-  'frame','flipper','thumb','stud','hole','new','sale','limited',
-  'edition','sprint','run','custom','production','plain','edge',
-  'serrated','black','silver','titanium','carbon','fiber','micarta',
-  'g10','g-10','cf','s30v','s35vn','m390','20cv','d2','154cm',
-  'in','stock','available','buy','shop','get',
-  'damascus','dlc','exclusive','rare','regular',
-]);
-
-// Storefront UI vocabulary — users sometimes type the *condition* they want
-// ("In stock add to cart") instead of the product. Keywords match against
-// listing text, where button text never appears, so such a watch can never
-// fire (Simon's Strider watch sat silent for 17 days, found 2026-07-02).
-const STOREFRONT_PHRASES = [
-  'add to cart', 'add to bag', 'in stock', 'back in stock', 'out of stock',
-  'buy now', 'buy it now', 'read more', 'sold out', 'notify me', 'pre-order',
-  'preorder', 'available now', 'check out', 'checkout', 'on sale', 'restock',
-  'restocked', 'for sale', 'shop now', 'order now', 'purchase',
-];
-
-function unmatchableKeywords(userKws) {
-  return userKws.filter(kw =>
-    STOREFRONT_PHRASES.some(p => kw.includes(p)) ||
-    kw.split(/\s+/).filter(Boolean).length >= 5);
-}
-
-function checkKeywordQuality() {
-  const raw = coolEl.value.trim();
-  const warnEl = document.getElementById('keywordWarning');
-  if (!raw) { warnEl.style.display = 'none'; return; }
-
-  // Split on commas/newlines — exactly how the matcher splits them.
-  const userKws = raw.split(/[,\n]+/).map(k => k.trim().toLowerCase()).filter(Boolean);
-
-  const unmatchable = unmatchableKeywords(userKws);
-  if (unmatchable.length > 0) {
-    warnEl.textContent = "⚠ \"" + unmatchable[0] + "\" looks like store button text or a long phrase. " +
-      "Keywords are matched against the product listing itself, where words like \"add to cart\" " +
-      "never appear — so this watch would never fire. Use product or model names instead, " +
-      "separated by commas (e.g. \"SMF, SnG, DGG\").";
-    warnEl.style.display = 'block';
-    return;
-  }
-
-  const genericKws = userKws.filter(kw => {
-    const tokens = kw.split(/[\s\/\-]+/).filter(Boolean);
-    return tokens.length > 0 && tokens.every(t => GENERIC_KNIFE_TERMS.has(t));
-  });
-
-  if (genericKws.length === 0) {
-    warnEl.style.display = 'none';
-    return;
-  }
-  if (genericKws.length === userKws.length) {
-    warnEl.textContent = "⚠ Those keywords are very broad — you'll get alerts on almost every drop. Specific model names like 'Sebenza 31' or 'Umnumzaan' work much better.";
-  } else {
-    warnEl.textContent = "⚠ Some of your keywords are pretty broad (" + genericKws.join(', ') + "). Adding a specific model or maker name will sharpen your results.";
-  }
-  warnEl.style.display = 'block';
-}
-
-coolEl.addEventListener('blur', checkKeywordQuality);
-
-// ── Keyword quality — Haiku AI coach (prefetch on email focus) ───────────
-let kwQualityResult = null;
-let kwQualityFor = '';
-let kwQualityPromise = null;
-
-function fetchKeywordQuality() {
-  const keywords = coolEl.value.trim();
-  const maker = document.getElementById('maker').value.trim();
-  if (!keywords) return Promise.resolve();
-  // Memoize: same keywords + fetch already in flight (or done) → reuse it,
-  // so the submit gate can await the prefetch instead of racing it.
-  if (keywords === kwQualityFor && kwQualityPromise) return kwQualityPromise;
-  kwQualityFor = keywords;
-  kwQualityResult = null;
-  kwQualityPromise = (async () => {
-    try {
-      const res = await fetch('/api/keyword-quality', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keywords, maker })
-      });
-      if (res.ok) kwQualityResult = await res.json();
-      else kwQualityFor = '';   // un-poison so submit can retry
-    } catch(e) { kwQualityFor = ''; /* fail silent — never block signup */ }
-  })();
-  return kwQualityPromise;
-}
-
-document.querySelector('[name="email"]').addEventListener('focus', fetchKeywordQuality);
-
-let kwModalDismissed = false;
-
-document.getElementById('kwModalFix').addEventListener('click', function() {
-  document.getElementById('kwModal').style.display = 'none';
-  coolEl.focus();
-  kwModalDismissed = false;
-});
-
-document.getElementById('kwModalSkip').addEventListener('click', function() {
-  document.getElementById('kwModal').style.display = 'none';
-  kwModalDismissed = true;
-  document.getElementById('watchForm').requestSubmit();
-});
-
-// Reset modal state when keywords change
-coolEl.addEventListener('input', function() {
-  kwModalDismissed = false;
-  kwQualityResult = null;
-  kwQualityFor = '';
-  kwQualityPromise = null;
-});
-
-toggleUrl();   // set initial state (makerReq visibility + urlWrap)
-renderExpand();
-
-// ── URL check on blur ──────────────────────────────────────────────────────
-let urlChecked = false;
-let urlOk = false;
-
 function setUrlStatus(state, msg) {
   const el = document.getElementById('urlStatus');
+  if (!msg) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
   el.className = 'url-status ' + state;
   el.querySelector('.msg').textContent = msg;
 }
 
-function looksLikeHomepage(raw) {
-  try {
-    let u = raw;
-    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-    const path = new URL(u).pathname;
-    return path === '/' || path === '';
-  } catch(e) { return false; }
+function showDetect(html) {
+  const d = document.getElementById('detect');
+  if (!html) { d.className = 'detect'; d.innerHTML = ''; return; }
+  d.innerHTML = html; d.className = 'detect on';
 }
 
-document.getElementById('urlInput').addEventListener('blur', async function() {
-  if (!urlMode()) return;  // only check when "specific URL" is selected
-  const url = this.value.trim();
-  if (!url) {
-    document.getElementById('urlStatus').style.display = 'none';
-    urlChecked = false;
-    urlOk = false;
-    return;
-  }
-  setUrlStatus('checking', 'Checking if we can read this page...');
-  urlChecked = false;
-  urlOk = false;
+function needKeyword(on) {
+  const f = document.getElementById('kwField');
+  f.className = on ? 'field on' : 'field';
+  document.getElementById('keywords').required = !!on;
+}
+
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function checkUrl() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url || url === lastCheckedUrl) return;
+  lastCheckedUrl = url;
+  pageKind = null; urlOk = false;
+  showDetect(''); needKeyword(false);
+  setUrlStatus('checking', 'Reading that page…');
   try {
-    const res = await fetch('/api/check-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-    const data = await res.json();
-    urlChecked = true;
-    urlOk = data.ok;
-    if (data.ok && data.warning) {
-      setUrlStatus('warn', data.warning);
+    const res = await fetch('/api/check-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+    const d = await res.json();
+    urlOk = !!d.ok;
+    if (!d.ok) { setUrlStatus('fail', d.msg); return; }
+    pageKind = d.kind || 'unknown';
+    if (d.warning) setUrlStatus('warn', d.warning); else setUrlStatus('', '');
+    if (pageKind === 'product' && d.product) {
+      const live = !!d.product.available;
+      showDetect('<div class="t">' + esc(d.product.title) + (d.product.price ? ' <span class="m">$' + esc(d.product.price) + '</span>' : '') + '</div>'
+        + '<div class="s' + (live ? ' live' : '') + '">' + (live ? 'In stock right now.' : 'Sold out right now.') + '</div>'
+        + '<div class="m">We\'ll ' + (live ? 'alert you as soon as your email is verified' : 'tell you the moment it comes back') + '. No keyword needed.</div>');
+      needKeyword(false);
+    } else if (pageKind === 'listing') {
+      showDetect('<div class="t">That\'s a list of ' + esc(d.count) + ' products.</div><div class="m">Tell us what you\'re waiting to see on it.</div>');
+      needKeyword(true);
+      document.getElementById('keywords').focus();
     } else {
-      setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
+      showDetect('<div class="t">We can read this page.</div><div class="m">Tell us what you\'re waiting to see on it.</div>');
+      needKeyword(true);
     }
-  } catch(e) {
-    urlChecked = true;
-    urlOk = false;
+  } catch (e) {
     setUrlStatus('fail', 'Could not check this URL. Try again.');
   }
+}
+document.getElementById('urlInput').addEventListener('blur', checkUrl);
+document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkUrl(); } });
+
+document.getElementById('phone').addEventListener('input', function () {
+  document.getElementById('smsConsentField').style.display = this.value.trim() ? 'block' : 'none';
 });
 
-// ── Form submit ────────────────────────────────────────────────────────────
-document.getElementById('watchForm').addEventListener('submit', async function(e) {
+// ── submit ─────────────────────────────────────────────────────────────────
+document.getElementById('watchForm').addEventListener('submit', async function (e) {
   e.preventDefault();
-  const form = this;
-  const btn = document.getElementById('submitBtn');
-  const isUrlMode = urlMode();
-  const maker = form.querySelector('[name="maker"]').value.trim();
-
-  // ── Client-side guard: "All our shops" mode requires a maker ──
-  if (!isUrlMode && !maker) {
-    document.getElementById('makerError').style.display = 'block';
-    document.getElementById('maker').focus();
-    return;
-  }
-  document.getElementById('makerError').style.display = 'none';
-
-  // ── URL-check only matters in "specific URL" mode ──
-  if (isUrlMode) {
-    if (!urlChecked) {
-      setUrlStatus('checking', 'Checking URL...');
-      try {
-        const res = await fetch('/api/check-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: form.querySelector('[name="url"]').value })
-        });
-        const data = await res.json();
-        urlChecked = true;
-        urlOk = data.ok;
-        if (data.ok && data.warning) {
-          setUrlStatus('warn', data.warning);
-        } else {
-          setUrlStatus(data.ok ? 'ok' : 'fail', data.msg);
-        }
-      } catch(e) {
-        urlChecked = true;
-        urlOk = false;
-        setUrlStatus('fail', 'Could not check this URL. Try again.');
-      }
-    }
-    if (!urlOk) return;
-  }
-
-  // ── Keyword quality gate (Haiku) ──
-  if (!kwQualityResult && !kwModalDismissed) {
-    await fetchKeywordQuality();
-  }
-  if (kwQualityResult && !kwModalDismissed
-      && (kwQualityResult.quality === 'bad' || kwQualityResult.quality === 'needs_work')) {
-    const modal = document.getElementById('kwModal');
-    document.getElementById('kwModalReason').textContent = kwQualityResult.reason || 'Your keywords might be too broad.';
-    const sugEl = document.getElementById('kwModalSuggestions');
-    if (kwQualityResult.suggestions && kwQualityResult.suggestions.length > 0) {
-      sugEl.textContent = 'Try instead: ' + kwQualityResult.suggestions.join(', ');
-      sugEl.style.display = 'block';
-    } else {
-      sugEl.style.display = 'none';
-    }
-    modal.style.display = 'block';
-    return;
-  }
+  const form = this, btn = document.getElementById('submitBtn');
+  const url = document.getElementById('urlInput').value.trim();
+  if (!pageKind || lastCheckedUrl !== url) { await checkUrl(); }
+  if (!urlOk) { document.getElementById('urlInput').focus(); return; }
+  const mode = pageKind === 'product' ? 'product' : 'listing';
+  const keywords = document.getElementById('keywords').value.trim();
+  if (mode === 'listing' && !keywords) { needKeyword(true); document.getElementById('keywords').focus(); return; }
 
   btn.classList.add('loading');
-
   const payload = {
-    url: isUrlMode ? form.querySelector('[name="url"]').value : '',
-    maker: maker,
-    keywords: form.querySelector('[name="keywords"]').value,
-    priority: form.querySelector('[name="priority"]:checked').value,
+    url, mode,
+    keywords: mode === 'listing' ? keywords : '',
     email: form.querySelector('[name="email"]').value,
-    name: form.querySelector('[name="name"]').value,
     phone: form.querySelector('[name="phone"]').value,
     sms_consent: form.querySelector('[name="sms_consent"]').checked,
-    maker_confirmed: !!window._makerConfirmed,
+    priority: form.querySelector('[name="phone"]').value.trim() ? 'critical' : 'high',
+    maker_confirmed: true,
     scope_confirmed: !!window._scopeConfirmed
   };
 
   try {
-    const res = await fetch('/api/watch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const res = await fetch('/api/watch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await res.json();
 
-    // ── Scope prompt: page doesn't look like a knife/gear shop — are you sure? ──
     if (result && result.confirm && result.kind === 'scope') {
       btn.classList.remove('loading');
       if (!confirm(result.message + '\n\nOK = watch it anyway.  Cancel = pick a different page.')) {
-        document.getElementById('urlInput').focus();
-        return;
+        document.getElementById('urlInput').focus(); return;
       }
       window._scopeConfirmed = true;
-      document.getElementById('watchForm').requestSubmit();
-      return;
+      form.requestSubmit(); return;
     }
-
-    // ── Maker confirmation prompt (URL-mode, no confirmed maker yet) ──
-    if (result && result.confirm) {
+    if (result && result.confirm) {            // any other server prompt: accept and resubmit once
       btn.classList.remove('loading');
-      let useSuggestion = false;
-      if (result.suggestion) {
-        useSuggestion = confirm(result.message + '\n\nOK = use "' + result.suggestion + '".  Cancel = watch the whole page.');
-        if (useSuggestion) document.getElementById('maker').value = result.suggestion;
-      } else {
-        if (!confirm(result.message + '\n\nOK = watch the whole page anyway.  Cancel = let me add a maker.')) {
-          document.getElementById('maker').focus();
-          return;   // user wants to add a maker; abort resubmit
-        }
-      }
-      window._makerConfirmed = true;
-      document.getElementById('watchForm').requestSubmit();
-      return;
+      window._scopeConfirmed = true; form.requestSubmit(); return;
     }
 
     if (res.ok) {
-      document.getElementById('watchForm').style.display = 'none';
+      form.style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
-      document.querySelector('.stats-bar').style.display = 'none';
-      document.getElementById('previewCard').style.display = 'none';
       document.getElementById('confirmedEmail').textContent = payload.email;
-      document.getElementById('successMsg').style.display = 'block';
-      document.getElementById('successMsg').style.padding = '80px 32px';
-      if (result.preview_msg) {
-        const pm = document.getElementById('previewMsg');
-        pm.textContent = result.preview_msg;
-        pm.style.display = 'block';
-      }
-      if (result.warning) {
-        // target lives inside #successMsg — #keywordWarning sits in the form,
-        // which was just display:none'd (same bug class as the modal fix)
-        const wm = document.getElementById('postSignupWarning');
-        if (wm) { wm.textContent = '⚠ ' + result.warning; wm.style.display = 'block'; }
-      }
-      // Connect to onboarding SSE for real-time status
+      const sm = document.getElementById('successMsg');
+      sm.style.display = 'block'; sm.style.padding = '80px 32px';
+      if (result.preview_msg) { const pm = document.getElementById('previewMsg'); pm.textContent = result.preview_msg; pm.style.display = 'block'; }
+      if (result.warning) { const wm = document.getElementById('postSignupWarning'); wm.textContent = '⚠ ' + result.warning; wm.style.display = 'block'; }
       startOnboarding(result.id);
-
-      // SMS phone verification
       if (result.sms_pending) {
         document.getElementById('smsVerifyBlock').style.display = 'block';
         const watchId = result.id;
-        document.getElementById('smsVerifyBtn').addEventListener('click', async function() {
+        document.getElementById('smsVerifyBtn').addEventListener('click', async function () {
           const code = document.getElementById('smsCode').value.trim();
           if (code.length !== 6) return;
           const statusEl = document.getElementById('smsVerifyStatus');
           try {
-            const r = await fetch('/api/verify-phone', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: watchId, code: code })
-            });
+            const r = await fetch('/api/verify-phone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: watchId, code }) });
             const d = await r.json();
-            if (r.ok) {
-              statusEl.textContent = 'Phone verified — we\'ll text you when a drop hits.';
-              statusEl.style.color = '#2ecc71';
-              document.getElementById('smsVerifyBlock').querySelector('div').style.display = 'none';
-            } else {
-              statusEl.textContent = d.error || 'Invalid code. Try again.';
-              statusEl.style.color = '#e05a5a';
-            }
-          } catch {
-            statusEl.textContent = 'Could not verify. Try again.';
-            statusEl.style.color = '#e05a5a';
-          }
+            if (r.ok) { statusEl.textContent = 'Phone verified — we\'ll text you when it\'s in stock.'; statusEl.style.color = '#2ecc71'; document.getElementById('smsVerifyBlock').querySelector('div').style.display = 'none'; }
+            else { statusEl.textContent = d.error || 'Invalid code. Try again.'; statusEl.style.color = '#e05a5a'; }
+          } catch { statusEl.textContent = 'Could not verify. Try again.'; statusEl.style.color = '#e05a5a'; }
         });
       }
     } else {
-      alert(result.error || 'Something went wrong. Try again or email info@instockornot.club');
+      alert(result.error || 'Something went wrong. Try again or email simon@instockornot.club');
     }
-  } catch(err) {
+  } catch (err) {
     alert('Could not connect. Try again shortly.');
   }
   btn.classList.remove('loading');
 });
 
 function startOnboarding(watchId) {
-  if (!window.EventSource) return; // SSE not supported, static fallback is fine
-
+  if (!window.EventSource) return;
   const source = new EventSource('/api/onboarding/' + watchId);
-
-  source.onmessage = function(e) {
-    let data;
-    try { data = JSON.parse(e.data); } catch { return; }
-
-    if (data.status === 'pending') {
-      document.getElementById('step1Text').textContent = data.message;
-      document.getElementById('step1Text').className = 'step-text active';
-    }
-
+  const $ = id => document.getElementById(id);
+  source.onmessage = function (e) {
+    let data; try { data = JSON.parse(e.data); } catch { return; }
+    if (data.status === 'pending') { $('step1Text').textContent = data.message; $('step1Text').className = 'step-text active'; }
     if (data.status === 'verified') {
-      // Step 1 done
-      document.getElementById('step1Icon').innerHTML = '✓';
-      document.getElementById('step1Icon').style.color = '#2ecc71';
-      document.getElementById('step1Text').textContent = 'Email verified';
-      document.getElementById('step1Text').className = 'step-text done';
-
-      // Step 2 done
-      document.getElementById('step2Icon').innerHTML = '✓';
-      document.getElementById('step2Icon').style.color = '#2ecc71';
-      document.getElementById('step2Text').textContent = 'Alerts activated — you\'re live!';
-      document.getElementById('step2Text').className = 'step-text done';
-
-      // Step 3 — show dashboard link
-      document.getElementById('step3Icon').innerHTML = '→';
-      document.getElementById('step3Icon').style.color = '#2ecc71';
-      document.getElementById('step3Text').textContent = 'Bookmark your dashboard';
-      document.getElementById('step3Text').className = 'step-text active';
-
-      // Update header
-      document.getElementById('successIcon').textContent = '✓';
-      document.getElementById('successTitle').textContent = 'You\'re live!';
-      document.getElementById('successTitle').style.color = '#2ecc71';
-      document.getElementById('successSubtitle').textContent = 'We\'re watching your page. You\'ll get an email when your keywords appear — and a text so you know to check it.';
-
-      // Show dashboard button
-      if (data.dashboard_url) {
-        const dl = document.getElementById('dashboardLink');
-        const a = document.createElement('a');
-        a.href = data.dashboard_url;
-        a.className = 'dashboard-btn';
-        a.textContent = 'VIEW MY DASHBOARD';
-        dl.replaceChildren(a);
-        dl.style.display = 'block';
-      }
-
+      $('step1Icon').innerHTML = '✓'; $('step1Icon').style.color = '#2ecc71'; $('step1Text').textContent = 'Email verified'; $('step1Text').className = 'step-text done';
+      $('step2Icon').innerHTML = '✓'; $('step2Icon').style.color = '#2ecc71'; $('step2Text').textContent = 'Watch is on'; $('step2Text').className = 'step-text done';
+      $('step3Icon').innerHTML = '→'; $('step3Icon').style.color = '#2ecc71'; $('step3Text').className = 'step-text active';
+      $('successIcon').textContent = '✓'; $('successTitle').textContent = 'You\'re live.'; $('successTitle').style.color = '#2ecc71';
+      $('successSubtitle').textContent = 'We\'re watching that page. You\'ll hear from us the moment it\'s in stock.';
+      if (data.dashboard_url) { const dl = $('dashboardLink'); const a = document.createElement('a'); a.href = data.dashboard_url; a.className = 'dashboard-btn'; a.textContent = 'MY WATCHES'; dl.replaceChildren(a); dl.style.display = 'block'; }
       source.close();
     }
-
-    if (data.status === 'timeout' || data.status === 'error') {
-      // Fallback to static message
-      document.getElementById('step1Text').textContent = data.message || 'Check your email to verify.';
-      source.close();
-    }
+    if (data.status === 'timeout' || data.status === 'error') { $('step1Text').textContent = data.message || 'Check your email to verify.'; source.close(); }
   };
-
-  source.onerror = function() {
-    // SSE connection failed — no big deal, static UI still works
-    source.close();
-  };
+  source.onerror = function () { source.close(); };
 }
 </script>
-
 <script src="/dw-track.js"></script>
-<div id="whatsNew" onclick="if(event.target===this)dismissWhatsNew()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;cursor:pointer;">
-  <div style="background:var(--steel);border:1px solid var(--flame);max-width:440px;margin:16px;padding:28px;font-family:'Share Tech Mono',monospace;cursor:default;">
-    <div style="color:var(--flame);font-size:11px;letter-spacing:.25em;text-transform:uppercase;">New</div>
-    <h2 style="font-family:'Bebas Neue',sans-serif;color:var(--white);font-size:30px;letter-spacing:.02em;margin:6px 0 12px;">Watch a maker, not a page</h2>
-    <p style="font-family:'Crimson Pro',serif;color:var(--silver);font-size:15px;line-height:1.5;">
-      You no longer need a URL. Name a maker (Chris Reeve, Hinderer…) and your grail terms,
-      and we'll watch <b>every knife shop we track</b> — the instant it drops anywhere, you hear about it.</p>
-    <div style="margin-top:18px;display:flex;gap:10px;">
-      <button onclick="dismissWhatsNew()" style="background:var(--ember);border:none;color:#fff;padding:11px 20px;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Try it</button>
-      <button onclick="dismissWhatsNew()" style="background:none;border:1px solid var(--iron);color:var(--ash);padding:11px 20px;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Maybe later</button>
-    </div>
-  </div>
-</div>
-<script>
-  function dismissWhatsNew(){ try{localStorage.setItem('dw_seen_maker_watch','1')}catch(e){}; document.getElementById('whatsNew').style.display='none'; }
-  (function(){ try{ if(!localStorage.getItem('dw_seen_maker_watch')){ var m=document.getElementById('whatsNew'); m.style.display='flex'; } }catch(e){} })();
-</script>
-<script id="dw-shops-data">
-const DW_SHOPS = [
-  {
-    "name": "1911 Custom Solutions",
-    "url": "https://www.1911customsolutions.com/",
-    "domain": "1911customsolutions.com"
-  },
-  {
-    "name": "Adept Knives \u2014 Blade Show Coverage",
-    "url": "https://www.adeptknives.com/blogs/adept-knives/blade-show-atlanta-2026-complete-news-new-knife-releases-live-coverage-hub",
-    "domain": "adeptknives.com"
-  },
-  {
-    "name": "African Sporting Creations",
-    "url": "https://www.africansportingcreations.com",
-    "domain": "africansportingcreations.com"
-  },
-  {
-    "name": "Arizona Custom Knives",
-    "url": "https://www.arizonacustomknives.com",
-    "domain": "arizonacustomknives.com"
-  },
-  {
-    "name": "Arizona Custom Knives \u2014 Recently Added",
-    "url": "https://www.arizonacustomknives.com/recently-added/",
-    "domain": "arizonacustomknives.com"
-  },
-  {
-    "name": "Arno Bernard Knives",
-    "url": "https://arnobernard.com",
-    "domain": "arnobernard.com"
-  },
-  {
-    "name": "Bentoboxshop",
-    "url": "https://bentoboxshop.com",
-    "domain": "bentoboxshop.com"
-  },
-  {
-    "name": "Blade Binge",
-    "url": "https://bladebinge.com",
-    "domain": "bladebinge.com"
-  },
-  {
-    "name": "Blade City",
-    "url": "https://blade-city.com",
-    "domain": "blade-city.com"
-  },
-  {
-    "name": "Blade HQ \u2014 Blade Show Drops",
-    "url": "https://www.bladehq.com/cat--Knife-Show-New-Product--599",
-    "domain": "bladehq.com"
-  },
-  {
-    "name": "Blade HQ \u2014 Coming Soon",
-    "url": "https://www.bladehq.com/cat--Coming-Soon--298",
-    "domain": "bladehq.com"
-  },
-  {
-    "name": "Blade HQ \u2014 Exclusives",
-    "url": "https://www.bladehq.com/cat--BladeHQ-Exclusives--199",
-    "domain": "bladehq.com"
-  },
-  {
-    "name": "Blade HQ \u2014 New Arrivals",
-    "url": "https://www.bladehq.com/cat--New-Arrivals--153",
-    "domain": "bladehq.com"
-  },
-  {
-    "name": "Blade Ops",
-    "url": "https://bladeops.com/chris-reeve-knives/",
-    "domain": "bladeops.com"
-  },
-  {
-    "name": "Blaurock Blades",
-    "url": "https://blaurock-blades.com",
-    "domain": "blaurock-blades.com"
-  },
-  {
-    "name": "Castle Gate",
-    "url": "https://www.castlegate.com/",
-    "domain": "castlegate.com"
-  },
-  {
-    "name": "Chaves Knives Direct",
-    "url": "https://chavesknives.com",
-    "domain": "chavesknives.com"
-  },
-  {
-    "name": "Chefknivestogo",
-    "url": "https://chefknivestogo.com",
-    "domain": "chefknivestogo.com"
-  },
-  {
-    "name": "Chris Reeve Knives",
-    "url": "https://www.chrisreeve.com",
-    "domain": "chrisreeve.com"
-  },
-  {
-    "name": "Claytons Range",
-    "url": "https://claytonsrangepa.com/",
-    "domain": "claytonsrangepa.com"
-  },
-  {
-    "name": "Collectorknives",
-    "url": "https://collectorknives.net",
-    "domain": "collectorknives.net"
-  },
-  {
-    "name": "Curtiss Custom Knives",
-    "url": "https://www.curtisscustomknives.com",
-    "domain": "curtisscustomknives.com"
-  },
-  {
-    "name": "Cutting Edge \u2014 Pre-Owned",
-    "url": "https://cuttingedge.com",
-    "domain": "cuttingedge.com"
-  },
-  {
-    "name": "Deepak Chopra Inc",
-    "url": "https://www.deepakc.com/",
-    "domain": "deepakc.com"
-  },
-  {
-    "name": "Demko Knives",
-    "url": "https://demkoknives.com",
-    "domain": "demkoknives.com"
-  },
-  {
-    "name": "DLT Trading",
-    "url": "https://www.dlttrading.com",
-    "domain": "dlttrading.com"
-  },
-  {
-    "name": "DLT Trading \u2014 Blade Show Drops",
-    "url": "https://www.dlttrading.com/15-days-of-bladeshow",
-    "domain": "dlttrading.com"
-  },
-  {
-    "name": "DLT Trading \u2014 CRK",
-    "url": "https://www.dlttrading.com/chris-reeve-knives",
-    "domain": "dlttrading.com"
-  },
-  {
-    "name": "DLT Trading \u2014 Hinderer",
-    "url": "https://www.dlttrading.com/rick-hinderer-knives",
-    "domain": "dlttrading.com"
-  },
-  {
-    "name": "DLT Trading \u2014 New Arrivals",
-    "url": "https://www.dlttrading.com/newest-arrivals",
-    "domain": "dlttrading.com"
-  },
-  {
-    "name": "EDC Lifestyle \u2014 Pre-Owned",
-    "url": "https://www.edclifestyle.com/pre-owned-consignment/",
-    "domain": "edclifestyle.com"
-  },
-  {
-    "name": "Edgeworksonline",
-    "url": "https://edgeworksonline.com",
-    "domain": "edgeworksonline.com"
-  },
-  {
-    "name": "eKnives",
-    "url": "https://www.eknives.com",
-    "domain": "eknives.com"
-  },
-  {
-    "name": "EKnives \u2014 Blade Show",
-    "url": "https://eknives.com/blade-show/",
-    "domain": "eknives.com"
-  },
-  {
-    "name": "EKnives \u2014 New Arrivals",
-    "url": "https://eknives.com/new/",
-    "domain": "eknives.com"
-  },
-  {
-    "name": "eKnives \u2014 Pre-Owned",
-    "url": "https://eknives.com/preowned/",
-    "domain": "eknives.com"
-  },
-  {
-    "name": "Everburn",
-    "url": "https://everburn.store",
-    "domain": "everburn.store"
-  },
-  {
-    "name": "Exclusive Folders",
-    "url": "https://exclusivefolders.com",
-    "domain": "exclusivefolders.com"
-  },
-  {
-    "name": "Flytanium",
-    "url": "https://www.flytanium.com",
-    "domain": "flytanium.com"
-  },
-  {
-    "name": "Fred Eisen Art Knives",
-    "url": "https://www.artknives.com/art-knives/chris-reeve-knives/",
-    "domain": "artknives.com"
-  },
-  {
-    "name": "Grimsmo Knives",
-    "url": "https://grimsmoknives.com",
-    "domain": "grimsmoknives.com"
-  },
-  {
-    "name": "Helacious Blades",
-    "url": "https://www.helacious.com",
-    "domain": "helacious.com"
-  },
-  {
-    "name": "Hog House Knives",
-    "url": "https://hoghouseknives.com",
-    "domain": "hoghouseknives.com"
-  },
-  {
-    "name": "Holt Bladeworks",
-    "url": "https://holtbladeworks.com",
-    "domain": "holtbladeworks.com"
-  },
-  {
-    "name": "Iron Ethos",
-    "url": "https://ironethos.com",
-    "domain": "ironethos.com"
-  },
-  {
-    "name": "JT Knives",
-    "url": "https://www.jtknives.com/Chris-Reeve-Knives_c_12.html",
-    "domain": "jtknives.com"
-  },
-  {
-    "name": "Keanisonknives",
-    "url": "https://keanisonknives.bigcartel.com",
-    "domain": "keanisonknives.bigcartel.com"
-  },
-  {
-    "name": "Kizerknives",
-    "url": "https://kizerknives.com",
-    "domain": "kizerknives.com"
-  },
-  {
-    "name": "Knife Art",
-    "url": "https://www.knifeart.com",
-    "domain": "knifeart.com"
-  },
-  {
-    "name": "Knife Center",
-    "url": "https://www.knifecenter.com",
-    "domain": "knifecenter.com"
-  },
-  {
-    "name": "Knife Market",
-    "url": "https://knife-market.com",
-    "domain": "knife-market.com"
-  },
-  {
-    "name": "Knife Purveyor",
-    "url": "https://www.knifepurveyor.com",
-    "domain": "knifepurveyor.com"
-  },
-  {
-    "name": "KnifeCenter \u2014 Blade Show",
-    "url": "https://www.knifecenter.com/listing/just-in-from-2026-blade-show-texas",
-    "domain": "knifecenter.com"
-  },
-  {
-    "name": "KnifeJoy",
-    "url": "https://www.knifejoy.com",
-    "domain": "knifejoy.com"
-  },
-  {
-    "name": "KnifeNews \u2014 All News",
-    "url": "https://knifenews.com/all-news/",
-    "domain": "knifenews.com"
-  },
-  {
-    "name": "Knifeworks",
-    "url": "https://knifeworks.com/",
-    "domain": "knifeworks.com"
-  },
-  {
-    "name": "Knives Plus",
-    "url": "https://www.knivesplus.com/chris-reeve-knives-crk.html",
-    "domain": "knivesplus.com"
-  },
-  {
-    "name": "Knives Ship Free",
-    "url": "https://www.knivesshipfree.com",
-    "domain": "knivesshipfree.com"
-  },
-  {
-    "name": "Koenig Knives",
-    "url": "https://koenigknives.com",
-    "domain": "koenigknives.com"
-  },
-  {
-    "name": "Kunwu Crew",
-    "url": "https://www.kunwucrew.com",
-    "domain": "kunwucrew.com"
-  },
-  {
-    "name": "Kunwu Knives",
-    "url": "https://kunwuknives.com",
-    "domain": "kunwuknives.com"
-  },
-  {
-    "name": "Lamnia",
-    "url": "https://www.lamnia.com",
-    "domain": "lamnia.com"
-  },
-  {
-    "name": "Little Joes Boots",
-    "url": "https://littlejoesboots.net/",
-    "domain": "littlejoesboots.net"
-  },
-  {
-    "name": "Luv Them Knives \u2014 Pre-Owned",
-    "url": "https://luvthemknives.com/collections/pre-owned-knives",
-    "domain": "luvthemknives.com"
-  },
-  {
-    "name": "Martins Firearms",
-    "url": "https://martinscf.com",
-    "domain": "martinscf.com"
-  },
-  {
-    "name": "Maxace Knife",
-    "url": "https://maxaceknife.com",
-    "domain": "maxaceknife.com"
-  },
-  {
-    "name": "McNees Knives",
-    "url": "https://mcneesknives.com",
-    "domain": "mcneesknives.com"
-  },
-  {
-    "name": "Mick Strider Custom Knives",
-    "url": "https://mickstridercustomknives.com/product-category/mick-strider-knives/available-mick-strider-knives/",
-    "domain": "mickstridercustomknives.com"
-  },
-  {
-    "name": "Miguron Knives",
-    "url": "https://www.miguronknives.com",
-    "domain": "miguronknives.com"
-  },
-  {
-    "name": "Monkey Edge",
-    "url": "https://www.monkeyedge.com",
-    "domain": "monkeyedge.com"
-  },
-  {
-    "name": "Nashville Tactical Lounge",
-    "url": "https://www.nashvilletacticallounge.com",
-    "domain": "nashvilletacticallounge.com"
-  },
-  {
-    "name": "Ncblade",
-    "url": "https://ncblade.com",
-    "domain": "ncblade.com"
-  },
-  {
-    "name": "Nordic Knives",
-    "url": "https://www.nordicknives.com",
-    "domain": "nordicknives.com"
-  },
-  {
-    "name": "Northwest Knives",
-    "url": "https://www.northwestknives.com",
-    "domain": "northwestknives.com"
-  },
-  {
-    "name": "Nullknives",
-    "url": "https://nullknives.com",
-    "domain": "nullknives.com"
-  },
-  {
-    "name": "Okluma",
-    "url": "https://okluma.com",
-    "domain": "okluma.com"
-  },
-  {
-    "name": "Original Goat",
-    "url": "https://originalgoat.com",
-    "domain": "originalgoat.com"
-  },
-  {
-    "name": "Oz Machine Company",
-    "url": "https://ozmachinecompany.com",
-    "domain": "ozmachinecompany.com"
-  },
-  {
-    "name": "Prometheus Design Werx",
-    "url": "https://prometheusdesignwerx.com/collections/folders",
-    "domain": "prometheusdesignwerx.com"
-  },
-  {
-    "name": "Pure Blades",
-    "url": "https://pureblades.com/chris-reeve/",
-    "domain": "pureblades.com"
-  },
-  {
-    "name": "Pvk",
-    "url": "https://pvk.com",
-    "domain": "pvk.com"
-  },
-  {
-    "name": "Qpblades",
-    "url": "https://qpblades.com",
-    "domain": "qpblades.com"
-  },
-  {
-    "name": "Quietcarry",
-    "url": "https://quietcarry.com",
-    "domain": "quietcarry.com"
-  },
-  {
-    "name": "Revolver Tactical",
-    "url": "https://www.revolvertactical.com/product-category/all-products/chris-reeve-knives/",
-    "domain": "revolvertactical.com"
-  },
-  {
-    "name": "Rickhindererknives",
-    "url": "https://rickhindererknives.com",
-    "domain": "rickhindererknives.com"
-  },
-  {
-    "name": "Rivers Edge Cutlery",
-    "url": "https://riversedgecutlery.com",
-    "domain": "riversedgecutlery.com"
-  },
-  {
-    "name": "Rivers Edge \u2014 Consignment",
-    "url": "https://riversedgecutlery.com/consignment-shop/",
-    "domain": "riversedgecutlery.com"
-  },
-  {
-    "name": "Ski Mania",
-    "url": "https://stores.theeouterlimit.com/knives/",
-    "domain": "stores.theeouterlimit.com"
-  },
-  {
-    "name": "SMKW",
-    "url": "https://www.smkw.com",
-    "domain": "smkw.com"
-  },
-  {
-    "name": "Soonerstateknives",
-    "url": "https://soonerstateknives.com",
-    "domain": "soonerstateknives.com"
-  },
-  {
-    "name": "Southern Edges",
-    "url": "https://southernedges.com",
-    "domain": "southernedges.com"
-  },
-  {
-    "name": "Spyderco",
-    "url": "https://www.spyderco.com",
-    "domain": "spyderco.com"
-  },
-  {
-    "name": "Steel Addiction",
-    "url": "https://www.steeladdiction.com",
-    "domain": "steeladdiction.com"
-  },
-  {
-    "name": "Steel Flame",
-    "url": "https://www.steelflame.com",
-    "domain": "steelflame.com"
-  },
-  {
-    "name": "Stnicksknives",
-    "url": "https://stnicksknives.com",
-    "domain": "stnicksknives.com"
-  },
-  {
-    "name": "Strider Knives",
-    "url": "https://www.striderknives.com",
-    "domain": "striderknives.com"
-  },
-  {
-    "name": "Tactical Elements",
-    "url": "https://www.tacticalelements.com",
-    "domain": "tacticalelements.com"
-  },
-  {
-    "name": "Tactile Knife Co",
-    "url": "https://www.tactileknife.com",
-    "domain": "tactileknife.com"
-  },
-  {
-    "name": "Thunderbird Gear",
-    "url": "https://thunderbirdgear.ca",
-    "domain": "thunderbirdgear.ca"
-  },
-  {
-    "name": "Tools For Gents",
-    "url": "https://toolsforgents.com",
-    "domain": "toolsforgents.com"
-  },
-  {
-    "name": "True North Knives",
-    "url": "https://www.truenorthknives.com/",
-    "domain": "truenorthknives.com"
-  },
-  {
-    "name": "Ubiquiti UVC-G6-180-W Camera (White)",
-    "url": "https://store.ui.com/us/en/category/cameras-dome-turret/products/uvc-g6-180?variant=uvc-g6-180-w",
-    "domain": "store.ui.com"
-  },
-  {
-    "name": "Urban EDC Supply",
-    "url": "https://urbanedcsupply.com",
-    "domain": "urbanedcsupply.com"
-  },
-  {
-    "name": "Vero Engineering",
-    "url": "https://veroengineering.com",
-    "domain": "veroengineering.com"
-  },
-  {
-    "name": "Whitemountainknives",
-    "url": "https://whitemountainknives.com",
-    "domain": "hitemountainknives.com"
-  },
-  {
-    "name": "Ye Ole Cutlery",
-    "url": "https://mdggifts.com/Chris-Reeve-Knives_bymfg_420-4-1.html",
-    "domain": "mdggifts.com"
-  },
-  {
-    "name": "Zero Tolerance",
-    "url": "https://www.zt.kaiusa.com/all-products.html",
-    "domain": "zt.kaiusa.com"
-  }
-];
-</script>
-<script>
-(function () {
-  var shops = typeof DW_SHOPS !== 'undefined' ? DW_SHOPS : [];
-
-  // ── Tab switching ──────────────────────────────────────────────────────
-  document.querySelectorAll('.wtw-tab').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      document.querySelectorAll('.wtw-tab').forEach(function (b) { b.classList.remove('active'); });
-      document.querySelectorAll('.wtw-panel').forEach(function (p) { p.classList.remove('active'); });
-      btn.classList.add('active');
-      document.getElementById('wtw-' + btn.dataset.panel).classList.add('active');
-    });
-  });
-
-  // ── All Our Shops ──────────────────────────────────────────────────────
-  var list = document.getElementById('wtwList');
-
-  function renderShops(items) {
-    if (!items.length) {
-      list.innerHTML = '<div class="wtw-empty">No shops match — try a shorter term.</div>';
-      return;
-    }
-    list.innerHTML = items.map(function (s) {
-      return '<a class="wtw-item" href="' + s.url + '" target="_blank" rel="noopener">' +
-             '<span>' + s.name + '</span>' +
-             '<span class="wtw-domain">' + s.domain + '</span>' +
-             '</a>';
-    }).join('');
-  }
-
-  renderShops(shops);
-
-  document.getElementById('wtwFilter').addEventListener('input', function () {
-    var q = this.value.toLowerCase().trim();
-    renderShops(q ? shops.filter(function (s) {
-      return s.name.toLowerCase().includes(q) || s.domain.toLowerCase().includes(q);
-    }) : shops);
-  });
-
-  // ── Check a URL ────────────────────────────────────────────────────────
-  function extractDomain(raw) {
-    try {
-      var u = new URL(raw.trim());
-      return u.hostname.replace(/^www\./, '');
-    } catch (e) { return null; }
-  }
-
-  function checkUrl(raw) {
-    var result = document.getElementById('wtwResult');
-    var err    = document.getElementById('wtwErr');
-    result.style.display = 'none';
-    err.style.display    = 'none';
-    result.className     = 'wtw-result';
-
-    if (!raw.trim()) return;
-
-    var d = extractDomain(raw);
-    if (!d) {
-      err.style.display = 'block';
-      return;
-    }
-
-    var exact = shops.filter(function (s) { return s.domain === d; });
-    if (exact.length) {
-      result.classList.add('hit');
-      result.innerHTML = '✓ We watch ' + exact.map(function (s) {
-        return '<a href="' + s.url + '" target="_blank" rel="noopener">' + s.name + '</a>';
-      }).join(', ') + ' — your watch covers it.';
-      result.style.display = 'block';
-      return;
-    }
-
-    var partial = shops.filter(function (s) { return s.domain.endsWith(d) || d.endsWith(s.domain); });
-    if (partial.length) {
-      result.classList.add('warn');
-      result.innerHTML = 'We watch ' + partial[0].name + ' on that domain — you\'re covered.';
-      result.style.display = 'block';
-      return;
-    }
-
-    result.classList.add('miss');
-    result.innerHTML = 'Not in our net yet — <a href="#watchForm">add it to your watch above</a> and we\'ll monitor it for you.';
-    result.style.display = 'block';
-  }
-
-  var urlInput = document.getElementById('wtwUrl');
-  urlInput.addEventListener('blur', function () { checkUrl(this.value); });
-  urlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') checkUrl(this.value); });
-})();
-</script>
 </body>
 </html>

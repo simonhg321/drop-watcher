@@ -415,6 +415,25 @@ USER_SITES_RELOAD_INTERVAL = 5 * 60   # reload watchers.json every 5 min
 # normalize_watch_url / domain_from_url now live in urls.py (single source of truth
 # shared with per_user_alerter + watcher_signup so matching can't silently diverge).
 
+def product_stock_result(products):
+    """Product-mode watch: the page is ONE product and its availability flag is the
+    whole decision. Returns an alert-shaped result (no AI call), or None when the
+    page isn't a single product so the caller falls back to the keyword/AI path."""
+    if not products or len(products) != 1:
+        return None
+    p = products[0]
+    title = (p.get('title') or '').strip() or 'Watched product'
+    available = bool(p.get('available'))
+    return {
+        'alert_worthy': available,
+        'priority': 'high',
+        'notable_items': [title] if available else [],
+        'in_stock': {title: 1} if available else {},
+        'page_summary': f"{title} — {'IN STOCK' if available else 'sold out'}"
+                        + (f" ({p.get('price')})" if p.get('price') else ''),
+    }
+
+
 def user_watch_sites(watchers):
     """Turn active watcher rows into fetch targets, skipping GLOBAL watches (empty
     url) — those match curated drops in per_user_alerter and have nothing to scrape."""
@@ -423,7 +442,8 @@ def user_watch_sites(watchers):
         url = (w.get('url') or '').strip()
         if not url:
             continue
-        sites.append({'url': url, 'keywords': w.get('keywords', ''), 'id': w.get('id')})
+        sites.append({'url': url, 'keywords': w.get('keywords', ''), 'id': w.get('id'),
+                      'mode': w.get('mode') or 'listing'})
     return sites
 
 
@@ -448,7 +468,9 @@ def load_user_sites(source_urls):
             continue
         domain = domain_from_url(url)
         if url not in user_sites:
-            user_sites[url] = {'url': url, 'keywords': set(), 'name': domain}
+            user_sites[url] = {'url': url, 'keywords': set(), 'name': domain, 'mode': 'listing'}
+        if w.get('mode') == 'product':
+            user_sites[url]['mode'] = 'product'
         kws = [k.strip().lower() for k in w.get('keywords', '').split(',') if k.strip()]
         user_sites[url]['keywords'].update(kws)
 
@@ -687,7 +709,8 @@ def run():
 
             page_cache[uurl] = {
                 'fingerprint': fp,
-                'last_checked': time.time()
+                'last_checked': time.time(),
+                'in_stock': page_cache.get(uurl, {}).get('in_stock'),   # product-mode edge state
             }
 
             if old_fp is not None and fp == old_fp:
@@ -702,6 +725,30 @@ def run():
             if is_homepage_junk(text):
                 log.info(f"{uname} — homepage/nav detected, skipping AI")
                 continue
+
+            # Product-mode watch: availability flag decides, no keyword, no AI.
+            if usite.get('mode') == 'product':
+                pres = product_stock_result(products)
+                if pres is not None:
+                    was_in_stock = page_cache[uurl].get('in_stock')
+                    page_cache[uurl]['in_stock'] = pres['alert_worthy']
+                    if not pres['alert_worthy']:
+                        record_scan(uurl, None, instock_text='')   # closes any open episode
+                        log.info(f"{uname} — product sold out ({pres['page_summary']})")
+                        continue
+                    record_scan(uurl, pres, products)
+                    # Edge-triggered: alert on the sold-out → in-stock transition only.
+                    # (match_drop's open episode also blocks repeats across restarts.)
+                    if was_in_stock:
+                        log.info(f"{uname} — still in stock, already alerted")
+                        continue
+                    pres.update({'agent': 'web_watcher', 'source': uname,
+                                 'event': 'user_watch_alert', 'page_excerpt': text[:6000],
+                                 'products': instock_products(products),
+                                 'link_candidates': candidates})
+                    write_alert(settings, pres)
+                    continue
+                log.info(f"{uname} — product watch but page didn't read as one product; keyword path")
 
             # Pre-filter: skip AI if none of the user's keywords appear in the page text
             text_lower = text.lower()

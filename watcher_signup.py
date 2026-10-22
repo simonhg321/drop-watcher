@@ -33,6 +33,7 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
 import paths
 import host_cooldown
+import page_kind
 import db
 from matching import kw_matches
 from makers import expand_maker
@@ -91,6 +92,15 @@ def looks_like_general_retailer(domain):
     if len(parts) >= 2 and parts[-2] in names:
         return True
     return len(parts) >= 3 and parts[-3] in names and parts[-2] in ('co', 'com')
+
+
+def _fetch_page_html(url):
+    """Raw (SSRF-safe, 512KB-capped) HTML for page-kind detection; '' on failure."""
+    try:
+        return fetch_text(url, max_bytes=512 * 1024, timeout=12) or ''
+    except Exception as e:
+        log.warning(f"_fetch_page_html failed for {url}: {e}")
+        return ''
 
 
 def _fetch_page_text(url):
@@ -397,7 +407,9 @@ def watch():
 
     # Validate required fields (url is now OPTIONAL — blank url = global watch)
     # `or ''` guards explicit JSON nulls — .get defaults only cover absent keys.
-    for field in ['keywords', 'email']:
+    mode = 'product' if str(data.get('mode') or '').strip().lower() == 'product' else 'listing'
+    required = ['email'] if mode == 'product' else ['keywords', 'email']
+    for field in required:
         if not str(data.get(field) or '').strip():
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
@@ -415,6 +427,9 @@ def watch():
         return jsonify({'error': 'Invalid email address.'}), 400
 
     is_global = (url == '')
+    product_info = None
+    if mode == 'product' and is_global:
+        return jsonify({'error': 'A product watch needs the product page URL.'}), 400
 
     if is_global:
         # Global watch: maker is required, no URL to normalize/guard.
@@ -434,6 +449,17 @@ def watch():
         safe, reason = is_safe_url(url)
         if not safe:
             return jsonify({'error': 'That URL is not allowed.'}), 400
+
+        # ── Product mode: the page tells us what to watch (two-path signup) ──
+        if mode == 'product':
+            pk = page_kind.detect(_fetch_page_html(url), url)
+            if pk['kind'] != 'product':
+                return jsonify({'error': "We couldn't read a single product on that page. "
+                                         "Tell us what you're waiting to see there (a keyword) "
+                                         "and we'll watch for it."}), 400
+            product_info = pk['product']
+            keywords = product_info['title']
+            data['maker_confirmed'] = True        # no maker prompt — the title names it
 
         # ── New-shop knife-gate (S54) ─────────────────────────────────────────
         # If the URL points at a domain we don't already curate and haven't already
@@ -524,9 +550,12 @@ def watch():
     # string is preserved in keywords_raw; the confirmation email renders the
     # corrected list, so the correction is silent but never hidden. ───────────
     keywords_raw = keywords
-    _san = keyword_sanitizer.sanitize(keywords, maker=maker)
+    if mode == 'product':
+        _san = {'keywords': keywords, 'maker': maker, 'notes': ''}   # title is authoritative
+    else:
+        _san = keyword_sanitizer.sanitize(keywords, maker=maker)
     keywords, maker = _san['keywords'], _san['maker']
-    if _san['notes'] == 'all_dropped' or _keyword_too_generic(keywords):
+    if mode != 'product' and (_san['notes'] == 'all_dropped' or _keyword_too_generic(keywords)):
         _ai_kws = correct_keywords_ai(keywords_raw, maker)
         _fixed = keyword_sanitizer.apply_ai_correction(_san, _ai_kws) if _ai_kws else None
         if _fixed:
@@ -594,6 +623,7 @@ def watch():
         already_verified = False
 
     entry = {
+        'mode':              mode,
         'id':                str(uuid.uuid4())[:8],
         'verify_token':      None if already_verified else str(uuid.uuid4()),
         'unsubscribe_token': shared_token,
@@ -660,7 +690,7 @@ def watch():
         _start_sms_verification(entry['id'], phone)
 
     # Quick keyword preview — show user what we found right now (skip for global watches)
-    matches = quick_keyword_check(url, keywords) if not is_global else []
+    matches = quick_keyword_check(url, keywords) if (not is_global and mode != 'product') else []
     resp = {'status': 'created', 'id': entry['id']}
     if matches:
         resp['preview'] = matches
@@ -685,9 +715,14 @@ def watch():
             resp['preview_msg'] = ("We couldn't send your verification email just now — "
                                    "resubmit in a minute or grab your link at /get-my-link.html.")
 
-    if _keyword_too_generic(keywords):
+    if mode != 'product' and _keyword_too_generic(keywords):
         resp['warning'] = ("Those keywords are quite generic — you may get a lot of alerts. "
                            "Try adding a maker name or specific model (e.g. \"Chris Reeve Sebenza\").")
+    if product_info:
+        resp['product'] = product_info
+        resp['preview_msg'] = (f"{product_info['title']} is in stock right now — alert incoming once you verify."
+                               if product_info['available'] else
+                               f"{product_info['title']} is sold out right now. We'll tell you the moment that changes.")
 
     return jsonify(resp), 201
 
@@ -1301,11 +1336,19 @@ def check_url():
         warning = ("Heads up — that's a big general retailer, not a knife or gear shop. "
                    "Drop Watcher works best on maker and dealer pages. Sure that's what you want to watch?")
 
+    pk = page_kind.detect(r.text, url)
     msg = "We can read this page. You're good to go."
-    if known_status == 'active-source':
+    if pk['kind'] == 'product':
+        pr = pk['product']
+        state = 'in stock right now' if pr['available'] else 'sold out right now'
+        msg = f"That's {pr['title']}. It's {state}. We'll tell you the moment it's in stock."
+        warning = None if parsed.path not in ('', '/') else warning
+    elif pk['kind'] == 'listing':
+        msg = f"That's a list of {pk['count']} products. What are you waiting to see on it?"
+    if known_status == 'active-source' and pk['kind'] != 'product':
         msg = (f"Good news — {known_name} is already on our watch list. "
                "Your keywords will ride coverage we've tuned.")
-    resp = {'ok': True, 'msg': msg}
+    resp = {'ok': True, 'msg': msg, 'kind': pk['kind'], 'product': pk['product'], 'count': pk['count']}
     if warning:
         resp['warning'] = warning
     return jsonify(resp)
