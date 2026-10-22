@@ -457,6 +457,15 @@ def load_user_sites(source_urls):
     return user_sites
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
+def active_websites(sources, settings):
+    """Curated dealer roster to poll. settings polling.curated_sources: false
+    (Simon 2026-10-22, "simple thing") turns the whole roster off — we then only
+    poll URLs users explicitly asked us to watch. Flip the yaml to turn it back on."""
+    if not (settings.get('polling') or {}).get('curated_sources', True):
+        return []
+    return [s for s in sources.get('websites', []) if s.get('enabled', True)]
+
+
 def run():
     log.info("Web Watcher starting up — HGR")
 
@@ -490,7 +499,9 @@ def run():
     page_cache    = {}
     failure_count = {}
 
-    websites = [s for s in sources.get('websites', []) if s.get('enabled', True)]
+    websites = active_websites(sources, settings)
+    if not websites:
+        log.info("Curated roster OFF (polling.curated_sources: false) — user watches only")
 
     # Build set of curated source URLs (exact-URL match, not domain) so a user's
     # deep-link watch on a domain we also curate is still polled as its own watch.
@@ -652,7 +663,8 @@ def run():
             log.info(f"Checking user site {uname} in {sleep_time}s (keywords: {', '.join(user_kws)})...")
             time.sleep(sleep_time)
 
-            text, products, candidates = collection_fetch.fetch_collection(uurl, fetch_page, log=log, hints=None)
+            text, products, candidates = collection_fetch.fetch_collection(
+                uurl, fetch_page, log=log, hints=None, strict=True)
             if text is None:
                 failure_count[uurl] = failure_count.get(uurl, 0) + 1
                 # Record the attempt so a failing URL is throttled by the poll

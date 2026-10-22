@@ -157,7 +157,7 @@ def _product_line(pr):
     return f"{pr['title']} — {pr['vendor']} — {status} — ${pr['price']} — tags: {tags}"
 
 
-def fetch_shopify_collection(url, fetch_page, ssl_permissive=False, log=None):
+def fetch_shopify_collection(url, fetch_page, ssl_permissive=False, log=None, max_pages=None):
     """Return (text, products) via products.json, or (None, None) if not Shopify/failed.
 
     `text` is the flattened searchable blob (unchanged from before); `products` is the
@@ -168,7 +168,7 @@ def fetch_shopify_collection(url, fetch_page, ssl_permissive=False, log=None):
         return None, None
     sep = '&' if '?' in base else '?'
     products = []
-    for page in range(1, SHOPIFY_MAX_PAGES + 1):
+    for page in range(1, (max_pages or SHOPIFY_MAX_PAGES) + 1):
         purl = f"{base}{sep}limit={SHOPIFY_LIMIT}&page={page}"
         raw = fetch_page(purl, ssl_permissive)
         if not raw:
@@ -329,8 +329,13 @@ def _walk_structured_pages(url, page1_html, page1_products, fetch_page,
 
 # ── Orchestrator ────────────────────────────────────────────────────────────
 
-def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None):
+def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None,
+                     strict=False):
     """Pagination/Shopify-aware fetch. Returns (text, products, candidates).
+
+    `strict=True` (user-submitted watches, Simon 2026-10-22 "simple thing"): fetch
+    exactly what the user gave us — one products.json read on Shopify, otherwise the
+    single page — and NEVER walk pagination. We only touch what someone asked for.
 
     `products` is the structured list of {title, vendor, url, available, tags, price}
     whenever ANY structured tier resolves (Shopify products.json, JSON-LD, or product-card
@@ -341,7 +346,8 @@ def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None
     """
     try:
         text, products = fetch_shopify_collection(
-            url, fetch_page, ssl_permissive=ssl_permissive, log=log)
+            url, fetch_page, ssl_permissive=ssl_permissive, log=log,
+            max_pages=1 if strict else None)
         if text:
             return text, products, []
     except Exception as e:
@@ -363,11 +369,18 @@ def fetch_collection(url, fetch_page, ssl_permissive=False, log=None, hints=None
         if structured:
             if log:
                 log.info(f"[collection_fetch] structured extract — {len(structured)} products for {url}")
+            if strict:
+                return _strip_text(raw_html), structured, []
             # Walk pages 2+ to pick up products that live beyond the first page.
             structured = _walk_structured_pages(
                 url, raw_html, structured, fetch_page,
                 ssl_permissive=ssl_permissive, log=log, hints=hints)
             return _strip_text(raw_html), structured, []
+
+    if strict:
+        if raw_html is None:
+            return None, None, []
+        return _strip_text(raw_html), None, _candidates_from_html(raw_html, url)
 
     # Unstructured: walk pagination for combined text + best-effort fuzzy candidates.
     try:

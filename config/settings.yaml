@@ -11,6 +11,8 @@ alerts:
   min_priority: medium
 
 polling:
+  # Simon 2026-10-22 'simple thing': curated dealer roster OFF — only user-submitted URLs are polled. true = old behaviour.
+  curated_sources: false
   # Global jitter in seconds added to poll intervals (keeps requests unpredictable)
   jitter_seconds: 30
   # Minimum seconds between requests to the same domain
