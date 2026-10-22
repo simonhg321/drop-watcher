@@ -32,6 +32,7 @@ CORS(app, origins=['https://instockornot.club'])
 limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
 import paths
+import host_cooldown
 import db
 from matching import kw_matches
 from makers import expand_maker
@@ -172,7 +173,7 @@ def quick_keyword_check(url, keywords_str):
     from safe_fetch import safe_get
 
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'}
+        headers = {'User-Agent': host_cooldown.USER_AGENT}
         # safe_get validates the URL and every redirect hop (SSRF guard).
         r = safe_get(url, headers=headers, timeout=10)
         r.raise_for_status()
@@ -1233,7 +1234,7 @@ def check_url():
     url = normalize_url(url)
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'
+        'User-Agent': host_cooldown.USER_AGENT
     }
 
     # safe_get validates the URL and every redirect hop (SSRF guard).

@@ -130,10 +130,18 @@ def fetch_text(url, max_bytes=2 * 1024 * 1024, ssl_permissive=False, timeout=15,
     """
     import requests
     from urllib.parse import urljoin
+    import host_cooldown
 
     def _warn(msg):
         if log is not None:
             log.warning(msg)
+
+    # Fleet law (directive 207): distinct per-machine UA, per-host 24h 429 cooldown.
+    if headers is None:
+        headers = {'User-Agent': host_cooldown.USER_AGENT}
+    if host_cooldown.is_blocked(url):
+        _warn(f"Skipping {url} — host in 429 cooldown")
+        return None
 
     current = url
     try:
@@ -144,6 +152,10 @@ def fetch_text(url, max_bytes=2 * 1024 * 1024, ssl_permissive=False, timeout=15,
                 return None
             r = requests.get(current, headers=headers, timeout=timeout, stream=True,
                              verify=not ssl_permissive, allow_redirects=False)
+            if r.status_code == 429:
+                r.close()
+                host_cooldown.record_429(current)
+                return None
             if r.is_redirect or r.status_code in (301, 302, 303, 307, 308):
                 loc = r.headers.get('Location', '')
                 r.close()

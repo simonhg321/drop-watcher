@@ -52,6 +52,7 @@ sys.path.insert(0, BASE_DIR)
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 
 import paths
+import host_cooldown
 import db
 import collection_fetch
 import safe_fetch
@@ -76,7 +77,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('dealer_scout')
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'}
+HEADERS = {'User-Agent': host_cooldown.USER_AGENT}
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 

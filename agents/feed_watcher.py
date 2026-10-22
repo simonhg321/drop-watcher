@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 import paths
+import host_cooldown
 import db
 load_dotenv(paths.ENV_FILE)
 
@@ -91,7 +92,7 @@ def write_alert(settings, alert):
 
 # ── Fetch RSS feed ────────────────────────────────────────────────────────────
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'
+    'User-Agent': host_cooldown.USER_AGENT
 }
 
 def fetch_feed(url):

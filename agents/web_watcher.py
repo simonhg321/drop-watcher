@@ -42,6 +42,7 @@ from ai_interpreter import analyze_page, analyze_user_page
 import collection_fetch
 import record_index
 from safe_fetch import is_safe_url
+import host_cooldown
 from urls import normalize_watch_url, domain_from_url
 from config_load import load_yaml, build_keywords, prefilter
 from urllib.parse import urljoin
@@ -345,9 +346,7 @@ class PermissiveSSLAdapter(HTTPAdapter):
         return super().init_poolmanager(*args, **kwargs)
 
 # ── Fetch ─────────────────────────────────────────────────────────────────────
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'
-}
+HEADERS = {'User-Agent': host_cooldown.USER_AGENT}   # distinct per machine (directive 207)
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024  # 2MB — reject oversized pages
 MAX_REDIRECTS = 4
@@ -360,6 +359,9 @@ def fetch_page(url, ssl_permissive=False):
     safe, reason = is_safe_url(url)
     if not safe:
         log.warning(f"Refusing to fetch unsafe URL {url}: {reason}")
+        return None
+    if host_cooldown.is_blocked(url):
+        log.info(f"Skipping {url} — host in 429 cooldown")
         return None
     try:
         session = requests.Session()
@@ -387,6 +389,10 @@ def fetch_page(url, ssl_permissive=False):
                     log.warning(f"Refusing redirect to unsafe URL {current}: {reason}")
                     return None
                 continue
+            if response.status_code == 429:
+                response.close()
+                host_cooldown.record_429(current)
+                return None
             response.raise_for_status()
             content_length = response.headers.get('Content-Length')
             if content_length and int(content_length) > MAX_RESPONSE_BYTES:

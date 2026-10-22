@@ -1,6 +1,9 @@
 # Copyright (c) 2026 Simon SGH — instockornot.club — ELv2 License
 #!/usr/bin/env python3
 """
+lunar_hunter.py — RETIRED 2026-10-22 (Simon: "kill lunar hunter"; hgr-watch replaced it, Corp task #30).
+Cron entry removed. Code kept for reference only.
+
 lunar_hunter.py — a bespoke, hard-charging hunt for ONE grail:
 the Chris Reeve "Lunar Landing" CGG graphic (the first man on the moon).
 
@@ -43,6 +46,7 @@ sys.path.insert(0, BASE_DIR)
 sys.path.insert(0, os.path.join(BASE_DIR, 'agents'))
 
 import paths
+import host_cooldown
 import db
 import collection_fetch
 import safe_fetch
@@ -308,7 +312,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('lunar_hunter')
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; DropWatcher/1.0; +https://instockornot.club; instockornot)'}
+HEADERS = {'User-Agent': host_cooldown.USER_AGENT}
 MAX_RESPONSE_BYTES = 3 * 1024 * 1024
 
 # ── eBay Browse API ─────────────────────────────────────────────────────────
