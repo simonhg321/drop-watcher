@@ -42,6 +42,28 @@ SHOPIFY_LIMIT       = 100   # keep each products.json page well under fetch_page
 SHOPIFY_MAX_PAGES   = 8      # up to 800 products — plenty for keyword watches
 HTML_MAX_PAGES      = 15    # generic ?page=N walk cap
 PAGE_SLEEP_SECONDS  = 0.8   # politeness between pages of the SAME site
+NOT_SHOPIFY_TTL     = 12 * 3600  # remember "host has no products.json" this long
+
+# host → time.time() when we learned its /products.json is not Shopify (404, HTML,
+# unreachable). Log review 2026-10-22: we were re-probing dlttrading/smkw/monkeyedge
+# etc. every cycle — ~half our traffic to exactly the non-Shopify dealers. In-process
+# only; a restart re-probes once.
+_not_shopify = {}
+
+
+def _host(url):
+    h = (urlparse(url).netloc or '').lower()
+    return h[4:] if h.startswith('www.') else h
+
+
+def _known_not_shopify(url):
+    t = _not_shopify.get(_host(url))
+    if t is None:
+        return False
+    if time.time() - t > NOT_SHOPIFY_TTL:
+        _not_shopify.pop(_host(url), None)
+        return False
+    return True
 
 _STRIP_TAGS = ['nav', 'header', 'footer', 'script', 'style', 'meta', 'link']
 
@@ -166,16 +188,22 @@ def fetch_shopify_collection(url, fetch_page, ssl_permissive=False, log=None, ma
     base = shopify_products_url(url)
     if not base:
         return None, None
+    if _known_not_shopify(url):
+        return None, None
     sep = '&' if '?' in base else '?'
     products = []
     for page in range(1, (max_pages or SHOPIFY_MAX_PAGES) + 1):
         purl = f"{base}{sep}limit={SHOPIFY_LIMIT}&page={page}"
         raw = fetch_page(purl, ssl_permissive)
         if not raw:
+            if page == 1:
+                _not_shopify[_host(url)] = time.time()
             break
         try:
             data = json.loads(raw)
         except Exception:
+            if page == 1:
+                _not_shopify[_host(url)] = time.time()
             # Page 1 unparseable → not a usable Shopify endpoint (or fully truncated).
             # A LATER page failing (e.g. an oversized page hit the fetch cap) must not
             # throw away the products we already collected from earlier pages.

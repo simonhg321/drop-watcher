@@ -181,6 +181,9 @@ def is_homepage_junk(text):
 # ── Stale user watch throttling ───────────────────────────────────────────────
 # Track consecutive "not found" results per URL — throttle after threshold
 stale_watch_count = {}  # url → consecutive not-found count
+last_http_status = {}   # url → last HTTP status seen by fetch_page (None = no response)
+GONE_STATUSES  = (404, 410)
+GONE_THRESHOLD = 24     # consecutive 404/410 polls (~6h at 15 min) before a user watch is retired
 STALE_THRESHOLD = 3     # after 3 identical "not found", slow down
 STALE_INTERVAL = 3600   # throttle to hourly (seconds)
 
@@ -394,6 +397,7 @@ def fetch_page(url, ssl_permissive=False):
                 host_cooldown.record_429(current)
                 return None
             response.raise_for_status()
+            last_http_status[url] = response.status_code
             content_length = response.headers.get('Content-Length')
             if content_length and int(content_length) > MAX_RESPONSE_BYTES:
                 log.warning(f"Skipping {current} — Content-Length {content_length} exceeds 2MB limit")
@@ -405,8 +409,59 @@ def fetch_page(url, ssl_permissive=False):
         log.warning(f"Too many redirects for {url}")
         return None
     except requests.RequestException as e:
+        last_http_status[url] = getattr(getattr(e, 'response', None), 'status_code', None)
         log.warning(f"Failed to fetch {url}: {e}")
         return None
+
+
+def send_page_gone_email(w):
+    """Tell a user their watched page no longer exists. Returns True on send."""
+    import html as _h
+    import alerter
+    url = w.get('url') or ''
+    subject = "Drop Watcher: that page is gone"
+    text = (f"The page you asked us to watch no longer exists (it has returned 'not found' "
+            f"for several hours):\n\n{url}\n\nWe've stopped watching it. If the item moved, "
+            f"paste the new page at https://instockornot.club/watchlist.html and we'll pick it up.\n")
+    html = (f"<p>The page you asked us to watch no longer exists (it has returned "
+            f"&ldquo;not found&rdquo; for several hours):</p><p><a href=\"{_h.escape(url)}\">"
+            f"{_h.escape(url)}</a></p><p>We've stopped watching it. If the item moved, paste the "
+            f"new page at <a href=\"https://instockornot.club/watchlist.html\">instockornot.club</a> "
+            f"and we'll pick it up.</p>")
+    try:
+        return bool(alerter.send_email(subject, html, text, to_addr=w['email']))
+    except Exception as e:
+        log.warning(f"page-gone email to {w.get('email')} failed: {e}")
+        return False
+
+
+def note_user_fetch_failure(uurl):
+    """A user URL just failed to fetch. If the failure was a 404/410, count it on
+    every active watch for that URL; at GONE_THRESHOLD in a row retire them and
+    email the owners. Returns the list of watchers retired this call."""
+    if last_http_status.get(uurl) not in GONE_STATUSES:
+        return []
+    with db.get_db() as conn:
+        conn.execute("UPDATE watchers SET consecutive_not_found = COALESCE(consecutive_not_found,0)+1 "
+                     "WHERE active=1 AND url=?", (uurl,))
+        rows = [dict(r) for r in conn.execute(
+            "SELECT * FROM watchers WHERE active=1 AND url=? AND consecutive_not_found >= ?",
+            (uurl, GONE_THRESHOLD)).fetchall()]
+    retired = []
+    for w in rows:
+        db.update_watcher(w['id'], active=False)
+        log.warning(f"Retired watch {w['id']} for {w['email']}: {uurl} gone "
+                    f"({w['consecutive_not_found']} consecutive not-found)")
+        send_page_gone_email(w)
+        retired.append(w)
+    return retired
+
+
+def note_user_fetch_ok(uurl):
+    """A user URL fetched fine — clear any not-found streak (cheap: only rows > 0)."""
+    with db.get_db() as conn:
+        conn.execute("UPDATE watchers SET consecutive_not_found=0 "
+                     "WHERE url=? AND COALESCE(consecutive_not_found,0) > 0", (uurl,))
 
 # ── User-submitted watch URLs ─────────────────────────────────────────────────
 USER_POLL_INTERVAL = 15 * 60          # scrape user URLs every 15 min
@@ -694,6 +749,10 @@ def run():
                 page_cache.setdefault(uurl, {})['last_checked'] = time.time()
                 if failure_count[uurl] >= fail_thresh:
                     log.error(f"{uname} has failed {failure_count[uurl]} times in a row")
+                try:
+                    note_user_fetch_failure(uurl)
+                except Exception as e:
+                    log.warning(f"note_user_fetch_failure({uurl}) failed: {e}")
                 continue
 
             try:
@@ -703,6 +762,10 @@ def run():
                 log.warning(f"record_index.index_scan failed for {uurl}: {e}")
 
             failure_count[uurl] = 0
+            try:
+                note_user_fetch_ok(uurl)
+            except Exception as e:
+                log.warning(f"note_user_fetch_ok({uurl}) failed: {e}")
 
             fp = page_fingerprint(text, products)
             old_fp = page_cache.get(uurl, {}).get('fingerprint')
